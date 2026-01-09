@@ -1,0 +1,1 @@
+{\n  \"name\": \"@rte-editor/themes\",\n  \"version\": \"1.0.0\",\n  \"description\": \"CSS themes for Rich Text Editor\",\n  \"main\": \"dist/index.css\",\n  \"files\": [\"dist\"]\n}

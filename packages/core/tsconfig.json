@@ -1,0 +1,1 @@
+{\n  \"extends\": \"../../tsconfig.json\",\n  \"compilerOptions\": {\n    \"outDir\": \"./dist\",\n    \"rootDir\": \"./src\",\n    \"declaration\": true,\n    \"declarationMap\": true,\n    \"target\": \"ES2020\",\n    \"module\": \"CommonJS\",\n    \"downlevelIteration\": true\n  },\n  \"include\": [\"src/**/*\"],\n  \"exclude\": [\"dist\", \"**/*.test.ts\"]\n}

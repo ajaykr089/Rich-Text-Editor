@@ -1,0 +1,11 @@
+{
+  "name": "@rte-editor/core",
+  "version": "1.0.0",
+  "description": "Framework-agnostic core editor engine",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "build": "cp -r src/* dist/"
+  }
+}

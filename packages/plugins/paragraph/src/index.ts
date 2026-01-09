@@ -1,0 +1,1 @@
+export { ParagraphPlugin, createParagraphPlugin } from './ParagraphPlugin';

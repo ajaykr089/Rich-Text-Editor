@@ -2,6 +2,8 @@
 
 # dependencies
 /node_modules
+/examples/nextjs-app/node_modules
+/examples/nextjs-app/.next
 /.pnp
 .pnp.js
 
