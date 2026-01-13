@@ -1,1 +1,1 @@
-export { ParagraphPlugin, createParagraphPlugin } from './ParagraphPlugin';
+export { ParagraphPlugin } from './ParagraphPlugin';

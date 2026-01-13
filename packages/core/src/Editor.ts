@@ -1,454 +1,49 @@
-import { EditorState, Transaction } from './EditorState';
-import { Schema, defaultSchema } from './schema/Schema';
-import { Node } from './model/Node';
-import { Plugin } from './plugins/Plugin';
-import { Selection, TextSelection } from './Selection';
-import { Fragment } from './model/Fragment';
-import { Mark } from './model/Mark';
-
-export interface EditorConfig {
-  content?: string | Node;
-  plugins?: Plugin[];
-  schema?: Schema;
-  onUpdate?: (props: { editor: Editor; transaction: Transaction }) => void;
-  onSelectionUpdate?: (props: { editor: Editor; selection: Selection }) => void;
-  onFocus?: (props: { editor: Editor }) => void;
-  onBlur?: (props: { editor: Editor }) => void;
-  editable?: boolean;
-}
+import { EditorState } from './EditorState';
+import { PluginManager } from './plugins/Plugin';
+import { Node } from './schema/Node';
 
 export class Editor {
-  private _state: EditorState;
-  private plugins: Plugin[];
-  private schema: Schema;
-  private onUpdate?: (props: { editor: Editor; transaction: Transaction }) => void;
-  private onSelectionUpdate?: (props: { editor: Editor; selection: Selection }) => void;
-  private onFocus?: (props: { editor: Editor }) => void;
-  private onBlur?: (props: { editor: Editor }) => void;
-  private view?: any;
-  private editable: boolean;
-  private destroyed = false;
+  state: EditorState;
+  pluginManager: PluginManager;
+  commands: Record<string, (state: EditorState) => EditorState | null>;
+  listeners: Array<(state: EditorState) => void> = [];
 
-  constructor(config: EditorConfig = {}) {
-    this.plugins = config.plugins || [];
-    this.onUpdate = config.onUpdate;
-    this.onSelectionUpdate = config.onSelectionUpdate;
-    this.onFocus = config.onFocus;
-    this.onBlur = config.onBlur;
-    this.editable = config.editable !== false;
-
-    // Merge schemas from plugins
-    this.schema = this.createMergedSchema(config.schema);
-    
-    const doc = this.createDocument(config.content);
-    
-    this._state = EditorState.create({
-      doc,
-      schema: this.schema,
-      plugins: this.plugins,
-      selection: Selection.atStart(doc)
-    });
-
-    this.initializePlugins();
+  constructor(pluginManager: PluginManager) {
+    this.pluginManager = pluginManager;
+    const schema = pluginManager.buildSchema();
+    this.state = EditorState.create(schema);
+    this.commands = pluginManager.getCommands();
   }
 
-  private createMergedSchema(baseSchema?: Schema): Schema {
-    const base = baseSchema || defaultSchema;
-    
-    // Collect schema extensions from plugins
-    const nodeSpecs = { ...base.spec.nodes };
-    const markSpecs = { ...base.spec.marks };
-    
-    this.plugins.forEach(plugin => {
-      const schemaExt = plugin.getSchemaExtensions();
-      if (schemaExt) {
-        if (schemaExt.nodes) {
-          Object.assign(nodeSpecs, schemaExt.nodes);
-        }
-        if (schemaExt.marks) {
-          Object.assign(markSpecs, schemaExt.marks);
-        }
-      }
-    });
-    
-    return new Schema({
-      nodes: nodeSpecs,
-      marks: markSpecs,
-      topNode: base.spec.topNode
-    });
+  setState(state: EditorState): void {
+    this.state = state;
+    this.listeners.forEach(fn => fn(state));
   }
 
-  get state(): EditorState {
-    return this._state;
-  }
-
-  get isEditable(): boolean {
-    return this.editable && !this.destroyed;
-  }
-
-  private createDocument(content?: string | Node): Node {
-    if (content instanceof Node) return content;
-
-    if (typeof content === 'string') {
-      return this.parseHTML(content);
-    }
-
-    return this.schema.nodes.doc.create({}, Fragment.from([
-      this.schema.nodes.paragraph.create()
-    ]));
-  }
-
-  private parseHTML(html: string): Node {
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(`<div>${html}</div>`, 'text/html');
-    return this.parseDOMNode(doc.body.firstChild || doc.createElement('div'));
-  }
-
-  private parseDOMNode(domNode: globalThis.Node): Node {
-    if (domNode.nodeType === 3) { // TEXT_NODE
-      return Node.text(domNode.textContent || '');
-    }
-
-    const element = domNode as Element;
-    const tagName = element.tagName?.toLowerCase();
-    
-    let nodeType = this.schema.nodes.paragraph;
-    let attrs: any = {};
-
-    switch (tagName) {
-      case 'h1': case 'h2': case 'h3': case 'h4': case 'h5': case 'h6':
-        nodeType = this.schema.nodes.heading;
-        attrs.level = parseInt(tagName[1]);
-        break;
-      case 'p':
-        nodeType = this.schema.nodes.paragraph;
-        break;
-      case 'div':
-        nodeType = this.schema.nodes.doc;
-        break;
-    }
-
-    const children: Node[] = [];
-    for (let i = 0; i < element.childNodes.length; i++) {
-      const child = this.parseDOMNode(element.childNodes[i]);
-      if (child) children.push(child);
-    }
-    
-    return nodeType.create(attrs, Fragment.from(children));
-  }
-
-  private initializePlugins(): void {
-    const ctx = {
-      schema: this.schema,
-      state: this._state,
-      dispatch: this.dispatch.bind(this),
-      view: this.view
+  onChange(fn: (state: EditorState) => void): () => void {
+    this.listeners.push(fn);
+    return () => {
+      this.listeners = this.listeners.filter(l => l !== fn);
     };
-
-    this.plugins.forEach(plugin => {
-      plugin.init(ctx);
-    });
   }
 
-  dispatch = (tr: Transaction): void => {
-    if (this.destroyed) return;
+  execCommand(name: string): boolean {
+    const command = this.commands[name];
+    if (!command) return false;
     
-    try {
-      const newState = this._state.apply(tr);
-      const oldState = this._state;
-      this.updateState(newState, tr);
-
-      if (!oldState.selection.equals(newState.selection)) {
-        this.onSelectionUpdate?.({ editor: this, selection: newState.selection });
-      }
-    } catch (error) {
-      console.error('[Editor] Dispatch error:', error);
-      throw error;
+    const newState = command(this.state);
+    if (newState) {
+      this.setState(newState);
+      return true;
     }
-  }
-
-  private updateState(newState: EditorState, tr: Transaction): void {
-    this._state = newState;
-    
-    const ctx = {
-      schema: this.schema,
-      state: this._state,
-      dispatch: this.dispatch,
-      view: this.view
-    };
-
-    this.plugins.forEach(plugin => {
-      plugin.spec.onTransaction?.(tr, ctx);
-    });
-    this.onUpdate?.({ editor: this, transaction: tr });
-  }
-
-  getHTML(): string {
-    return this.serializeToHTML(this._state.doc);
-  }
-
-  getJSON(): any {
-    return this._state.doc.toJSON();
-  }
-
-  getText(): string {
-    return this._state.doc.textContent;
-  }
-
-  private serializeToHTML(node: Node): string {
-    if (node.isText) {
-      let text = node.attrs.text || '';
-      
-      node.marks.forEach(mark => {
-        switch (mark.type.name) {
-          case 'bold': text = `<strong>${text}</strong>`; break;
-          case 'italic': text = `<em>${text}</em>`; break;
-          case 'underline': text = `<u>${text}</u>`; break;
-          case 'code': text = `<code>${text}</code>`; break;
-        }
-      });
-      
-      return text;
-    }
-
-    const tag = this.getHTMLTag(node);
-    if (!tag) {
-      return node.content.children.map(child => this.serializeToHTML(child)).join('');
-    }
-
-    const attrs = this.getHTMLAttrs(node);
-    const attrStr = attrs ? ` ${attrs}` : '';
-    const content = node.content.children.map(child => this.serializeToHTML(child)).join('');
-    
-    return `<${tag}${attrStr}>${content}</${tag}>`;
-  }
-
-  private getHTMLTag(node: Node): string | null {
-    switch (node.type.name) {
-      case 'doc': return null;
-      case 'paragraph': return 'p';
-      case 'heading': return `h${node.attrs.level || 1}`;
-      case 'blockquote': return 'blockquote';
-      case 'code_block': return 'pre';
-      case 'bullet_list': return 'ul';
-      case 'ordered_list': return 'ol';
-      case 'list_item': return 'li';
-      case 'table': return 'table';
-      case 'table_row': return 'tr';
-      case 'table_cell': return 'td';
-      case 'horizontal_rule': return 'hr';
-      default: return 'div';
-    }
-  }
-
-  private getHTMLAttrs(node: Node): string {
-    const attrs: string[] = [];
-    
-    if (node.type.name === 'table_cell') {
-      if (node.attrs.colspan > 1) attrs.push(`colspan="${node.attrs.colspan}"`);
-      if (node.attrs.rowspan > 1) attrs.push(`rowspan="${node.attrs.rowspan}"`);
-    }
-    
-    return attrs.join(' ');
-  }
-
-  setContent(content: string | Node): Editor {
-    if (this.destroyed) return this;
-    
-    const doc = this.createDocument(content);
-    const tr = this._state.tr.setDoc(doc).setSelection(Selection.atStart(doc));
-    this.dispatch(tr);
-    return this;
-  }
-
-  insertContent(content: string | Node, position?: number): Editor {
-    if (this.destroyed) return this;
-    
-    const pos = position ?? this._state.selection.from;
-    const fragment = typeof content === 'string' 
-      ? Fragment.from([Node.text(content)])
-      : Fragment.from([content]);
-    
-    const tr = this._state.tr.replace(pos, pos, fragment);
-    this.dispatch(tr);
-    return this;
-  }
-
-  deleteRange(from: number, to: number): Editor {
-    if (this.destroyed) return this;
-    
-    const tr = this._state.tr.replace(from, to, Fragment.from([]));
-    this.dispatch(tr);
-    return this;
-  }
-
-  setSelection(selection: Selection): Editor {
-    if (this.destroyed) return this;
-    
-    const tr = this._state.tr.setSelection(selection);
-    this.dispatch(tr);
-    return this;
-  }
-
-  executeCommand(commandName: string, ...args: any[]): boolean {
-    if (this.destroyed) return false;
-    
-    console.log('[executeCommand]', commandName, 'args:', args);
-    
-    for (const plugin of this.plugins) {
-      const commands = plugin.getCommands();
-      if (commands[commandName]) {
-        const command = commands[commandName];
-        console.log('[executeCommand] Found command in plugin:', plugin.name, 'type:', typeof command);
-        if (typeof command === 'function') {
-          if (args.length > 0) {
-            const commandWithArgs = command(...args);
-            console.log('[executeCommand] Command with args returned:', typeof commandWithArgs);
-            if (typeof commandWithArgs === 'function') {
-              const result = commandWithArgs(this._state, this.dispatch, this.view);
-              console.log('[executeCommand] Result:', result);
-              return result;
-            }
-          }
-          const result = command(this._state, this.dispatch, this.view);
-          console.log('[executeCommand] Direct result:', result);
-          return result;
-        }
-      }
-    }
-    
-    console.log('[executeCommand] Command not found:', commandName);
     return false;
   }
 
-  can(commandName: string, ...args: any[]): boolean {
-    if (this.destroyed) return false;
-    
-    for (const plugin of this.plugins) {
-      const commands = plugin.getCommands();
-      if (commands[commandName]) {
-        return commands[commandName](this._state, undefined, this.view, ...args);
-      }
-    }
-    
-    return false;
+  setContent(doc: Node): void {
+    this.setState(this.state.apply(doc));
   }
 
-  getCommands(): Record<string, any> {
-    const allCommands: Record<string, any> = {};
-    this.plugins.forEach(plugin => {
-      Object.assign(allCommands, plugin.getCommands());
-    });
-    return allCommands;
-  }
-
-  registerPlugin(plugin: Plugin): Editor {
-    if (this.destroyed) return this;
-    
-    this.plugins.push(plugin);
-    
-    // Recreate schema with new plugin
-    this.schema = this.createMergedSchema(defaultSchema);
-    
-    // Update state with new schema and plugins
-    this._state = this._state.update({
-      schema: this.schema,
-      plugins: this.plugins
-    });
-    
-    return this;
-  }
-
-  unregisterPlugin(pluginName: string): Editor {
-    if (this.destroyed) return this;
-    
-    const index = this.plugins.findIndex(p => p.name === pluginName);
-    
-    if (index !== -1) {
-      this.plugins.splice(index, 1);
-      
-      // Recreate schema without the plugin
-      this.schema = this.createMergedSchema(defaultSchema);
-      
-      // Update state
-      this._state = this._state.update({
-        schema: this.schema,
-        plugins: this.plugins
-      });
-    }
-    
-    return this;
-  }
-
-  setView(view: any): void {
-    this.view = view;
-    
-    const ctx = {
-      schema: this.schema,
-      state: this._state,
-      dispatch: this.dispatch,
-      view: this.view
-    };
-    
-    this.plugins.forEach(plugin => {
-      if (plugin.spec.onFocus) {
-        view.dom?.addEventListener('focus', () => {
-          plugin.spec.onFocus?.(ctx);
-          this.onFocus?.({ editor: this });
-        });
-      }
-      
-      if (plugin.spec.onBlur) {
-        view.dom?.addEventListener('blur', () => {
-          plugin.spec.onBlur?.(ctx);
-          this.onBlur?.({ editor: this });
-        });
-      }
-    });
-  }
-
-  focus(): Editor {
-    this.view?.focus();
-    return this;
-  }
-
-  blur(): Editor {
-    this.view?.blur();
-    return this;
-  }
-
-  setEditable(editable: boolean): Editor {
-    this.editable = editable;
-    return this;
-  }
-
-  destroy(): void {
-    if (this.destroyed) return;
-    
-    const ctx = {
-      schema: this.schema,
-      state: this._state,
-      dispatch: this.dispatch,
-      view: this.view
-    };
-
-    this.plugins.forEach(plugin => {
-      plugin.spec.onDestroy?.(ctx);
-    });
-    this.destroyed = true;
-  }
-
-  isEmpty(): boolean {
-    return this._state.doc.content.childCount === 0 || 
-           (this._state.doc.content.childCount === 1 && 
-            this._state.doc.content.firstChild?.textContent === '');
-  }
-
-  getCharacterCount(): number {
-    return this._state.doc.textContent.length;
-  }
-
-  getWordCount(): number {
-    return this._state.doc.textContent.trim().split(/\s+/).filter(word => word.length > 0).length;
+  getContent(): Node {
+    return this.state.doc;
   }
 }

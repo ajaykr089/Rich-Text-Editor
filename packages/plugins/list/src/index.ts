@@ -1,1 +1,1 @@
-export { ListPlugin, createListPlugin } from './ListPlugin';
+export { ListPlugin } from './ListPlugin';

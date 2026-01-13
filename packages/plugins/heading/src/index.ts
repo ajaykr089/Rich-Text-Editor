@@ -1,1 +1,1 @@
-export { HeadingPlugin, createHeadingPlugin } from './HeadingPlugin';
+export { HeadingPlugin } from './HeadingPlugin';
