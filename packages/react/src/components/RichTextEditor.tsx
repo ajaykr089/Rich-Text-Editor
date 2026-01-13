@@ -2,6 +2,7 @@ import React, { useMemo, useEffect, useRef, useState } from 'react';
 import { Editor, PluginManager, Plugin } from '@rte-editor/core';
 import { Toolbar } from './Toolbar';
 import { EditorContent } from './EditorContent';
+import { FloatingToolbar } from './FloatingToolbar';
 import { MediaManagerProvider, useMediaManagerContext } from '../../../plugins/media-manager/src/components/MediaManagerProvider';
 import { MediaDialog } from '../../../plugins/media-manager/src/components/MediaDialogAdvanced';
 import { RichTextEditorAdapter } from '../../../plugins/media-manager/src/adapters/EditorAdapter';
@@ -11,6 +12,7 @@ import { LinkDialog } from '../../../plugins/link/src/components/LinkDialog';
 import '../../../plugins/media-manager/src/components/MediaDialogAdvanced.css';
 import '../../../plugins/media-manager/src/components/MediaResize.css';
 import '../../../plugins/link/src/components/LinkDialog.css';
+import './FloatingToolbar.css';
 
 interface RichTextEditorProps {
   plugins: Plugin[];
@@ -21,9 +23,12 @@ interface RichTextEditorProps {
     maxFileSize: number;
     allowedTypes: string[];
   };
+  floatingToolbar?: {
+    enabled?: boolean;
+  };
 }
 
-const EditorWithMedia: React.FC<RichTextEditorProps> = ({ plugins, className, mediaConfig }) => {
+const EditorWithMedia: React.FC<RichTextEditorProps> = ({ plugins, className, mediaConfig, floatingToolbar }) => {
   const editor = useMemo(() => {
     const pluginManager = new PluginManager();
     plugins.forEach(p => pluginManager.register(p));
@@ -40,6 +45,7 @@ const EditorWithMedia: React.FC<RichTextEditorProps> = ({ plugins, className, me
   const [selectionRange, setSelectionRange] = useState<Range | null>(null);
   const [isEditingLink, setIsEditingLink] = useState(false);
   const [editingLinkElement, setEditingLinkElement] = useState<HTMLAnchorElement | null>(null);
+  const floatingToolbarEnabled = floatingToolbar?.enabled !== false; // Default to true unless explicitly disabled
 
   const handleInsertLink = (linkData: any) => {
     const contentEl = document.querySelector('.rte-content') as HTMLElement;
@@ -226,8 +232,16 @@ const EditorWithMedia: React.FC<RichTextEditorProps> = ({ plugins, className, me
 
   return (
     <div className={`rte-editor ${className || ''}`}>
-      <Toolbar editor={editor} onCustomCommand={handleToolbarCommand} />
+      <Toolbar
+        editor={editor}
+        onCustomCommand={handleToolbarCommand}
+      />
       <EditorContent editor={editor} />
+      <FloatingToolbar
+        editor={editor}
+        isEnabled={floatingToolbarEnabled}
+        onOpenLinkDialog={handleToolbarCommand}
+      />
       {dialogOpen && manager && (
         <MediaDialog manager={manager} type={dialogType} onClose={closeDialog} />
       )}

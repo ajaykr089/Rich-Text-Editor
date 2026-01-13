@@ -8,7 +8,10 @@ interface ToolbarProps {
   onCustomCommand?: (command: string) => void;
 }
 
-export const Toolbar: React.FC<ToolbarProps> = ({ editor, onCustomCommand }) => {
+export const Toolbar: React.FC<ToolbarProps> = ({
+  editor,
+  onCustomCommand
+}) => {
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const items = editor.pluginManager.getToolbarItems();
   const mediaContext = useMediaManagerContext();
