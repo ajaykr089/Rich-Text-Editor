@@ -35,16 +35,23 @@ const EditorWithMedia: React.FC<RichTextEditorProps> = ({ plugins, className, me
   const [linkDialogOpen, setLinkDialogOpen] = useState(false);
   const [selectedText, setSelectedText] = useState('');
   const [initialUrl, setInitialUrl] = useState('');
+  const [selectionRange, setSelectionRange] = useState<Range | null>(null);
 
   const handleInsertLink = (linkData: any) => {
     // Create link using DOM manipulation since we're using contentEditable
     const contentEl = document.querySelector('.rte-content') as HTMLElement;
     if (!contentEl) return;
 
-    const selection = window.getSelection();
-    if (!selection || selection.rangeCount === 0) return;
+    let rangeToUse: Range;
 
-    const range = selection.getRangeAt(0);
+    // Use stored range if available, otherwise try current selection
+    if (selectionRange) {
+      rangeToUse = selectionRange;
+    } else {
+      const selection = window.getSelection();
+      if (!selection || selection.rangeCount === 0) return;
+      rangeToUse = selection.getRangeAt(0);
+    }
 
     // Create the link element
     const linkElement = document.createElement('a');
@@ -56,27 +63,37 @@ const EditorWithMedia: React.FC<RichTextEditorProps> = ({ plugins, className, me
     }
 
     // Insert the link
-    range.deleteContents();
-    range.insertNode(linkElement);
+    rangeToUse.deleteContents();
+    rangeToUse.insertNode(linkElement);
 
     // Move cursor after the link
-    range.setStartAfter(linkElement);
-    range.setEndAfter(linkElement);
-    selection.removeAllRanges();
-    selection.addRange(range);
+    rangeToUse.setStartAfter(linkElement);
+    rangeToUse.setEndAfter(linkElement);
+    const selection = window.getSelection();
+    if (selection) {
+      selection.removeAllRanges();
+      selection.addRange(rangeToUse);
+    }
 
     // Focus back to editor
     contentEl.focus();
 
     console.log('Link inserted:', linkData);
     setLinkDialogOpen(false);
+    setSelectionRange(null);
   };
 
   const handleToolbarCommand = (command: string) => {
     console.log('Toolbar command received:', command);
     if (command === 'openLinkDialog') {
-      // Get selected text from editor
+      // Store the current selection range
       const selection = window.getSelection();
+      if (selection && selection.rangeCount > 0) {
+        const range = selection.getRangeAt(0).cloneRange();
+        setSelectionRange(range);
+      }
+
+      // Get selected text from editor
       const selectedText = selection?.toString() || '';
       console.log('Opening link dialog with selected text:', selectedText);
       setSelectedText(selectedText);
@@ -121,7 +138,10 @@ const EditorWithMedia: React.FC<RichTextEditorProps> = ({ plugins, className, me
       )}
       <LinkDialog
         isOpen={linkDialogOpen}
-        onClose={() => setLinkDialogOpen(false)}
+        onClose={() => {
+          setLinkDialogOpen(false);
+          setSelectionRange(null);
+        }}
         onInsert={handleInsertLink}
         initialText={selectedText}
         initialUrl={initialUrl}

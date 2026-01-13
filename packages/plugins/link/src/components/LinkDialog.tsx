@@ -110,7 +110,6 @@ export const LinkDialog: React.FC<LinkDialogProps> = ({
                 value={text}
                 onChange={(e) => setText(e.target.value)}
                 placeholder="Enter link text"
-                autoFocus
               />
             </div>
 
