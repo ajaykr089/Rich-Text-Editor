@@ -20,6 +20,7 @@ export { HistoryPlugin } from './history/src/HistoryPlugin';
 export { ListPlugin } from './list/src/ListPlugin';
 export { BlockquotePlugin } from './blockquote/src/BlockquotePlugin';
 export { TablePlugin } from './table/src/TablePlugin';
+export { UnderlinePlugin } from './underline/src/UnderlinePlugin';
 export { ImagePlugin } from './image/src/ImagePlugin';
 export { LinkPlugin } from './link/src/LinkPlugin';
 export { CodeBlockPlugin } from './codeblock/src/CodeBlockPlugin';

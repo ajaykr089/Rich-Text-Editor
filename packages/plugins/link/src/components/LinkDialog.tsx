@@ -39,11 +39,9 @@ export const LinkDialog: React.FC<LinkDialogProps> = ({
   const [uploadedFiles, setUploadedFiles] = useState<any[]>([]);
   const [isLoadingFiles, setIsLoadingFiles] = useState(false);
 
-  console.log('LinkDialog render:', { isOpen, initialText, initialUrl, initialTarget, initialTitle, mediaManager: !!mediaManager });
 
   useEffect(() => {
     if (isOpen) {
-      console.log('LinkDialog opening with:', { initialText, initialUrl, initialTarget, initialTitle, isEditing });
       setText(initialText);
       setUrl(initialUrl);
       setTarget(initialTarget);
@@ -191,11 +189,6 @@ export const LinkDialog: React.FC<LinkDialogProps> = ({
               </label>
             </div>
           </div>
-
-          {(() => {
-            console.log('Rendering footer buttons, URL:', url, 'URL trimmed:', url.trim());
-            return null;
-          })()}
           <div className="link-dialog-footer">
             <button type="button" onClick={onClose}>Cancel</button>
             <button type="submit" disabled={!url.trim()}>

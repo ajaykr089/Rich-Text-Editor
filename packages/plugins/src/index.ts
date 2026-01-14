@@ -10,4 +10,5 @@ export { StrikethroughPlugin } from '../strikethrough/src/StrikethroughPlugin';
 export { BlockquotePlugin } from '../blockquote/src/BlockquotePlugin';
 export { CodePlugin } from '../code/src/CodePlugin';
 export { ClearFormattingPlugin } from '../clear-formatting/src/ClearFormattingPlugin';
+export { TablePlugin } from '../table/src/TablePlugin';
 export { MediaManagerPlugin } from '../media-manager/src/MediaManagerPlugin';
