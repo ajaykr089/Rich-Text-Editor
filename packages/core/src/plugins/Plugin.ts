@@ -21,7 +21,6 @@ export class PluginManager {
   plugins: Plugin[] = [];
 
   register(plugin: Plugin): void {
-    console.log(`Registering plugin: ${plugin.name}`);
     this.plugins.push(plugin);
   }
 

@@ -1,20 +1,18 @@
 import React, { useState } from 'react';
 import { Editor } from '@rte-editor/core';
 import { ToolbarItem } from '@rte-editor/core';
-import { useMediaManagerContext } from '../../../plugins/media-manager/src/components/MediaManagerProvider';
+import { usePluginContext } from './PluginManager';
 
 interface ToolbarProps {
   editor: Editor;
-  onCustomCommand?: (command: string) => void;
 }
 
 export const Toolbar: React.FC<ToolbarProps> = ({
-  editor,
-  onCustomCommand
+  editor
 }) => {
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const items = editor.pluginManager.getToolbarItems();
-  const mediaContext = useMediaManagerContext();
+  const { executeCommand } = usePluginContext();
 
   const handleCommand = (command: string, value?: string) => {
     console.log(`Executing command: ${command} with value: ${value}`);
@@ -23,90 +21,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({
       contentEl.focus();
     }
 
-    // Handle custom commands first
-    if (command === 'openLinkDialog') {
-      onCustomCommand?.(command);
-      setOpenDropdown(null);
-      return;
-    }
-
-    const commandMap: Record<string, () => void> = {
-      toggleBold: () => document.execCommand('bold', false),
-      toggleItalic: () => document.execCommand('italic', false),
-      toggleUnderline: () => document.execCommand('underline', false),
-      toggleStrikethrough: () => document.execCommand('strikeThrough', false),
-      toggleCode: () => {
-        const selection = window.getSelection();
-        if (selection && selection.rangeCount > 0) {
-          const range = selection.getRangeAt(0);
-          const code = document.createElement('code');
-          range.surroundContents(code);
-        }
-      },
-      toggleBulletList: () => document.execCommand('insertUnorderedList', false),
-      toggleOrderedList: () => document.execCommand('insertOrderedList', false),
-      toggleBlockquote: () => {
-        const selection = window.getSelection();
-        if (selection && selection.rangeCount > 0) {
-          const range = selection.getRangeAt(0);
-          const currentBlock =
-            range.commonAncestorContainer.nodeType === Node.TEXT_NODE
-              ? range.commonAncestorContainer.parentElement
-              : range.commonAncestorContainer;
-
-          const blockquote = (currentBlock as Element)?.closest?.("blockquote");
-          if (blockquote) {
-            // Already in blockquote, convert to paragraph
-            document.execCommand("formatBlock", false, "p");
-          } else {
-            // Not in blockquote, convert to blockquote
-            document.execCommand("formatBlock", false, "blockquote");
-          }
-        }
-      },
-      createLink: () => {
-        const url = prompt('Enter URL:');
-        if (url) document.execCommand('createLink', false, url);
-      },
-      clearFormatting: () => {
-        // Remove all formatting from selected text
-        document.execCommand('removeFormat', false);
-        // Also remove links if present
-        document.execCommand('unlink', false);
-      },
-      insertImage: () => mediaContext.openImageDialog(),
-      insertVideo: () => mediaContext.openVideoDialog(),
-      undo: () => document.execCommand('undo', false),
-      redo: () => document.execCommand('redo', false),
-      setBlockType: () => {
-        if (value === "blockquote") {
-          // Toggle blockquote - check if current selection is already in a blockquote
-          const selection = window.getSelection();
-          if (selection && selection.rangeCount > 0) {
-            const range = selection.getRangeAt(0);
-            const currentBlock =
-              range.commonAncestorContainer.nodeType === Node.TEXT_NODE
-                ? range.commonAncestorContainer.parentElement
-                : range.commonAncestorContainer;
-
-            const blockquote = (currentBlock as Element)?.closest?.(
-              "blockquote"
-            );
-            if (blockquote) {
-              // Already in blockquote, convert to paragraph
-              document.execCommand("formatBlock", false, "p");
-            } else {
-              // Not in blockquote, convert to blockquote
-              document.execCommand("formatBlock", false, "blockquote");
-            }
-          }
-        } else if (value) {
-          document.execCommand("formatBlock", false, value);
-        }
-      }
-    };
-
-    commandMap[command]?.();
+    // Use plugin context to execute all commands
+    executeCommand(command, value);
     setOpenDropdown(null);
 
     if (contentEl) {

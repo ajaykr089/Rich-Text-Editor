@@ -1,17 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Editor } from '@rte-editor/core';
+import { usePluginContext } from './PluginManager';
 import "./FloatingToolbar.css";
+
 interface FloatingToolbarProps {
   editor: Editor;
   isEnabled: boolean;
-  onOpenLinkDialog?: (command: string) => void;
 }
 
 export const FloatingToolbar: React.FC<FloatingToolbarProps> = ({
   editor,
-  isEnabled,
-  onOpenLinkDialog
+  isEnabled
 }) => {
+  const { executeCommand } = usePluginContext();
   const [isVisible, setIsVisible] = useState(false);
   const [position, setPosition] = useState({ top: 0, left: 0 });
   const toolbarRef = useRef<HTMLDivElement>(null);
@@ -110,11 +111,7 @@ export const FloatingToolbar: React.FC<FloatingToolbarProps> = ({
       toggleItalic: () => document.execCommand('italic', false),
       toggleUnderline: () => document.execCommand('underline', false),
       toggleStrikethrough: () => document.execCommand('strikeThrough', false),
-      createLink: () => {
-        if (onOpenLinkDialog) {
-          onOpenLinkDialog('openLinkDialog');
-        }
-      },
+      createLink: () => executeCommand('openLinkDialog'),
       clearFormatting: () => {
         // Remove all formatting from selected text
         document.execCommand('removeFormat', false);
