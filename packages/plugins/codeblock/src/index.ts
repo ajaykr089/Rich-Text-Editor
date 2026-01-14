@@ -1,1 +1,0 @@
-export { CodeBlockPlugin, createCodeBlockPlugin } from './CodeBlockPlugin';

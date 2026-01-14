@@ -17,6 +17,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   const mediaContext = useMediaManagerContext();
 
   const handleCommand = (command: string, value?: string) => {
+    console.log(`Executing command: ${command} with value: ${value}`);
     const contentEl = document.querySelector('.rte-content') as HTMLElement;
     if (contentEl) {
       contentEl.focus();

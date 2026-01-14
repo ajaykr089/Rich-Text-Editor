@@ -24,3 +24,7 @@ export { UnderlinePlugin } from './underline/src/UnderlinePlugin';
 export { ImagePlugin } from './image/src/ImagePlugin';
 export { LinkPlugin } from './link/src/LinkPlugin';
 export { CodeBlockPlugin } from './codeblock/src/CodeBlockPlugin';
+export { StrikethroughPlugin } from './strikethrough/src/StrikethroughPlugin';
+export { ClearFormattingPlugin } from './clear-formatting/src/ClearFormattingPlugin';
+export { MediaManagerPlugin } from './media-manager/src/MediaManagerPlugin';
+export { CodePlugin } from './code/src/CodePlugin';
