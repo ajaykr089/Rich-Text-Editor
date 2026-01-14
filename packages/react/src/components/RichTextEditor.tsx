@@ -12,7 +12,7 @@ import { LinkDialog } from '../../../plugins/link/src/components/LinkDialog';
 import '../../../plugins/media-manager/src/components/MediaDialogAdvanced.css';
 import '../../../plugins/media-manager/src/components/MediaResize.css';
 import '../../../plugins/link/src/components/LinkDialog.css';
-import './FloatingToolbar.css';
+
 
 interface RichTextEditorProps {
   plugins: Plugin[];

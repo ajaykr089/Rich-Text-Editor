@@ -41,3 +41,8 @@ next-env.d.ts
 storybook-static
 examples/storybook-demo/
 api/media/node_modules/
+prompts/
+node_modules/
+dist/
+build/
+.cache/

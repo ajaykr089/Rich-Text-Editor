@@ -8,21 +8,17 @@
     "packages/plugins/*"
   ],
   "scripts": {
-    "build": "rollup -c",
-    "build:watch": "rollup -c -w",
+    "build": "lerna run build",
+    "build:watch": "lerna run dev",
     "clean": "lerna run clean",
     "test": "jest",
     "lint": "eslint packages/*/src/**/*.{ts,tsx}",
     "typecheck": "tsc --noEmit",
-    "dev": "rollup -c -w",
+    "dev": "lerna run dev",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"
   },
   "devDependencies": {
-    "@rollup/plugin-commonjs": "^25.0.0",
-    "@rollup/plugin-node-resolve": "^15.0.0",
-    "@rollup/plugin-terser": "^0.4.0",
-    "@rollup/plugin-typescript": "^11.0.0",
     "@storybook/addon-essentials": "^7.6.0",
     "@storybook/addon-links": "^7.6.0",
     "@storybook/react": "^7.6.0",
@@ -42,8 +38,6 @@
     "prettier": "^3.0.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "rollup": "^4.0.0",
-    "rollup-plugin-dts": "^6.0.0",
     "storybook": "^7.6.0",
     "ts-jest": "^29.0.0",
     "ts-node": "^10.9.0",
