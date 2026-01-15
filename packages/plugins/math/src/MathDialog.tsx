@@ -4,6 +4,29 @@ import katex from 'katex';
 import { MathMLToLaTeX } from 'mathml-to-latex';
 import 'katex/dist/katex.min.css';
 
+// Predefined formula templates for quick insertion
+const MATH_TEMPLATES = {
+  latex: [
+    { name: 'Fraction', formula: '\\frac{a}{b}', description: 'Simple fraction' },
+    { name: 'Square Root', formula: '\\sqrt{x}', description: 'Square root' },
+    { name: 'Power', formula: 'x^{2}', description: 'Exponent/power' },
+    { name: 'Subscript', formula: 'x_{sub}', description: 'Subscript' },
+    { name: 'Integral', formula: '\\int_{a}^{b} f(x) \\, dx', description: 'Definite integral' },
+    { name: 'Summation', formula: '\\sum_{i=1}^{n} x_{i}', description: 'Summation' },
+    { name: 'Limit', formula: '\\lim_{x \\to 0} f(x)', description: 'Limit' },
+    { name: 'Derivative', formula: '\\frac{d}{dx} f(x)', description: 'Derivative' },
+    { name: 'Matrix 2x2', formula: '\\begin{pmatrix} a & b \\\\ c & d \\end{pmatrix}', description: '2x2 matrix' },
+    { name: 'System of Equations', formula: '\\begin{cases} x + y = 1 \\\\ 2x - y = 0 \\end{cases}', description: 'System of equations' },
+  ],
+  mathml: [
+    { name: 'Fraction', formula: '<mfrac><mi>a</mi><mi>b</mi></mfrac>', description: 'Simple fraction' },
+    { name: 'Square Root', formula: '<msqrt><mi>x</mi></msqrt>', description: 'Square root' },
+    { name: 'Power', formula: '<msup><mi>x</mi><mn>2</mn></msup>', description: 'Exponent/power' },
+    { name: 'Subscript', formula: '<msub><mi>x</mi><mi>sub</mi></msub>', description: 'Subscript' },
+    { name: 'Parentheses', formula: '<mfenced open="(" close=")"><mi>a</mi><mo>+</mo><mi>b</mi></mfenced>', description: 'Grouped expression' },
+  ],
+};
+
 interface MathDialogProps {
   isOpen: boolean;
   onClose: () => void;
@@ -163,6 +186,37 @@ export const MathDialog: React.FC<MathDialogProps> = ({
                 />
                 MathML
               </label>
+            </div>
+          </div>
+
+          {/* Formula Templates */}
+          <div className="math-templates-section">
+            <label className="math-templates-label">Quick Templates:</label>
+            <div className="math-templates-grid">
+              {MATH_TEMPLATES[format].map((template, index) => (
+                <button
+                  key={index}
+                  type="button"
+                  className="math-template-button"
+                  onClick={() => setFormula(template.formula)}
+                  title={template.description}
+                >
+                  <div className="math-template-name">{template.name}</div>
+                  <div className="math-template-preview">
+                    {format === 'latex' ? (
+                      <span dangerouslySetInnerHTML={{
+                        __html: katex.renderToString(template.formula, {
+                          displayMode: false,
+                          throwOnError: false,
+                          errorColor: '#cc0000'
+                        })
+                      }} />
+                    ) : (
+                      <code className="math-template-code">{template.formula}</code>
+                    )}
+                  </div>
+                </button>
+              ))}
             </div>
           </div>
 
