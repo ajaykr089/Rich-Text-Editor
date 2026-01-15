@@ -12,6 +12,22 @@
   white-space: nowrap;
   cursor: pointer;
   transition: all 0.2s;
+  -webkit-user-select: all; /* Safari */
+  -moz-user-select: all;    /* Firefox */
+  -ms-user-select: all;     /* IE10+ */
+  user-select: all; 
+  position: relative;
+  z-index: 1;
+}
+
+/* Prevent cursor from entering math spans */
+.math-formula * {
+  pointer-events: none;
+}
+
+/* Make math spans non-editable */
+.math-formula[contenteditable="false"] {
+  cursor: pointer;
 }
 
 .math-formula:hover {

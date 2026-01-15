@@ -84,6 +84,7 @@ function applyMathToSelection(mathData: MathData) {
   mathSpan.setAttribute('data-math-formula', mathData.formula);
   mathSpan.setAttribute('data-math-format', mathData.format);
   mathSpan.setAttribute('data-math-inline', mathData.inline.toString());
+  mathSpan.setAttribute('contenteditable', 'false'); // Make it non-editable
 
   // Render the math formula using KaTeX
   try {
