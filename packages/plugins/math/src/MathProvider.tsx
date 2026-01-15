@@ -16,6 +16,40 @@ export const MathProvider: React.FC<MathProviderProps> = ({ children }) => {
   React.useEffect(() => {
     registerCommand('insertMath', handleInsertMath);
     registerCommand('updateMath', handleUpdateMath);
+
+    // Add double-click listener for math spans
+    const handleDoubleClick = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      const mathSpan = target.closest('.math-formula') as HTMLElement;
+
+      if (mathSpan) {
+        event.preventDefault();
+        event.stopPropagation();
+
+        // Extract math data from the span
+        const formula = mathSpan.getAttribute('data-math-formula') || '';
+        const format = mathSpan.getAttribute('data-math-format') || 'latex';
+        const inline = mathSpan.getAttribute('data-math-inline') === 'true';
+
+        const mathData = {
+          formula,
+          format: format as 'latex' | 'mathml',
+          inline
+        };
+
+        // Open dialog in edit mode
+        setEditingMath(mathData);
+        setDialogOpen(true);
+      }
+    };
+
+    // Add the event listener to the document
+    document.addEventListener('dblclick', handleDoubleClick);
+
+    // Cleanup
+    return () => {
+      document.removeEventListener('dblclick', handleDoubleClick);
+    };
   }, [registerCommand]);
 
   const handleInsertMath = useCallback(() => {
@@ -31,7 +65,6 @@ export const MathProvider: React.FC<MathProviderProps> = ({ children }) => {
   }, []);
 
   const handleUpdateMath = useCallback((mathData: MathData) => {
-    console.log('MathProvider: handleUpdateMath called - EDITING EXISTING MATH:', mathData);
     setEditingMath(mathData);
     setDialogOpen(true);
   }, []);
@@ -43,10 +76,30 @@ export const MathProvider: React.FC<MathProviderProps> = ({ children }) => {
 
   const handleInsert = useCallback((mathData: MathData) => {
     console.log('MathProvider: handleInsert called with data:', mathData);
-    updateMathCommand(mathData);
+    if (editingMath) {
+      // We're editing existing math - find the span and update it
+      const mathSpans = document.querySelectorAll('.math-formula');
+      let targetSpan: HTMLElement | null = null;
+
+      // Find the span that matches the original math data
+      for (const span of mathSpans) {
+        const formula = span.getAttribute('data-math-formula');
+        if (formula === editingMath.formula) {
+          targetSpan = span as HTMLElement;
+          break;
+        }
+      }
+
+      if (targetSpan) {
+        updateMathCommand(mathData, targetSpan);
+      }
+    } else {
+      // New math insertion
+      updateMathCommand(mathData);
+    }
     setDialogOpen(false);
     setEditingMath(null);
-  }, []);
+  }, [editingMath]);
 
   return (
     <>

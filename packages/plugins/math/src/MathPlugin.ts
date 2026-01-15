@@ -38,8 +38,14 @@ export const insertMathCommand = () => {
 };
 
 // Update math command - for editing existing formulas
-export const updateMathCommand = (mathData: MathData) => {
-  applyMathToSelection(mathData);
+export const updateMathCommand = (mathData: MathData, existingSpan?: HTMLElement) => {
+  if (existingSpan) {
+    // Editing existing math - update the span in place
+    updateExistingMath(existingSpan, mathData);
+  } else {
+    // New math insertion
+    applyMathToSelection(mathData);
+  }
   // Clear stored selection after use
   storedMathSelection = null;
 };
@@ -157,6 +163,42 @@ function applyMathToSelection(mathData: MathData) {
     selection.addRange(newRange);
   } catch (error) {
     console.error('MathPlugin: Error restoring selection:', error);
+  }
+}
+
+/**
+ * Helper function to update existing math span in place
+ */
+function updateExistingMath(existingSpan: HTMLElement, mathData: MathData) {
+  // Clear existing content
+  existingSpan.innerHTML = '';
+
+  // Update data attributes
+  existingSpan.setAttribute('data-math-formula', mathData.formula);
+  existingSpan.setAttribute('data-math-format', mathData.format);
+  existingSpan.setAttribute('data-math-inline', mathData.inline.toString());
+
+  // Render the new math formula using KaTeX
+  try {
+    const renderedHtml = katex.renderToString(mathData.formula, {
+      displayMode: false, // inline mode
+      throwOnError: false,
+      errorColor: '#cc0000'
+    }).replace('aria-hidden="true"', ''); // Remove aria-hidden to ensure visibility
+
+    // Instead of innerHTML, create a temporary element and append its children
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = renderedHtml;
+
+    // Append the KaTeX elements to the existing span
+    while (tempDiv.firstChild) {
+      existingSpan.appendChild(tempDiv.firstChild);
+    }
+  } catch (error) {
+    console.error('MathPlugin: KaTeX rendering failed:', error);
+    // Fallback to placeholder text if KaTeX fails
+    const fallbackText = `[Math: ${mathData.formula.substring(0, 20)}${mathData.formula.length > 20 ? '...' : ''}]`;
+    existingSpan.textContent = fallbackText;
   }
 }
 
