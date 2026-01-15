@@ -17,9 +17,11 @@
     "@rte-editor/core": "^1.0.0"
   },
   "dependencies": {
-    "@rte-editor/core": "^1.0.0"
+    "@rte-editor/core": "^1.0.0",
+    "katex": "^0.16.27"
   },
   "devDependencies": {
+    "@types/katex": "^0.16.8",
     "typescript": "^5.0.0",
     "vite": "^7.3.1"
   }

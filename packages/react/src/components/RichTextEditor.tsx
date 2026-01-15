@@ -22,6 +22,7 @@ import { MediaProvider } from '../../../plugins/media-manager/src/MediaProvider'
 import { FontSizeProvider } from '../../../plugins/font-size/src/FontSizeProvider';
 import { TextAlignmentProvider } from '../../../plugins/text-alignment/src/TextAlignmentProvider';
 import { FontFamilyProvider } from '../../../plugins/font-family/src/FontFamilyProvider';
+import { MathProvider } from '../../../plugins/math/src/MathProvider';
 
 interface RichTextEditorProps {
   plugins: Plugin[];
@@ -64,6 +65,7 @@ const EditorCore: React.FC<RichTextEditorProps> = ({ plugins, className, mediaCo
                                 <FontSizeProvider>
                                   <TextAlignmentProvider>
                                     <FontFamilyProvider>
+                                      <MathProvider>
                                       <div className={`rte-editor ${className || ''}`}>
                                         <Toolbar
                                           editor={editor}
@@ -74,6 +76,7 @@ const EditorCore: React.FC<RichTextEditorProps> = ({ plugins, className, mediaCo
                                           isEnabled={floatingToolbarEnabled}
                                         />
                                       </div>
+                                      </MathProvider>
                                     </FontFamilyProvider>
                                   </TextAlignmentProvider>
                                 </FontSizeProvider>
