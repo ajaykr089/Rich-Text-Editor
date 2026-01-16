@@ -48,8 +48,17 @@
   display: block;
   white-space: pre-wrap;
   word-wrap: break-word;
+  -webkit-user-select: all; /* Safari */
+  -moz-user-select: all;    /* Firefox */
+  -ms-user-select: all;     /* IE10+ */
+  user-select: all; 
+  z-index: 1;
 }
 
+/* Prevent cursor from entering math spans */
+.math-block * {
+  pointer-events: none;
+}
 /* Math Dialog Styles */
 .math-dialog-overlay {
   position: fixed;
