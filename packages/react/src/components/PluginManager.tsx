@@ -232,3 +232,74 @@ export const HeadingPluginProvider: React.FC<{ children: ReactNode }> = ({ child
 
   return <>{children}</>;
 };
+
+export const DocumentManagerPluginProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const { registerCommand } = usePluginContext();
+
+  React.useEffect(() => {
+    // Import commands will trigger file dialogs
+    registerCommand('importWord', () => {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.docx';
+      input.onchange = async (event) => {
+        const file = (event.target as HTMLInputElement).files?.[0];
+        if (file) {
+          try {
+            // Get the editor element to set content
+            const editorElement = document.querySelector('[contenteditable="true"]') as HTMLElement;
+            if (editorElement) {
+              // Import the Word document
+              const { importFromWord } = await import('../../../plugins/document-manager/src/documentManager');
+              const htmlContent = await importFromWord(file);
+
+              // Set the content in the editor by dispatching an input event
+              editorElement.innerHTML = htmlContent;
+              editorElement.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+          } catch (error) {
+            console.error('Import failed:', error);
+            alert('Failed to import Word document. Please check the console for details.');
+          }
+        }
+      };
+      input.click();
+    });
+
+    registerCommand('exportWord', async () => {
+      try {
+        // Get the editor content
+        const editorElement = document.querySelector('[contenteditable="true"]') as HTMLElement;
+        if (editorElement) {
+          const htmlContent = editorElement.innerHTML;
+
+          // Export to Word
+          const { exportToWord } = await import('../../../plugins/document-manager/src/documentManager');
+          await exportToWord(htmlContent, 'document.docx');
+        }
+      } catch (error) {
+        console.error('Export failed:', error);
+        alert('Failed to export to Word. Please check the console for details.');
+      }
+    });
+
+    registerCommand('exportPdf', async () => {
+      try {
+        // Get the editor content
+        const editorElement = document.querySelector('[contenteditable="true"]') as HTMLElement;
+        if (editorElement) {
+          const htmlContent = editorElement.innerHTML;
+
+          // Export to PDF
+          const { exportToPdf } = await import('../../../plugins/document-manager/src/documentManager');
+          await exportToPdf(htmlContent, 'document.pdf', editorElement);
+        }
+      } catch (error) {
+        console.error('Export failed:', error);
+        alert('Failed to export to PDF. Please check the console for details.');
+      }
+    });
+  }, [registerCommand]);
+
+  return <>{children}</>;
+};

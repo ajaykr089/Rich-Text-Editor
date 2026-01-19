@@ -19,6 +19,7 @@ import {
   FontFamilyPlugin,
   TextAlignmentPlugin,
   MathPlugin,
+  DocumentManagerPlugin,
 } from "@rte-editor/plugins";
 import "@rte-editor/themes/themes/default.css";
 
@@ -54,6 +55,7 @@ export const Default: Story = {
       FontFamilyPlugin(),
       TextAlignmentPlugin(),
       MathPlugin(),
+      DocumentManagerPlugin(),
     ],
     mediaConfig: {
       uploadUrl: "/api/media/upload",

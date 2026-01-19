@@ -23,6 +23,8 @@ import { FontSizeProvider } from '../../../plugins/font-size/src/FontSizeProvide
 import { TextAlignmentProvider } from '../../../plugins/text-alignment/src/TextAlignmentProvider';
 import { FontFamilyProvider } from '../../../plugins/font-family/src/FontFamilyProvider';
 import { MathProvider } from '../../../plugins/math/src/MathProvider';
+import { DocumentManagerProvider } from '../../../plugins/document-manager/src/DocumentManagerProvider';
+import { DocumentManagerPluginProvider } from './PluginManager';
 
 interface RichTextEditorProps {
   plugins: Plugin[];
@@ -66,16 +68,20 @@ const EditorCore: React.FC<RichTextEditorProps> = ({ plugins, className, mediaCo
                                   <TextAlignmentProvider>
                                     <FontFamilyProvider>
                                       <MathProvider>
-                                      <div className={`rte-editor ${className || ''}`}>
-                                        <Toolbar
-                                          editor={editor}
-                                        />
-                                        <EditorContent editor={editor} />
-                                        <FloatingToolbar
-                                          editor={editor}
-                                          isEnabled={floatingToolbarEnabled}
-                                        />
-                                      </div>
+                                        <DocumentManagerProvider>
+                                          <DocumentManagerPluginProvider>
+                                          <div className={`rte-editor ${className || ''}`}>
+                                            <Toolbar
+                                              editor={editor}
+                                            />
+                                            <EditorContent editor={editor} />
+                                            <FloatingToolbar
+                                              editor={editor}
+                                              isEnabled={floatingToolbarEnabled}
+                                            />
+                                          </div>
+                                          </DocumentManagerPluginProvider>
+                                        </DocumentManagerProvider>
                                       </MathProvider>
                                     </FontFamilyProvider>
                                   </TextAlignmentProvider>

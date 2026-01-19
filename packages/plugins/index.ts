@@ -32,3 +32,4 @@ export  { FontSizePlugin, FontSizeProvider } from './font-size/src/index';
 export { TextAlignmentPlugin, TextAlignmentProvider } from './text-alignment/src/index';
 export { FontFamilyPlugin, FontFamilyProvider } from './font-family/src/index';
 export { MathPlugin } from './math/src/MathPlugin';
+export { DocumentManagerPlugin, DocumentManagerProvider } from './document-manager/src/index';
