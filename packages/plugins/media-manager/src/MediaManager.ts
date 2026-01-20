@@ -50,4 +50,16 @@ export class MediaManager {
   async deleteMedia(id: string): Promise<void> {
     return this.api.delete(id);
   }
+
+  async fetchFolders(): Promise<any[]> {
+    return this.api.fetchFolders();
+  }
+
+  async createFolder(name: string, parentId?: string | null): Promise<any> {
+    return this.api.createFolder(name, parentId);
+  }
+
+  async updateMedia(id: string, updates: Record<string, any>): Promise<void> {
+    return this.api.updateMedia(id, updates);
+  }
 }

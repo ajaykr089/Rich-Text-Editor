@@ -2,6 +2,7 @@ import mammoth from 'mammoth';
 import { Document, Packer, Paragraph, TextRun, Table, TableCell, TableRow } from 'docx';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import { getApiUrl, getApiHeaders } from './constants';
 
 /**
  * Standalone Document Manager utilities for import/export operations
@@ -32,11 +33,15 @@ export async function importFromWord(file: File): Promise<string> {
  */
 export async function exportToWord(htmlContent: string, filename: string = 'document.docx'): Promise<void> {
   try {
-    // Send request to API server for document processing
-    const response = await fetch('http://localhost:3001/api/documents/export-word', {
+    // Send request to configured API server for document processing
+    const apiUrl = getApiUrl('exportWord');
+    const headers = getApiHeaders();
+
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        ...headers
       },
       body: JSON.stringify({
         htmlContent,

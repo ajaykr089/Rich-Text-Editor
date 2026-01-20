@@ -41,9 +41,12 @@ export const MediaDialog: React.FC<MediaDialogProps> = ({ manager, type, onClose
   };
 
   const loadFolders = async () => {
-    const response = await fetch('/api/media/folders');
-    const data = await response.json();
-    setFolders(data);
+    try {
+      const data = await manager.fetchFolders();
+      setFolders(data);
+    } catch (error) {
+      console.error('Failed to load folders:', error);
+    }
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -88,24 +91,25 @@ export const MediaDialog: React.FC<MediaDialogProps> = ({ manager, type, onClose
   const handleCreateFolder = async () => {
     if (!newFolderName.trim()) return;
 
-    await fetch('/api/media/folders', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: newFolderName, parent_id: currentFolder })
-    });
-
-    setNewFolderName('');
-    setShowNewFolder(false);
-    loadFolders();
+    try {
+      await manager.createFolder(newFolderName, currentFolder);
+      setNewFolderName('');
+      setShowNewFolder(false);
+      loadFolders();
+    } catch (error) {
+      console.error('Failed to create folder:', error);
+      alert('Failed to create folder');
+    }
   };
 
   const handleMoveToFolder = async (mediaId: string, folderId: string | null) => {
-    await fetch(`/api/media/library/${mediaId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ folder_id: folderId })
-    });
-    loadLibrary();
+    try {
+      await manager.updateMedia(mediaId, { folder_id: folderId });
+      loadLibrary();
+    } catch (error) {
+      console.error('Failed to move media:', error);
+      alert('Failed to move media');
+    }
   };
 
   const currentFolderItems = folders.filter(f => f.parent_id === currentFolder);

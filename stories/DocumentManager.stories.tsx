@@ -9,8 +9,30 @@ import {
   LinkPlugin,
   HeadingPlugin,
   ParagraphPlugin,
-  DocumentManagerPlugin
+  DocumentManagerPlugin,
+  MediaManagerPlugin,
+  setDocumentManagerConfig,
+  setMediaManagerConfig
 } from '../packages/plugins/src/index';
+
+// Configure APIs for demo purposes
+setDocumentManagerConfig({
+  apiUrl: 'http://localhost:3001/api/',
+  apiEndpoints: {
+    exportWord: '/api/documents/export-word'
+  }
+});
+
+setMediaManagerConfig({
+  apiUrl: 'http://localhost:3001/api/',
+  apiEndpoints: {
+    upload: '/api/media/upload',
+    library: '/api/media/library',
+    delete: '/api/media/library'
+  },
+  maxFileSize: 10 * 1024 * 1024, // 10MB
+  allowedTypes: ['image/jpeg', 'image/png', 'image/gif', 'video/mp4', 'video/webm']
+});
 
 export default {
   title: 'Plugins/Document Manager',

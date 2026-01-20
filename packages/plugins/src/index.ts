@@ -11,9 +11,15 @@ export { BlockquotePlugin } from '../blockquote/src/BlockquotePlugin';
 export { CodePlugin } from '../code/src/CodePlugin';
 export { ClearFormattingPlugin } from '../clear-formatting/src/ClearFormattingPlugin';
 export { TablePlugin } from '../table/src/TablePlugin';
-export { MediaManagerPlugin } from '../media-manager/src/MediaManagerPlugin';
+export { MediaManagerPlugin, setMediaManagerConfig, getMediaManagerConfig } from '../media-manager/src/index';
+export type { MediaManagerConfig } from '../media-manager/src/index';
 export { FontSizePlugin, FontSizeProvider } from '../font-size/src/index';
 export { TextAlignmentPlugin, TextAlignmentProvider } from '../text-alignment/src/index';
 export { FontFamilyPlugin, FontFamilyProvider } from '../font-family/src/index';
 export { MathPlugin, MathProvider } from '../math/src/index';
-export { DocumentManagerPlugin, DocumentManagerProvider } from '../document-manager/src/index';
+export { DocumentManagerPlugin, DocumentManagerProvider, setDocumentManagerConfig, getDocumentManagerConfig } from '../document-manager/src/index';
+export type { DocumentManagerConfig } from '../document-manager/src/index';
+
+// Shared API configuration for all plugins
+export { setGlobalApiConfig, getGlobalApiConfig, getGlobalApiHeaders, buildApiUrl } from './shared-config';
+export type { ApiConfig } from './shared-config';

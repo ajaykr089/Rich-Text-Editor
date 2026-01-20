@@ -48,10 +48,17 @@ export interface MediaLibraryItem {
   folder_id?: string | null;
 }
 
-export interface MediaManagerConfig {
-  uploadUrl: string;
-  libraryUrl: string;
+import { ApiConfig } from '../../../src/shared-config';
+
+export interface MediaManagerConfig extends ApiConfig {
+  /** API endpoints relative to the base URL */
+  apiEndpoints: {
+    upload: string;
+    library: string;
+    delete: string;
+  };
+  /** Maximum file size in bytes */
   maxFileSize: number;
+  /** Allowed MIME types */
   allowedTypes: string[];
-  headers?: Record<string, string>;
 }

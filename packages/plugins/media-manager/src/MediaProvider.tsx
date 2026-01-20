@@ -4,6 +4,7 @@ import { RichTextEditorAdapter } from './adapters/EditorAdapter';
 import { MediaManager } from './MediaManager';
 import { ImageResizer } from './utils/resizable';
 import { usePluginContext } from '../../../react/src/components/PluginManager';
+import { getMediaManagerConfig } from './constants';
 import './components/MediaDialogAdvanced.css';
 import './components/MediaResize.css';
 
@@ -26,15 +27,9 @@ export const useMediaContext = () => {
 
 interface MediaProviderProps {
   children: ReactNode;
-  mediaConfig?: {
-    uploadUrl: string;
-    libraryUrl: string;
-    maxFileSize: number;
-    allowedTypes: string[];
-  };
 }
 
-export const MediaProvider: React.FC<MediaProviderProps> = ({ children, mediaConfig }) => {
+export const MediaProvider: React.FC<MediaProviderProps> = ({ children }) => {
   const { registerCommand } = usePluginContext();
 
   const [manager, setManager] = useState<MediaManager | null>(null);
@@ -57,22 +52,21 @@ export const MediaProvider: React.FC<MediaProviderProps> = ({ children, mediaCon
   };
 
   useEffect(() => {
-    if (mediaConfig) {
-      // Use setTimeout to ensure DOM is ready
-      setTimeout(() => {
-        const contentEl = document.querySelector('.rte-content') as HTMLElement;
-        if (contentEl) {
-          const adapter = new RichTextEditorAdapter(contentEl);
-          const mediaManager = new MediaManager(adapter, mediaConfig);
-          setManager(mediaManager);
+    // Use setTimeout to ensure DOM is ready
+    setTimeout(() => {
+      const contentEl = document.querySelector('.rte-content') as HTMLElement;
+      if (contentEl) {
+        const adapter = new RichTextEditorAdapter(contentEl);
+        const config = getMediaManagerConfig();
+        const mediaManager = new MediaManager(adapter, config);
+        setManager(mediaManager);
 
-          // Initialize image resizer
-          if (!resizerRef.current) {
-            resizerRef.current = new ImageResizer(contentEl);
-          }
+        // Initialize image resizer
+        if (!resizerRef.current) {
+          resizerRef.current = new ImageResizer(contentEl);
         }
-      }, 100);
-    }
+      }
+    }, 100);
 
     // Cleanup on unmount
     return () => {
@@ -81,7 +75,7 @@ export const MediaProvider: React.FC<MediaProviderProps> = ({ children, mediaCon
         resizerRef.current = null;
       }
     };
-  }, [mediaConfig]);
+  }, []);
 
   React.useEffect(() => {
     registerCommand('insertImage', openImageDialog);

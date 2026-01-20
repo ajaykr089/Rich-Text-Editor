@@ -14,6 +14,80 @@ A Rich Text Editor plugin that provides comprehensive document import and export
 npm install @rte-editor/document-manager
 ```
 
+## API Configuration
+
+This plugin communicates with external document processing APIs. You must configure your API endpoints before using the plugin.
+
+### Configuration Setup
+
+```tsx
+import React from 'react';
+import { RichTextEditor } from '@rte-editor/react';
+import {
+  DocumentManagerPlugin,
+  setDocumentManagerConfig,
+  // ... other plugins
+} from '@rte-editor/plugins';
+
+// Configure your API endpoints (do this once, before using the plugin)
+setDocumentManagerConfig({
+  apiUrl: 'https://your-api.com',
+  apiEndpoints: {
+    exportWord: '/api/v1/documents/export-word'
+  },
+  headers: {
+    'Authorization': 'Bearer YOUR_TOKEN',
+    'X-API-Key': 'YOUR_API_KEY'
+  }
+});
+
+const plugins = [
+  // ... other plugins
+  DocumentManagerPlugin()
+];
+
+function App() {
+  return (
+    <RichTextEditor plugins={plugins} />
+  );
+}
+```
+
+### Configuration Options
+
+```typescript
+interface DocumentManagerConfig {
+  /** Base URL of your document processing API */
+  apiUrl: string;
+  /** API endpoints relative to the base URL */
+  apiEndpoints: {
+    exportWord: string;
+  };
+  /** Optional headers for API requests (e.g., authentication) */
+  headers?: Record<string, string>;
+}
+```
+
+### Environment-Specific Configuration
+
+```tsx
+// Development
+setDocumentManagerConfig({
+  apiUrl: 'http://localhost:3001',
+  apiEndpoints: { exportWord: '/api/documents/export-word' }
+});
+
+// Production
+setDocumentManagerConfig({
+  apiUrl: 'https://api.yourcompany.com',
+  apiEndpoints: { exportWord: '/v2/documents/export-word' },
+  headers: {
+    'Authorization': `Bearer ${process.env.API_TOKEN}`,
+    'X-Tenant-ID': process.env.TENANT_ID
+  }
+});
+```
+
 ## Usage
 
 ### Basic Setup
@@ -24,8 +98,15 @@ import { RichTextEditor } from '@rte-editor/react';
 import {
   DocumentManagerPlugin,
   DocumentManagerProvider,
+  setDocumentManagerConfig,
   // ... other plugins
 } from '@rte-editor/plugins';
+
+// Configure API (required!)
+setDocumentManagerConfig({
+  apiUrl: 'https://your-api.com',
+  apiEndpoints: { exportWord: '/api/documents/export-word' }
+});
 
 const plugins = [
   // ... other plugins
