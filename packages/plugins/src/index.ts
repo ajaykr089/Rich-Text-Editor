@@ -28,6 +28,8 @@ export { EmojisPlugin } from '../emojis/src/index';
 export { LineHeightPlugin } from '../line-height/src/index';
 export { IndentPlugin } from '../indent/src/index';
 export { EmbedIframePlugin } from '../embed-iframe/src/index';
+export { CapitalizationPlugin } from '../capitalization/src/index';
+export { DirectionPlugin } from '../direction/src/index';
 
 // Shared API configuration for all plugins
 export { setGlobalApiConfig, getGlobalApiConfig, getGlobalApiHeaders, buildApiUrl } from './shared-config';

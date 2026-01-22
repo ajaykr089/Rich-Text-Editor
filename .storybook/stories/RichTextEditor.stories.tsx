@@ -27,6 +27,8 @@ import {
   LineHeightPlugin,
   IndentPlugin,
   EmbedIframePlugin,
+  CapitalizationPlugin,
+  DirectionPlugin,
 } from "@rte-editor/plugins";
 import "@rte-editor/themes/themes/default.css";
 
@@ -70,6 +72,8 @@ export const Default: Story = {
       LineHeightPlugin(),
       IndentPlugin(),
       EmbedIframePlugin(),
+      CapitalizationPlugin(),
+      DirectionPlugin(),
     ],
     mediaConfig: {
       uploadUrl: "/api/media/upload",

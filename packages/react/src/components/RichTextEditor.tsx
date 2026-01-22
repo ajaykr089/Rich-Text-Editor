@@ -28,6 +28,8 @@ import { EmojisProvider } from '../../../plugins/emojis/src/EmojisProvider';
 import { TextColorPluginProvider } from '../../../plugins/text-color/src/TextColorPluginProvider';
 import { BackgroundColorPluginProvider } from '../../../plugins/background-color/src/BackgroundColorPluginProvider';
 import { EmbedIframePluginProvider } from '../../../plugins/embed-iframe/src/EmbedIframePluginProvider';
+import { CapitalizationPluginProvider } from '../../../plugins/capitalization/src/CapitalizationPluginProvider';
+import { DirectionPluginProvider } from '../../../plugins/direction/src/DirectionPluginProvider';
 import { MathProvider } from '../../../plugins/math/src/MathProvider';
 import { DocumentManagerProvider } from '../../../plugins/document-manager/src/DocumentManagerProvider';
 import { DocumentManagerPluginProvider } from '../../../plugins/document-manager/src/DocumentManagerPluginProvider';
@@ -96,6 +98,8 @@ const EditorCore: React.FC<RichTextEditorProps> = ({ plugins, className, mediaCo
                                             <EmojisProvider>
                                               <TextColorPluginProvider>
                                             <BackgroundColorPluginProvider>
+                                                <CapitalizationPluginProvider>
+                                                <DirectionPluginProvider>
                                                 <MathProvider>
                                                   <DocumentManagerProvider>
                                                     <DocumentManagerPluginProvider>
@@ -110,6 +114,8 @@ const EditorCore: React.FC<RichTextEditorProps> = ({ plugins, className, mediaCo
                                                     </DocumentManagerPluginProvider>
                                                   </DocumentManagerProvider>
                                                 </MathProvider>
+                                                </DirectionPluginProvider>
+                                                </CapitalizationPluginProvider>
                                             </BackgroundColorPluginProvider>
                                           </TextColorPluginProvider>
                                             </EmojisProvider>

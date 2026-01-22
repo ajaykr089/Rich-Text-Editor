@@ -36,3 +36,4 @@ export { SpecialCharactersPlugin, SpecialCharactersProvider } from './special-ch
 export { MathPlugin } from './math/src/MathPlugin';
 export { DocumentManagerPlugin, DocumentManagerProvider } from './document-manager/src/index';
 export { TextColorPlugin } from './text-color/src/TextColorPlugin';
+export { CapitalizationPlugin, CapitalizationPluginProvider } from './capitalization/src/index';
