@@ -74,64 +74,64 @@ const EditorCore: React.FC<RichTextEditorProps> = ({ plugins, className, mediaCo
   const floatingToolbarEnabled = floatingToolbar?.enabled !== false;
 
   return (
-    <BoldPluginProvider>
-      <ItalicPluginProvider>
-        <UnderlinePluginProvider>
-          <StrikethroughPluginProvider>
-            <CodePluginProvider>
-              <ListPluginProvider>
-                <BlockquotePluginProvider>
-                  <ClearFormattingPluginProvider>
-                    <HistoryPluginProvider>
-                        <IndentPluginProvider>
-                          <TableProvider>
-                            <LinkProvider>
-                              <MediaProvider>
-                                <FontSizeProvider>
-                                  <TextAlignmentProvider>
-                                    <FontFamilyProvider>
-                                      <LineHeightProvider>
-                                        <SpecialCharactersProvider>
-                                          <EmojisProvider>
-                                            <TextColorPluginProvider>
-                                          <BackgroundColorPluginProvider>
-                                            <EmbedIframePluginProvider>
-                                              <MathProvider>
-                                                <DocumentManagerProvider>
-                                                  <DocumentManagerPluginProvider>
-                                                    <div className={`rte-editor ${className || ''}`}>
-                                                      <Toolbar editor={editor} />
-                                                      <EditorContent editor={editor} />
-                                                      <FloatingToolbar
-                                                        editor={editor}
-                                                        isEnabled={floatingToolbarEnabled}
-                                                      />
-                                                    </div>
-                                                  </DocumentManagerPluginProvider>
-                                                </DocumentManagerProvider>
-                                              </MathProvider>
-                                            </EmbedIframePluginProvider>
-                                          </BackgroundColorPluginProvider>
-                                        </TextColorPluginProvider>
-                                          </EmojisProvider>
-                                        </SpecialCharactersProvider>
-                                      </LineHeightProvider>
-                                    </FontFamilyProvider>
-                                  </TextAlignmentProvider>
-                                </FontSizeProvider>
-                              </MediaProvider>
-                            </LinkProvider>
-                          </TableProvider>
-                        </IndentPluginProvider>
-                    </HistoryPluginProvider>
-                  </ClearFormattingPluginProvider>
-                </BlockquotePluginProvider>
-              </ListPluginProvider>
-            </CodePluginProvider>
-          </StrikethroughPluginProvider>
-        </UnderlinePluginProvider>
-      </ItalicPluginProvider>
-    </BoldPluginProvider>
+    <EmbedIframePluginProvider>
+      <BoldPluginProvider>
+        <ItalicPluginProvider>
+          <UnderlinePluginProvider>
+            <StrikethroughPluginProvider>
+              <CodePluginProvider>
+                <ListPluginProvider>
+                  <BlockquotePluginProvider>
+                    <ClearFormattingPluginProvider>
+                      <HistoryPluginProvider>
+                          <IndentPluginProvider>
+                            <TableProvider>
+                              <LinkProvider>
+                                <MediaProvider>
+                                  <FontSizeProvider>
+                                    <TextAlignmentProvider>
+                                      <FontFamilyProvider>
+                                        <LineHeightProvider>
+                                          <SpecialCharactersProvider>
+                                            <EmojisProvider>
+                                              <TextColorPluginProvider>
+                                            <BackgroundColorPluginProvider>
+                                                <MathProvider>
+                                                  <DocumentManagerProvider>
+                                                    <DocumentManagerPluginProvider>
+                                                      <div className={`rte-editor ${className || ''}`}>
+                                                        <Toolbar editor={editor} />
+                                                        <EditorContent editor={editor} />
+                                                        <FloatingToolbar
+                                                          editor={editor}
+                                                          isEnabled={floatingToolbarEnabled}
+                                                        />
+                                                      </div>
+                                                    </DocumentManagerPluginProvider>
+                                                  </DocumentManagerProvider>
+                                                </MathProvider>
+                                            </BackgroundColorPluginProvider>
+                                          </TextColorPluginProvider>
+                                            </EmojisProvider>
+                                          </SpecialCharactersProvider>
+                                        </LineHeightProvider>
+                                      </FontFamilyProvider>
+                                    </TextAlignmentProvider>
+                                  </FontSizeProvider>
+                                </MediaProvider>
+                              </LinkProvider>
+                            </TableProvider>
+                          </IndentPluginProvider>
+                      </HistoryPluginProvider>
+                    </ClearFormattingPluginProvider>
+                  </BlockquotePluginProvider>
+                </ListPluginProvider>
+              </CodePluginProvider>
+            </StrikethroughPluginProvider>
+          </UnderlinePluginProvider>
+        </ItalicPluginProvider>
+      </BoldPluginProvider>
+    </EmbedIframePluginProvider>
   );
 };
 

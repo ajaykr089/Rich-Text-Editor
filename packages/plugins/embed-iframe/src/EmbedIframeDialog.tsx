@@ -1,23 +1,41 @@
 import React, { useState, useEffect } from 'react';
+import './EmbedIframeDialog.css';
 
 interface EmbedIframeDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onEmbed: (data: { src: string; width: string; height: string; aspectRatio: string }) => void;
+  onEmbed: (data: {
+    src: string;
+    width: string;
+    height: string;
+    aspectRatio: string;
+    name?: string;
+    title?: string;
+    longDescription?: string;
+    descriptionUrl?: string;
+    showBorder: boolean;
+    enableScrollbar: boolean;
+  }) => void;
   initialData?: {
     src?: string;
     width?: string;
     height?: string;
     aspectRatio?: string;
+    name?: string;
+    title?: string;
+    longDescription?: string;
+    descriptionUrl?: string;
+    showBorder?: boolean;
+    enableScrollbar?: boolean;
   };
 }
 
-const SIZE_PRESETS = [
-  { label: 'Inline Value', value: 'inline', description: 'Custom width and height' },
-  { label: 'Responsive - 21x9', value: '21x9', description: 'Ultra-wide (21:9)' },
-  { label: 'Responsive - 16x9', value: '16x9', description: 'Widescreen (16:9)' },
-  { label: 'Responsive - 4x3', value: '4x3', description: 'Standard (4:3)' },
-  { label: 'Responsive - 1x1', value: '1x1', description: 'Square (1:1)' },
+const SIZE_OPTIONS = [
+  { label: 'Inline Value', value: 'inline' },
+  { label: 'Responsive - 21x9', value: '21x9' },
+  { label: 'Responsive - 16x9', value: '16x9' },
+  { label: 'Responsive - 4x3', value: '4x3' },
+  { label: 'Responsive - 1x1', value: '1x1' },
 ];
 
 export const EmbedIframeDialog: React.FC<EmbedIframeDialogProps> = ({
@@ -26,17 +44,35 @@ export const EmbedIframeDialog: React.FC<EmbedIframeDialogProps> = ({
   onEmbed,
   initialData
 }) => {
+  const [activeTab, setActiveTab] = useState<'general' | 'advanced'>('general');
+
+  // General tab fields
   const [src, setSrc] = useState(initialData?.src || '');
+  const [selectedSize, setSelectedSize] = useState(initialData?.aspectRatio || 'inline');
   const [width, setWidth] = useState(initialData?.width || '100%');
   const [height, setHeight] = useState(initialData?.height || '400px');
-  const [selectedSize, setSelectedSize] = useState(initialData?.aspectRatio || 'inline');
+  const [constrainProportions, setConstrainProportions] = useState(true);
+
+  // Advanced tab fields
+  const [name, setName] = useState(initialData?.name || '');
+  const [title, setTitle] = useState(initialData?.title || '');
+  const [longDescription, setLongDescription] = useState(initialData?.longDescription || '');
+  const [descriptionUrl, setDescriptionUrl] = useState(initialData?.descriptionUrl || '');
+  const [showBorder, setShowBorder] = useState(initialData?.showBorder ?? true);
+  const [enableScrollbar, setEnableScrollbar] = useState(initialData?.enableScrollbar ?? true);
 
   useEffect(() => {
     if (initialData) {
       setSrc(initialData.src || '');
+      setSelectedSize(initialData.aspectRatio || 'inline');
       setWidth(initialData.width || '100%');
       setHeight(initialData.height || '400px');
-      setSelectedSize(initialData.aspectRatio || 'inline');
+      setName(initialData.name || '');
+      setTitle(initialData.title || '');
+      setLongDescription(initialData.longDescription || '');
+      setDescriptionUrl(initialData.descriptionUrl || '');
+      setShowBorder(initialData.showBorder ?? true);
+      setEnableScrollbar(initialData.enableScrollbar ?? true);
     }
   }, [initialData]);
 
@@ -50,6 +86,30 @@ export const EmbedIframeDialog: React.FC<EmbedIframeDialogProps> = ({
       // For responsive presets, set width to 100% and height to auto
       setWidth('100%');
       setHeight('auto');
+    }
+  };
+
+  const handleWidthChange = (newWidth: string) => {
+    setWidth(newWidth);
+    if (constrainProportions && selectedSize === 'inline') {
+      // Calculate height based on 16:9 aspect ratio (you can adjust this)
+      const widthValue = parseFloat(newWidth);
+      if (!isNaN(widthValue)) {
+        const heightValue = (widthValue * 9) / 16;
+        setHeight(`${heightValue}px`);
+      }
+    }
+  };
+
+  const handleHeightChange = (newHeight: string) => {
+    setHeight(newHeight);
+    if (constrainProportions && selectedSize === 'inline') {
+      // Calculate width based on 16:9 aspect ratio
+      const heightValue = parseFloat(newHeight);
+      if (!isNaN(heightValue)) {
+        const widthValue = (heightValue * 16) / 9;
+        setWidth(`${widthValue}px`);
+      }
     }
   };
 
@@ -74,17 +134,31 @@ export const EmbedIframeDialog: React.FC<EmbedIframeDialogProps> = ({
       src: src.trim(),
       width: finalWidth,
       height: finalHeight,
-      aspectRatio: selectedSize
+      aspectRatio: selectedSize,
+      name: name.trim() || undefined,
+      title: title.trim() || undefined,
+      longDescription: longDescription.trim() || undefined,
+      descriptionUrl: descriptionUrl.trim() || undefined,
+      showBorder,
+      enableScrollbar
     });
 
     onClose();
   };
 
   const handleCancel = () => {
+    // Reset to initial data
     setSrc(initialData?.src || '');
+    setSelectedSize(initialData?.aspectRatio || 'inline');
     setWidth(initialData?.width || '100%');
     setHeight(initialData?.height || '400px');
-    setSelectedSize(initialData?.aspectRatio || 'inline');
+    setName(initialData?.name || '');
+    setTitle(initialData?.title || '');
+    setLongDescription(initialData?.longDescription || '');
+    setDescriptionUrl(initialData?.descriptionUrl || '');
+    setShowBorder(initialData?.showBorder ?? true);
+    setEnableScrollbar(initialData?.enableScrollbar ?? true);
+    setActiveTab('general');
     onClose();
   };
 
@@ -92,105 +166,181 @@ export const EmbedIframeDialog: React.FC<EmbedIframeDialogProps> = ({
 
   return (
     <div className="rte-dialog-overlay" onClick={onClose}>
-      <div className="rte-dialog-content" onClick={(e) => e.stopPropagation()}>
+      <div className="rte-dialog-content embed-iframe-dialog" onClick={(e) => e.stopPropagation()}>
         <div className="rte-dialog-header">
           <h3>Embed Iframe</h3>
           <button className="rte-dialog-close" onClick={onClose}>×</button>
         </div>
 
-        <form onSubmit={handleSubmit} className="rte-dialog-body">
-          {/* Source URL */}
-          <div className="rte-form-group">
-            <label className="rte-form-label">Source URL</label>
-            <input
-              type="url"
-              className="rte-form-input"
-              placeholder="https://example.com"
-              value={src}
-              onChange={(e) => setSrc(e.target.value)}
-              required
-            />
-          </div>
+        <div className="rte-dialog-body">
+          {/* Vertical Tabs */}
+          <div className="rte-vertical-tabs">
+            <div className="rte-tab-buttons">
+              <button
+                className={`rte-tab-button ${activeTab === 'general' ? 'active' : ''}`}
+                onClick={() => setActiveTab('general')}
+              >
+                General
+              </button>
+              <button
+                className={`rte-tab-button ${activeTab === 'advanced' ? 'active' : ''}`}
+                onClick={() => setActiveTab('advanced')}
+              >
+                Advanced
+              </button>
+            </div>
 
-          {/* Size Preset Selection */}
-          <div className="rte-form-group">
-            <label className="rte-form-label">Size Preset</label>
-            <div className="rte-size-presets">
-              {SIZE_PRESETS.map((preset) => (
-                <label key={preset.value} className="rte-radio-option">
-                  <input
-                    type="radio"
-                    name="sizePreset"
-                    value={preset.value}
-                    checked={selectedSize === preset.value}
-                    onChange={(e) => handleSizeChange(e.target.value)}
-                  />
-                  <span className="rte-radio-label">
-                    <strong>{preset.label}</strong>
-                    <br />
-                    <small>{preset.description}</small>
-                  </span>
-                </label>
-              ))}
+            <div className="rte-tab-content">
+              {/* General Tab */}
+              {activeTab === 'general' && (
+                <div className="rte-tab-panel">
+                  {/* Source URL */}
+                  <div className="rte-form-group">
+                    <label className="rte-form-label">Source</label>
+                    <input
+                      type="url"
+                      className="rte-form-input"
+                      placeholder="https://example.com"
+                      value={src}
+                      onChange={(e) => setSrc(e.target.value)}
+                      required
+                    />
+                  </div>
+
+                  {/* Size Dropdown */}
+                  <div className="rte-form-group">
+                    <label className="rte-form-label">Size</label>
+                    <select
+                      className="rte-form-select"
+                      value={selectedSize}
+                      onChange={(e) => handleSizeChange(e.target.value)}
+                    >
+                      {SIZE_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Width and Height (only for Inline Value) */}
+                  {selectedSize === 'inline' && (
+                    <div className="rte-form-row">
+                      <div className="rte-form-group">
+                        <label className="rte-form-label">Width</label>
+                        <input
+                          type="text"
+                          className="rte-form-input"
+                          placeholder="100%"
+                          value={width}
+                          onChange={(e) => handleWidthChange(e.target.value)}
+                        />
+                      </div>
+                      <div className="rte-form-group">
+                        <label className="rte-form-label">Height</label>
+                        <input
+                          type="text"
+                          className="rte-form-input"
+                          placeholder="400px"
+                          value={height}
+                          onChange={(e) => handleHeightChange(e.target.value)}
+                        />
+                      </div>
+                      <div className="rte-form-group constrain-group">
+                        <button
+                          type="button"
+                          className={`rte-constrain-btn ${constrainProportions ? 'locked' : 'unlocked'}`}
+                          onClick={() => setConstrainProportions(!constrainProportions)}
+                          title={constrainProportions ? 'Unlock proportions' : 'Lock proportions'}
+                        >
+                          {constrainProportions ? '🔒' : '🔓'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Advanced Tab */}
+              {activeTab === 'advanced' && (
+                <div className="rte-tab-panel">
+                  <div className="rte-form-group">
+                    <label className="rte-form-label">Name</label>
+                    <input
+                      type="text"
+                      className="rte-form-input"
+                      placeholder="Iframe name"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="rte-form-group">
+                    <label className="rte-form-label">Title</label>
+                    <input
+                      type="text"
+                      className="rte-form-input"
+                      placeholder="Iframe title"
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="rte-form-group">
+                    <label className="rte-form-label">Long Description</label>
+                    <textarea
+                      className="rte-form-textarea"
+                      placeholder="Detailed description of the iframe content"
+                      value={longDescription}
+                      onChange={(e) => setLongDescription(e.target.value)}
+                      rows={3}
+                    />
+                  </div>
+
+                  <div className="rte-form-group">
+                    <label className="rte-form-label">Description URL</label>
+                    <input
+                      type="url"
+                      className="rte-form-input"
+                      placeholder="https://example.com/description"
+                      value={descriptionUrl}
+                      onChange={(e) => setDescriptionUrl(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="rte-form-group">
+                    <label className="rte-checkbox-label">
+                      <input
+                        type="checkbox"
+                        checked={showBorder}
+                        onChange={(e) => setShowBorder(e.target.checked)}
+                      />
+                      Show iframe border
+                    </label>
+                  </div>
+
+                  <div className="rte-form-group">
+                    <label className="rte-checkbox-label">
+                      <input
+                        type="checkbox"
+                        checked={enableScrollbar}
+                        onChange={(e) => setEnableScrollbar(e.target.checked)}
+                      />
+                      Enable scrollbar
+                    </label>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
-
-          {/* Custom Dimensions (only show for inline) */}
-          {selectedSize === 'inline' && (
-            <div className="rte-form-row">
-              <div className="rte-form-group">
-                <label className="rte-form-label">Width</label>
-                <input
-                  type="text"
-                  className="rte-form-input"
-                  placeholder="100%"
-                  value={width}
-                  onChange={(e) => setWidth(e.target.value)}
-                />
-              </div>
-              <div className="rte-form-group">
-                <label className="rte-form-label">Height</label>
-                <input
-                  type="text"
-                  className="rte-form-input"
-                  placeholder="400px"
-                  value={height}
-                  onChange={(e) => setHeight(e.target.value)}
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Preview */}
-          {src && (
-            <div className="rte-form-group">
-              <label className="rte-form-label">Preview</label>
-              <div className="rte-iframe-preview">
-                <iframe
-                  src={src}
-                  width={selectedSize === 'inline' ? width : '100%'}
-                  height={selectedSize === 'inline' ? height : '200px'}
-                  style={{
-                    border: '1px solid #ddd',
-                    borderRadius: '4px',
-                    aspectRatio: selectedSize === 'inline' ? 'auto' :
-                      selectedSize === '21x9' ? '21/9' :
-                      selectedSize === '16x9' ? '16/9' :
-                      selectedSize === '4x3' ? '4/3' : '1/1'
-                  }}
-                  title="Iframe Preview"
-                />
-              </div>
-            </div>
-          )}
-        </form>
+        </div>
 
         <div className="rte-dialog-footer">
           <button type="button" className="rte-btn rte-btn-secondary" onClick={handleCancel}>
             Cancel
           </button>
           <button type="submit" className="rte-btn rte-btn-primary" onClick={handleSubmit}>
-            Embed Iframe
+            Save
           </button>
         </div>
       </div>
