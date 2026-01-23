@@ -8,7 +8,6 @@ export { HistoryPlugin } from '../history/src/HistoryPlugin';
 export { LinkPlugin } from '../link/src/LinkPlugin';
 export { StrikethroughPlugin } from '../strikethrough/src/StrikethroughPlugin';
 export { BlockquotePlugin } from '../blockquote/src/BlockquotePlugin';
-export { CodePlugin } from '../code/src/CodePlugin';
 export { ClearFormattingPlugin } from '../clear-formatting/src/ClearFormattingPlugin';
 export { TablePlugin } from '../table/src/TablePlugin';
 export { MediaManagerPlugin, setMediaManagerConfig, getMediaManagerConfig } from '../media-manager/src/index';
@@ -30,6 +29,7 @@ export { IndentPlugin } from '../indent/src/index';
 export { EmbedIframePlugin } from '../embed-iframe/src/index';
 export { CapitalizationPlugin } from '../capitalization/src/index';
 export { DirectionPlugin } from '../direction/src/index';
+export { CodePlugin } from '../code/src/index';
 
 // Shared API configuration for all plugins
 export { setGlobalApiConfig, getGlobalApiConfig, getGlobalApiHeaders, buildApiUrl } from './shared-config';

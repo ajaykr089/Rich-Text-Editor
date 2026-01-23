@@ -19,7 +19,8 @@
     "react-dom": ">=16.8.0"
   },
   "dependencies": {
-    "@rte-editor/core": "^1.0.0"
+    "@rte-editor/core": "^1.0.0",
+    "@rte-editor/light-code-editor": "file:../light-code-editor"
   },
   "devDependencies": {
     "@types/react": "^18.2.0",

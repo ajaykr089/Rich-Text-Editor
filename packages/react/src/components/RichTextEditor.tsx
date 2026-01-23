@@ -9,7 +9,6 @@ import { BoldPluginProvider } from '../../../plugins/bold/src/BoldPluginProvider
 import { ItalicPluginProvider } from '../../../plugins/italic/src/ItalicPluginProvider';
 import { UnderlinePluginProvider } from '../../../plugins/underline/src/UnderlinePluginProvider';
 import { StrikethroughPluginProvider } from '../../../plugins/strikethrough/src/StrikethroughPluginProvider';
-import { CodePluginProvider } from '../../../plugins/code/src/CodePluginProvider';
 import { ListPluginProvider } from '../../../plugins/list/src/ListPluginProvider';
 import { BlockquotePluginProvider } from '../../../plugins/blockquote/src/BlockquotePluginProvider';
 import { ClearFormattingPluginProvider } from '../../../plugins/clear-formatting/src/ClearFormattingPluginProvider';
@@ -30,6 +29,7 @@ import { BackgroundColorPluginProvider } from '../../../plugins/background-color
 import { EmbedIframePluginProvider } from '../../../plugins/embed-iframe/src/EmbedIframePluginProvider';
 import { CapitalizationPluginProvider } from '../../../plugins/capitalization/src/CapitalizationPluginProvider';
 import { DirectionPluginProvider } from '../../../plugins/direction/src/DirectionPluginProvider';
+import { CodePluginProvider } from '../../../plugins/code/src/CodePluginProvider';
 import { MathProvider } from '../../../plugins/math/src/MathProvider';
 import { DocumentManagerProvider } from '../../../plugins/document-manager/src/DocumentManagerProvider';
 import { DocumentManagerPluginProvider } from '../../../plugins/document-manager/src/DocumentManagerPluginProvider';
