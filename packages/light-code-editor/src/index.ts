@@ -4,6 +4,7 @@
  */
 
 import { EditorCore } from './EditorCore';
+import { KeymapExtension } from './extensions/KeymapExtension';
 
 // Main exports
 export { EditorCore } from './EditorCore';
@@ -33,7 +34,19 @@ export type {
 
 // Factory function for easy instantiation
 export function createEditor(container: HTMLElement, config?: import('./types').EditorConfig) {
-  return new EditorCore(container, config);
+  // Include KeymapExtension by default if not explicitly disabled
+  const finalConfig = { ...config };
+  if (!finalConfig.extensions) {
+    finalConfig.extensions = [];
+  }
+
+  // Add KeymapExtension if not already present
+  const hasKeymap = finalConfig.extensions.some(ext => ext.name === 'keymap');
+  if (!hasKeymap) {
+    finalConfig.extensions.unshift(new KeymapExtension(finalConfig.keymap));
+  }
+
+  return new EditorCore(container, finalConfig);
 }
 
 // Default export

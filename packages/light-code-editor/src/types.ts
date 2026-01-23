@@ -65,6 +65,21 @@ export interface Command {
   canExecute?(editor: EditorCore): boolean;
 }
 
+// Key binding interface
+export interface KeyBinding {
+  key: string;
+  ctrlKey?: boolean;
+  altKey?: boolean;
+  shiftKey?: boolean;
+  metaKey?: boolean; // Command key on Mac
+  command: string;
+}
+
+// Keymap interface
+export interface Keymap {
+  [key: string]: KeyBinding[];
+}
+
 // Search options
 export interface SearchOptions {
   query: string;
@@ -103,6 +118,7 @@ export interface EditorConfig {
   lineWrapping?: boolean;
   lineNumbers?: boolean;
   extensions?: EditorExtension[];
+  keymap?: Keymap;
 }
 
 // Editor events

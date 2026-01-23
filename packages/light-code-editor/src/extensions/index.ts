@@ -11,3 +11,4 @@ export { SearchExtension } from './SearchExtension';
 export { BracketMatchingExtension } from './BracketMatchingExtension';
 export { CodeFoldingExtension } from './CodeFoldingExtension';
 export { SyntaxHighlightingExtension } from './SyntaxHighlightingExtension';
+export { KeymapExtension } from './KeymapExtension';

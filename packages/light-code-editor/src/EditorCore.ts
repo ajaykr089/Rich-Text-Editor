@@ -77,6 +77,11 @@ export class EditorCore implements EditorAPI {
     this.setTheme(this.config.theme!);
   }
 
+  // Get keymap extension if available
+  getKeymapExtension(): any {
+    return this.extensions.get('keymap');
+  }
+
   // Setup DOM event handlers
   private setupEventHandlers(): void {
     const contentElement = this.view.getContentElement();

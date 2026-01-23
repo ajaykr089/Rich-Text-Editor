@@ -3,15 +3,18 @@
  * Author: Ajay Kumar <ajaykr089@gmail.com>
  */
 
-import { EditorExtension, EditorCore } from '../types';
+import { EditorExtension, EditorAPI } from '../types';
 
 export class SyntaxHighlightingExtension implements EditorExtension {
   public readonly name = 'syntax-highlighting';
-  private editor: EditorCore | null = null;
+  private editor: EditorAPI | null = null;
   private highlightContainer: HTMLElement | null = null;
   private currentTheme = 'dark';
+  private highlightTimeout: number | null = null;
+  private lastHighlightedText = '';
+  private isHighlighting = false;
 
-  setup(editor: EditorCore): void {
+  setup(editor: EditorAPI): void {
     this.editor = editor;
 
     // Register syntax highlighting commands
@@ -34,18 +37,18 @@ export class SyntaxHighlightingExtension implements EditorExtension {
   private createHighlightingOverlay(): void {
     if (!this.editor) return;
 
-    const view = this.editor.getView();
-    const contentElement = view.getContentElement();
-    if (!contentElement || !contentElement.parentNode) return;
+    // Find the editor container
+    const container = document.querySelector('.rte-source-editor-modal') as HTMLElement;
+    if (!container) return;
 
     // Create highlighting overlay
     this.highlightContainer = document.createElement('div');
     this.highlightContainer.style.cssText = `
       position: absolute;
-      top: 0;
+      top: 60px; /* Account for header */
       left: 50px; /* Account for line numbers */
       right: 0;
-      bottom: 0;
+      bottom: 80px; /* Account for footer */
       pointer-events: none;
       font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
       font-size: 14px;
@@ -60,8 +63,8 @@ export class SyntaxHighlightingExtension implements EditorExtension {
       color: transparent;
     `;
 
-    // Insert the overlay as a sibling to content element
-    contentElement.parentNode.insertBefore(this.highlightContainer, contentElement);
+    // Insert the overlay
+    container.appendChild(this.highlightContainer);
   }
 
   private highlightSyntax(): void {

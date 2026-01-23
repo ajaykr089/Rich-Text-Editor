@@ -3,17 +3,17 @@
  * Author: Ajay Kumar <ajaykr089@gmail.com>
  */
 
-import { EditorExtension, EditorCore, SearchResult, SearchOptions } from '../types';
+import { EditorExtension, EditorAPI, SearchResult, SearchOptions } from '../types';
 
 export class SearchExtension implements EditorExtension {
   public readonly name = 'search';
-  private editor: EditorCore | null = null;
+  private editor: EditorAPI | null = null;
   private searchUI: HTMLElement | null = null;
   private isVisible = false;
   private currentResults: SearchResult[] = [];
   private currentIndex = -1;
 
-  setup(editor: EditorCore): void {
+  setup(editor: EditorAPI): void {
     this.editor = editor;
 
     // Register search commands
@@ -37,29 +37,8 @@ export class SearchExtension implements EditorExtension {
       this.replaceAll(query, replacement);
     });
 
-    // Keyboard shortcuts
-    editor.on('keydown', (event) => {
-      if (event.ctrlKey && event.key === 'f') {
-        event.preventDefault();
-        this.showSearch();
-        return false;
-      } else if (event.ctrlKey && event.key === 'h') {
-        event.preventDefault();
-        this.showReplace();
-        return false;
-      } else if (event.key === 'F3' || (event.ctrlKey && event.key === 'g')) {
-        event.preventDefault();
-        this.findNext();
-        return false;
-      } else if (event.shiftKey && event.key === 'F3') {
-        event.preventDefault();
-        this.findPrev();
-        return false;
-      } else if (event.key === 'Escape' && this.isVisible) {
-        this.hideSearch();
-        return false;
-      }
-    });
+    // Keyboard shortcuts are now handled by KeymapExtension
+    // The commands are registered above and will be triggered by the keymap
   }
 
   private showSearch(): void {
@@ -82,10 +61,17 @@ export class SearchExtension implements EditorExtension {
 
   private showReplace(): void {
     this.showSearch();
-    // For now, just show search. Replace functionality can be extended
+    // Show replace input
     const replaceInput = this.searchUI?.querySelector('.search-replace-input') as HTMLInputElement;
     if (replaceInput) {
       replaceInput.style.display = 'block';
+      replaceInput.focus();
+    }
+
+    // Update UI to show replace mode
+    const statusDiv = this.searchUI?.querySelector('.search-status') as HTMLElement;
+    if (statusDiv) {
+      statusDiv.textContent = 'Replace mode - Enter to replace, Shift+Enter to replace all';
     }
   }
 
@@ -100,8 +86,7 @@ export class SearchExtension implements EditorExtension {
   private createSearchUI(): void {
     if (!this.editor) return;
 
-    const view = this.editor.getView();
-    const container = view['container'] as HTMLElement;
+    const container = document.querySelector('.rte-source-editor-modal') as HTMLElement;
     if (!container) return;
 
     this.searchUI = document.createElement('div');
@@ -180,6 +165,7 @@ export class SearchExtension implements EditorExtension {
 
     // Add event listeners
     const input = this.searchUI.querySelector('input') as HTMLInputElement;
+    const replaceInput = this.searchUI.querySelector('.search-replace-input') as HTMLInputElement;
     const prevBtn = this.searchUI.querySelector('.search-prev') as HTMLButtonElement;
     const nextBtn = this.searchUI.querySelector('.search-next') as HTMLButtonElement;
     const closeBtn = this.searchUI.querySelector('.search-close') as HTMLButtonElement;
@@ -199,6 +185,19 @@ export class SearchExtension implements EditorExtension {
       }
     });
 
+    replaceInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        if (e.shiftKey) {
+          // Replace all occurrences
+          this.replaceAll(input.value, replaceInput.value);
+        } else {
+          // Replace current occurrence
+          this.replaceCurrent(input.value, replaceInput.value);
+        }
+      }
+    });
+
     prevBtn.addEventListener('click', () => this.findPrev());
     nextBtn.addEventListener('click', () => this.findNext());
     closeBtn.addEventListener('click', () => this.hideSearch());
@@ -213,11 +212,33 @@ export class SearchExtension implements EditorExtension {
       return;
     }
 
-    this.currentResults = this.editor.search(query, { caseSensitive: false });
+    // Simple search implementation
+    const text = this.editor.getValue();
+    const results: SearchResult[] = [];
+    let index = text.toLowerCase().indexOf(query.toLowerCase());
+
+    while (index !== -1) {
+      const startPos = this.getPositionFromOffset(text, index);
+      const endPos = this.getPositionFromOffset(text, index + query.length);
+      results.push({
+        range: { start: startPos, end: endPos },
+        match: text.substring(index, index + query.length)
+      });
+      index = text.toLowerCase().indexOf(query.toLowerCase(), index + 1);
+    }
+
+    this.currentResults = results;
     this.currentIndex = this.currentResults.length > 0 ? 0 : -1;
 
     this.updateHighlights();
     this.updateStatus(`${this.currentResults.length} matches`);
+  }
+
+  private getPositionFromOffset(text: string, offset: number): { line: number; column: number } {
+    const lines = text.substring(0, offset).split('\n');
+    const line = lines.length - 1;
+    const column = lines[lines.length - 1].length;
+    return { line, column };
   }
 
   private findNext(): void {
@@ -236,11 +257,61 @@ export class SearchExtension implements EditorExtension {
     this.updateHighlights();
   }
 
+  private replaceCurrent(query: string, replacement: string): void {
+    if (!this.editor || !query.trim() || this.currentIndex === -1) return;
+
+    const result = this.currentResults[this.currentIndex];
+    if (!result) return;
+
+    // Calculate offset from position
+    const text = this.editor.getValue();
+    const offset = this.getOffsetFromPosition(text, result.range.start);
+
+    // Replace the current match
+    const before = text.substring(0, offset);
+    const after = text.substring(offset + query.length);
+    const newText = before + replacement + after;
+
+    this.editor.setValue(newText);
+
+    // Update search results after replacement
+    this.performSearch(query);
+
+    this.updateStatus(`Replaced current occurrence`);
+  }
+
   private replaceAll(query: string, replacement: string): void {
     if (!this.editor || !query.trim()) return;
 
-    const count = this.editor.replaceAll(query, replacement);
-    this.updateStatus(`Replaced ${count} occurrences`);
+    let text = this.editor.getValue();
+    let count = 0;
+    let index = text.toLowerCase().indexOf(query.toLowerCase());
+
+    while (index !== -1) {
+      text = text.substring(0, index) + replacement + text.substring(index + query.length);
+      count++;
+      index = text.toLowerCase().indexOf(query.toLowerCase(), index + replacement.length);
+    }
+
+    if (count > 0) {
+      this.editor.setValue(text);
+      this.updateStatus(`Replaced ${count} occurrences`);
+    }
+  }
+
+  private getOffsetFromPosition(text: string, position: { line: number; column: number }): number {
+    const lines = text.split('\n');
+    let offset = 0;
+
+    // Add lengths of all previous lines plus newlines
+    for (let i = 0; i < position.line; i++) {
+      offset += lines[i].length + 1; // +1 for newline
+    }
+
+    // Add column position on current line
+    offset += position.column;
+
+    return offset;
   }
 
   private updateHighlights(): void {
@@ -248,10 +319,9 @@ export class SearchExtension implements EditorExtension {
 
     if (this.currentResults.length === 0 || this.currentIndex === -1) return;
 
-    // Highlight current result (simplified - would need DOM manipulation)
+    // For now, just update the status - full highlighting would require DOM manipulation
     const result = this.currentResults[this.currentIndex];
-    this.editor.setCursor(result.range.start);
-    this.editor.setSelection(result.range);
+    this.updateStatus(`${this.currentResults.length} matches (showing ${this.currentIndex + 1}/${this.currentResults.length})`);
   }
 
   private clearHighlights(): void {

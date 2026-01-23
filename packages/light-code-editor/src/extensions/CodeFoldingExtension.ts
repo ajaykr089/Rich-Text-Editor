@@ -3,46 +3,40 @@
  * Author: Ajay Kumar <ajaykr089@gmail.com>
  */
 
-import { EditorExtension, EditorCore, FoldRange, Position } from '../types';
+import { EditorExtension, EditorAPI } from '../types';
 
 export class CodeFoldingExtension implements EditorExtension {
   public readonly name = 'code-folding';
-  private editor: EditorCore | null = null;
+  private editor: EditorAPI | null = null;
   private foldIndicators: HTMLElement[] = [];
   private foldingUI: HTMLElement | null = null;
 
-  setup(editor: EditorCore): void {
+  setup(editor: EditorAPI): void {
     this.editor = editor;
 
-    // Register folding commands
+    // Register folding commands (basic implementation - just log for now)
     editor.registerCommand('fold', () => {
+      console.log('Fold command executed - folding not yet implemented');
       this.foldAtCursor();
     });
 
     editor.registerCommand('unfold', () => {
+      console.log('Unfold command executed - unfolding not yet implemented');
       this.unfoldAtCursor();
     });
 
     editor.registerCommand('foldAll', () => {
+      console.log('Fold all command executed - folding not yet implemented');
       this.foldAll();
     });
 
     editor.registerCommand('unfoldAll', () => {
+      console.log('Unfold all command executed - unfolding not yet implemented');
       this.unfoldAll();
     });
 
-    // Keyboard shortcuts
-    editor.on('keydown', (event) => {
-      if (event.ctrlKey && event.shiftKey && event.key === '[') {
-        event.preventDefault();
-        this.foldAtCursor();
-        return false;
-      } else if (event.ctrlKey && event.shiftKey && event.key === ']') {
-        event.preventDefault();
-        this.unfoldAtCursor();
-        return false;
-      }
-    });
+    // Keyboard shortcuts are now handled by KeymapExtension
+    // The commands are registered above and will be triggered by the keymap
 
     // Listen for content changes to update fold indicators
     editor.on('change', () => {
@@ -57,8 +51,8 @@ export class CodeFoldingExtension implements EditorExtension {
   private createFoldingUI(): void {
     if (!this.editor) return;
 
-    const view = this.editor.getView();
-    const container = view['container'] as HTMLElement;
+    // Find the editor container
+    const container = document.querySelector('.rte-source-editor-modal') as HTMLElement;
     if (!container) return;
 
     this.foldingUI = document.createElement('div');
@@ -132,125 +126,34 @@ export class CodeFoldingExtension implements EditorExtension {
     `;
 
     indicator.innerHTML = '▶'; // Right arrow for collapsed state
-    indicator.title = 'Click to fold/unfold code block';
+    indicator.title = 'Code folding not yet implemented - click shows fold indicators';
 
     indicator.addEventListener('click', () => {
-      this.toggleFoldAtLine(lineIndex);
+      console.log(`Fold toggle clicked at line ${lineIndex} - implementation pending`);
     });
 
     this.foldingUI.appendChild(indicator);
     this.foldIndicators.push(indicator);
   }
 
-  private toggleFoldAtLine(lineIndex: number): void {
-    if (!this.editor) return;
-
-    const folds = this.editor.getFolds();
-    const existingFold = folds.find(fold => fold.start.line === lineIndex);
-
-    if (existingFold) {
-      this.editor.unfold(existingFold);
-    } else {
-      // Create a fold range (simplified - find matching closing brace)
-      const text = this.editor.getValue();
-      const lines = text.split('\n');
-
-      // Simple folding - fold until next closing brace or indentation decreases
-      let endLine = lineIndex + 1;
-      let indentLevel = this.getIndentLevel(lines[lineIndex]);
-
-      for (let i = lineIndex + 1; i < lines.length; i++) {
-        const line = lines[i];
-        const lineIndent = this.getIndentLevel(line);
-
-        if (line.trim().startsWith('}')) {
-          endLine = i;
-          break;
-        }
-
-        if (line.trim() !== '' && lineIndent <= indentLevel) {
-          endLine = i;
-          break;
-        }
-
-        endLine = i + 1;
-      }
-
-      if (endLine > lineIndex + 1) {
-        this.editor.fold({
-          start: { line: lineIndex, column: 0 },
-          end: { line: endLine, column: 0 }
-        });
-      }
-    }
-
-    this.updateFoldIndicators();
-  }
-
-  private getIndentLevel(line: string): number {
-    let indent = 0;
-    for (const char of line) {
-      if (char === ' ') {
-        indent++;
-      } else if (char === '\t') {
-        indent += 2; // Assume tab = 2 spaces
-      } else {
-        break;
-      }
-    }
-    return indent;
-  }
-
   private foldAtCursor(): void {
-    if (!this.editor) return;
-
-    const cursor = this.editor.getCursor();
-    this.toggleFoldAtLine(cursor.position.line);
+    // Placeholder - folding not yet implemented in core
+    console.log('foldAtCursor called - implementation pending');
   }
 
   private unfoldAtCursor(): void {
-    if (!this.editor) return;
-
-    const cursor = this.editor.getCursor();
-    const folds = this.editor.getFolds();
-    const foldAtCursor = folds.find(fold =>
-      cursor.position.line >= fold.start.line &&
-      cursor.position.line <= fold.end.line
-    );
-
-    if (foldAtCursor) {
-      this.editor.unfold(foldAtCursor);
-      this.updateFoldIndicators();
-    }
+    // Placeholder - folding not yet implemented in core
+    console.log('unfoldAtCursor called - implementation pending');
   }
 
   private foldAll(): void {
-    if (!this.editor) return;
-
-    const text = this.editor.getValue();
-    const lines = text.split('\n');
-    const foldableLines = this.findFoldableLines(lines);
-
-    foldableLines.forEach(lineIndex => {
-      // Check if not already folded
-      const folds = this.editor!.getFolds();
-      const existingFold = folds.find(fold => fold.start.line === lineIndex);
-
-      if (!existingFold) {
-        this.toggleFoldAtLine(lineIndex);
-      }
-    });
+    // Placeholder - folding not yet implemented in core
+    console.log('foldAll called - implementation pending');
   }
 
   private unfoldAll(): void {
-    if (!this.editor) return;
-
-    const folds = this.editor.getFolds();
-    folds.forEach(fold => {
-      this.editor!.unfold(fold);
-    });
-
-    this.updateFoldIndicators();
+    // Placeholder - folding not yet implemented in core
+    console.log('unfoldAll called - implementation pending');
   }
 
   destroy(): void {
