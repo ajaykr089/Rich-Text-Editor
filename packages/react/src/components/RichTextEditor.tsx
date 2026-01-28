@@ -35,6 +35,7 @@ import { MathProvider } from '../../../plugins/math/src/MathProvider';
 import { DocumentManagerProvider } from '../../../plugins/document-manager/src/DocumentManagerProvider';
 import { DocumentManagerPluginProvider } from '../../../plugins/document-manager/src/DocumentManagerPluginProvider';
 import { PreviewPluginProvider } from "../../../plugins/preview/src/PreviewPluginProvider";
+import { FullscreenPluginProvider } from '../../../plugins/fullscreen/src/FullscreenPluginProvider';
 
 // Global command registry
 const commandRegistry = new Map<string, (params?: any) => void>();
@@ -107,9 +108,11 @@ const EditorCore: React.FC<RichTextEditorProps> = ({ plugins, className, mediaCo
                                                         <DocumentManagerProvider>
                                                           <DocumentManagerPluginProvider>
                                                             <PreviewPluginProvider>
-                                                              <div
-                                                                className={`rte-editor ${className || ""}`}
-                                                              >
+                                                              <FullscreenPluginProvider editor={editor}>
+                                                                <div
+                                                                  data-editora-editor
+                                                                  className={`rte-editor ${className || ""}`}
+                                                                >
                                                                 <Toolbar
                                                                   editor={
                                                                     editor
@@ -129,6 +132,7 @@ const EditorCore: React.FC<RichTextEditorProps> = ({ plugins, className, mediaCo
                                                                   }
                                                                 />
                                                               </div>
+                                                            </FullscreenPluginProvider>
                                                             </PreviewPluginProvider>
                                                           </DocumentManagerPluginProvider>
                                                         </DocumentManagerProvider>

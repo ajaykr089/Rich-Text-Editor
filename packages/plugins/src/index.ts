@@ -32,6 +32,7 @@ export { DirectionPlugin } from '../direction/src/index';
 export { CodePlugin } from '../code/src/index';
 export { ChecklistPlugin } from '../checklist/src/index';
 export { PreviewPlugin, PreviewPluginProvider } from "../preview/src/index";
+export { FullscreenPlugin, FullscreenPluginProvider, useFullscreen } from '../fullscreen/src/index';
 
 // Shared API configuration for all plugins
 export { setGlobalApiConfig, getGlobalApiConfig, getGlobalApiHeaders, buildApiUrl } from './shared-config';

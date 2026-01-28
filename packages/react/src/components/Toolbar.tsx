@@ -140,6 +140,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({
               <div className="rte-toolbar-dropdown">
                 <button
                   className="rte-toolbar-button"
+                  data-command={item.command}
+                  data-active="false"
                   onClick={() => handleDropdownOpen(item.command)}
                 >
                   {item.label} ▼
@@ -163,6 +165,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                 <button
                   ref={getButtonRef(item.command)}
                   className="rte-toolbar-button"
+                  data-command={item.command}
+                  data-active="false"
                   onClick={() => handleInlineMenuOpen(item.command)}
                   title={item.label}
                 >
@@ -192,6 +196,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             ) : (
               <button
                 className="rte-toolbar-button"
+                data-command={item.command}
+                data-active="false"
                 onClick={() => handleCommand(item.command)}
                 title={item.label}
               >

@@ -31,6 +31,7 @@ import {
   DirectionPlugin,
   ChecklistPlugin,
   PreviewPlugin,
+  FullscreenPlugin,
 } from "@editora/plugins";
 import "@editora/themes/themes/default.css";
 
@@ -78,6 +79,7 @@ export const Default: Story = {
       DirectionPlugin(),
       ChecklistPlugin(),
       PreviewPlugin(),
+      FullscreenPlugin(),
     ],
     mediaConfig: {
       uploadUrl: "/api/media/upload",

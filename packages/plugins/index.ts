@@ -44,3 +44,4 @@ export { ChecklistPlugin } from './checklist/src/ChecklistPlugin';
 export { EmojisPlugin } from './emojis/src/EmojisPlugin';
 export { BackgroundColorPlugin } from './background-color/src/BackgroundColorPlugin';
 export { PreviewPlugin, PreviewPluginProvider } from "./preview/src/index";
+export { FullscreenPlugin, FullscreenPluginProvider, useFullscreen } from './fullscreen/src/index';
