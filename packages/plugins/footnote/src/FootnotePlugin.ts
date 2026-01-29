@@ -30,7 +30,7 @@ export const FootnotePlugin = (): Plugin => ({
       label: 'Footnote',
       command: 'insertFootnote',
       type: 'button',
-      icon: '†'
+      icon: '<svg width="24" height="24" viewBox="0 0 24 24"><rect x="3" y="4" width="14" height="2" rx="1" /><rect x="3" y="8" width="18" height="2" rx="1" /><rect x="3" y="12" width="16" height="2" rx="1" /><rect x="3" y="16" width="10" height="1.5" rx="0.75" /><text x="19" y="11" font-size="9" font-weight="600" fill="currentColor" font-family="system-ui, sans-serif"> 1 </text></svg>'
     }
   ],
   context: {

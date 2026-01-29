@@ -38,7 +38,7 @@ export const CodeSamplePlugin = (): Plugin => ({
       label: 'Code Block',
       command: 'insertCodeBlock',
       type: 'button',
-      icon: '{ }'
+      icon: '{ ; }'
     }
   ],
   context: {
