@@ -46,9 +46,16 @@ export { BackgroundColorPlugin } from './background-color/src/BackgroundColorPlu
 export { PreviewPlugin, PreviewPluginProvider } from "./preview/src/index";
 export { FullscreenPlugin, FullscreenPluginProvider, useFullscreen } from './fullscreen/src/index';
 
-// 5 Production-Grade Plugins
+// 5 Production-Grade Plugins (First Batch)
 export { PrintPlugin } from './print/src/index';
 export { PageBreakPlugin, PageBreakPluginProvider } from './page-break/src/index';
 export { FootnotePlugin, FootnotePluginProvider } from './footnote/src/index';
 export { CodeSamplePlugin, CodeSamplePluginProvider } from './code-sample/src/index';
 export { AnchorPlugin, AnchorPluginProvider } from './anchor/src/index';
+
+// 5 Enterprise Plugins (Second Batch)
+export { MergeTagPlugin, MergeTagPluginProvider } from './merge-tag/src/index';
+export { TemplatePlugin, TemplatePluginProvider } from './template/src/index';
+export { CommentsPlugin, CommentsPluginProvider } from './comments/src/index';
+export { SpellCheckPlugin, SpellCheckPluginProvider } from './spell-check/src/index';
+export { A11yCheckerPlugin, A11yCheckerPluginProvider } from './a11y-checker/src/index';

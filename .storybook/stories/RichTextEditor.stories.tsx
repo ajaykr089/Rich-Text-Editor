@@ -36,7 +36,12 @@ import {
   PrintPlugin,
   PageBreakPlugin,
   FootnotePlugin,
-  CodeSamplePlugin
+  CodeSamplePlugin,
+  MergeTagPlugin,
+  TemplatePlugin,
+  CommentsPlugin,
+  SpellCheckPlugin,
+  A11yCheckerPlugin
 } from "@editora/plugins";
 import "@editora/themes/themes/default.css";
 
@@ -89,7 +94,12 @@ export const Default: Story = {
       PrintPlugin(),
       PageBreakPlugin(),
       FootnotePlugin(),
-      CodeSamplePlugin()
+      CodeSamplePlugin(),
+      MergeTagPlugin(),
+      TemplatePlugin(),
+      CommentsPlugin(),
+      SpellCheckPlugin(),
+      A11yCheckerPlugin(),
     ],
     mediaConfig: {
       uploadUrl: "/api/media/upload",
@@ -104,6 +114,11 @@ export const Default: Story = {
       ],
     },
   },
+  render: (args) => (
+    <div style={{ position: 'relative', height: '600px', border: '1px solid #ddd' }}>
+      <RichTextEditor {...args} />
+    </div>
+  ),
 };
 
 export const MinimalPlugins: Story = {

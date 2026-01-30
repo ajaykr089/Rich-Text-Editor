@@ -38,6 +38,11 @@ export { PageBreakPlugin, PageBreakPluginProvider } from '../page-break/src/inde
 export { FootnotePlugin, FootnotePluginProvider } from '../footnote/src/index';
 export { CodeSamplePlugin, CodeSamplePluginProvider } from '../code-sample/src/index';
 export { AnchorPlugin, AnchorPluginProvider } from '../anchor/src/index';
+export { MergeTagPlugin, MergeTagPluginProvider } from '../merge-tag/src/index';
+export { TemplatePlugin, TemplatePluginProvider } from '../template/src/index';
+export { CommentsPlugin, CommentsPluginProvider } from '../comments/src/index';
+export { SpellCheckPlugin, SpellCheckPluginProvider } from '../spell-check/src/index';
+export { A11yCheckerPlugin, A11yCheckerPluginProvider } from '../a11y-checker/src/index';
 
 // Shared API configuration for all plugins
 export { setGlobalApiConfig, getGlobalApiConfig, getGlobalApiHeaders, buildApiUrl } from './shared-config';

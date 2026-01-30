@@ -110,10 +110,18 @@ export const TableProvider: React.FC<TableProviderProps> = ({ children }) => {
     const range = selection.getRangeAt(0);
     const startContainer = range.startContainer;
 
-    // Find table element
-    let tableElement = startContainer.nodeType === Node.TEXT_NODE
-      ? startContainer.parentElement?.closest('table')
-      : (startContainer as Element).closest('table');
+    // Find table element safely
+    let tableElement: HTMLElement | null = null;
+    if (startContainer.nodeType === Node.TEXT_NODE) {
+      tableElement = (startContainer.parentElement && startContainer.parentElement.closest)
+        ? startContainer.parentElement.closest('table')
+        : null;
+    } else if (startContainer.nodeType === Node.ELEMENT_NODE) {
+      tableElement = (startContainer as Element).closest('table');
+    } else {
+      // Unsupported node type (e.g., DocumentFragment), cannot find table
+      return null;
+    }
 
     if (!tableElement) return null;
 
@@ -123,10 +131,17 @@ export const TableProvider: React.FC<TableProviderProps> = ({ children }) => {
     let rowIndex = 0;
     let colIndex = 0;
 
-    // Find the cell containing the selection
-    const cellElement = startContainer.nodeType === Node.TEXT_NODE
-      ? startContainer.parentElement?.closest('td, th')
-      : (startContainer as Element).closest('td, th');
+    // Find the cell containing the selection safely
+    let cellElement: Element | null = null;
+    if (startContainer.nodeType === Node.TEXT_NODE) {
+      cellElement = (startContainer.parentElement && startContainer.parentElement.closest)
+        ? startContainer.parentElement.closest('td, th')
+        : null;
+    } else if (startContainer.nodeType === Node.ELEMENT_NODE) {
+      cellElement = (startContainer as Element).closest('td, th');
+    } else {
+      cellElement = null;
+    }
 
     if (cellElement) {
       // Find row index
