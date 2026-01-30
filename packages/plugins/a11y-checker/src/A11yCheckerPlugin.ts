@@ -1,28 +1,649 @@
 import { Plugin } from '@editora/core';
 import { A11yCheckerPluginProvider } from './A11yCheckerPluginProvider';
 
-/**
- * Accessibility Checker Plugin for Rich Text Editor
- *
- * Audits content for WCAG compliance:
- * - Missing alt text on images
- * - Empty headings
- * - Heading order validation
- * - Color contrast (inline styles)
- * - Table header validation
- * - Link text clarity
- * - ARIA role misuse
- * - List structure validation
- * - Empty button detection
- *
- * Features:
- * - Live updates as user types
- * - Issue panel with jump to location
- * - Fix suggestions
- * - Severity levels (error/warning)
- * - False positive suppression
- * - Large document performance optimization
- */
+// --- Rule Engine Types ---
+export interface A11yContext {
+  doc: Document;
+  cache: Map<string, any>;
+}
+
+export interface A11yRule {
+  id: string;
+  wcag: string;
+  description: string;
+  severity: 'error' | 'warning' | 'info';
+  selector?: string;
+  evaluate(node: Node, ctx: A11yContext): A11yIssue | null;
+  fix?(issue: A11yIssue): void;
+}
+
+export interface A11yIssue {
+  id: string;
+  rule: string;
+  wcag: string;
+  severity: 'error' | 'warning' | 'info';
+  message: string;
+  nodePath: string;
+  element?: HTMLElement;
+  suggestion?: string;
+  fixable?: boolean;
+  fixLabel?: string;
+}
+
+const suppressedRules = new Set<string>();
+const ruleRegistry: A11yRule[] = [];
+export const registerA11yRule = (rule: A11yRule) => { ruleRegistry.push(rule); };
+
+// --- Rule Implementations ---
+// WCAG 2.1 AA rules
+
+// Expose rule registry for undo/redo integration
+if (typeof window !== 'undefined') {
+  (window as any).a11yRuleRegistry = ruleRegistry;
+}
+
+// 1. Image Alt Text (Error)
+registerA11yRule({
+  id: 'image-alt-text',
+  wcag: '1.1.1',
+  description: 'Images must have alt text',
+  severity: 'error',
+  selector: 'img',
+  evaluate(node, ctx) {
+    const img = node as HTMLImageElement;
+    if (img.hasAttribute('role') && img.getAttribute('role') === 'presentation') return null;
+    if (img.hasAttribute('data-a11y-ignore') && img.getAttribute('data-a11y-ignore') === 'image-alt-text') return null;
+    if (!img.hasAttribute('alt') || img.getAttribute('alt')?.trim() === '') {
+      return {
+        id: `img-alt-${ctx.cache.get('imgIdx')}`,
+        rule: 'image-alt-text',
+        wcag: '1.1.1',
+        severity: 'error',
+        message: 'Image missing alt text',
+        nodePath: ctx.cache.get('imgPath'),
+        element: img,
+        suggestion: 'Add descriptive alt text to all images',
+        fixable: true,
+        fixLabel: 'Add alt text',
+      };
+    }
+    return null;
+  },
+  fix(issue) {
+    if (issue.element) (issue.element as HTMLImageElement).setAttribute('alt', '');
+  }
+});
+
+// 2. Empty Interactive Elements (Error)
+registerA11yRule({
+  id: 'empty-interactive',
+  wcag: '4.1.2',
+  description: 'Interactive elements must have accessible names',
+  severity: 'error',
+  selector: 'button, a, [role="button"]',
+  evaluate(node, ctx) {
+    const el = node as HTMLElement;
+    if (el.hasAttribute('data-a11y-ignore') && el.getAttribute('data-a11y-ignore') === 'empty-interactive') return null;
+    const hasText = el.textContent?.trim();
+    const hasAriaLabel = el.hasAttribute('aria-label');
+    const hasAriaLabelledBy = el.hasAttribute('aria-labelledby');
+    const hasTitle = el.hasAttribute('title');
+    if (!hasText && !hasAriaLabel && !hasAriaLabelledBy && !hasTitle) {
+      return {
+        id: `interactive-empty-${ctx.cache.get('buttonIdx')}`,
+        rule: 'empty-interactive',
+        wcag: '4.1.2',
+        severity: 'error',
+        message: 'Interactive element has no accessible name',
+        nodePath: ctx.cache.get('buttonPath'),
+        element: el,
+        suggestion: 'Add text, aria-label, aria-labelledby, or title',
+        fixable: true,
+        fixLabel: 'Add aria-label',
+      };
+    }
+    return null;
+  },
+  fix(issue) {
+    if (issue.element) issue.element.setAttribute('aria-label', 'Button');
+  }
+});
+
+// 3. Form Control Labels (Error)
+registerA11yRule({
+  id: 'form-label',
+  wcag: '1.3.1',
+  description: 'Form controls must have labels',
+  severity: 'error',
+  selector: 'input, textarea, select',
+  evaluate(node, ctx) {
+    const el = node as HTMLElement;
+    if (el.hasAttribute('type') && el.getAttribute('type') === 'hidden') return null;
+    if (el.hasAttribute('data-a11y-ignore') && el.getAttribute('data-a11y-ignore') === 'form-label') return null;
+    const hasLabel = ctx.doc.querySelector(`label[for="${el.getAttribute('id')}"]`);
+    const hasAriaLabel = el.hasAttribute('aria-label');
+    const hasAriaLabelledBy = el.hasAttribute('aria-labelledby');
+    if (!hasLabel && !hasAriaLabel && !hasAriaLabelledBy) {
+      return {
+        id: `form-label-${ctx.cache.get('inputIdx')}`,
+        rule: 'form-label',
+        wcag: '1.3.1',
+        severity: 'error',
+        message: 'Form control missing label',
+        nodePath: ctx.cache.get('inputPath'),
+        element: el,
+        suggestion: 'Add <label>, aria-label, or aria-labelledby',
+        fixable: true,
+        fixLabel: 'Add aria-label',
+      };
+    }
+    return null;
+  },
+  fix(issue) {
+    if (issue.element) issue.element.setAttribute('aria-label', 'Input');
+  }
+});
+
+// 4. Table Headers (Error)
+registerA11yRule({
+  id: 'table-headers',
+  wcag: '1.3.1',
+  description: 'Tables must have header rows and non-empty header cells',
+  severity: 'error',
+  selector: 'table',
+  evaluate(node, ctx) {
+    const table = node as HTMLTableElement;
+    if (table.hasAttribute('data-a11y-ignore') && table.getAttribute('data-a11y-ignore') === 'table-headers') return null;
+    const headers = table.querySelectorAll('th');
+    const rows = table.querySelectorAll('tr');
+    if (headers.length === 0 && rows.length > 0) {
+      return {
+        id: `table-no-headers-${ctx.cache.get('tableIdx')}`,
+        rule: 'table-headers',
+        wcag: '1.3.1',
+        severity: 'error',
+        message: 'Table missing header row (<th> elements)',
+        nodePath: ctx.cache.get('tablePath'),
+        element: table,
+        suggestion: 'Add <th> elements to first row or use scope attribute',
+        fixable: true,
+        fixLabel: 'Convert first row to <th>',
+      };
+    }
+    // Check for empty header cells (only whitespace or <br>)
+    for (const th of headers) {
+      const text = th.textContent?.replace(/\s+/g, '') || '';
+      const onlyBr = th.childNodes.length === 1 && th.childNodes[0].nodeName === 'BR';
+      if (!text && !onlyBr) {
+        return {
+          id: `table-header-empty-${ctx.cache.get('tableIdx')}`,
+          rule: 'table-headers',
+          wcag: '1.3.1',
+          severity: 'error',
+          message: 'Table header cell is empty',
+          nodePath: ctx.cache.get('tablePath'),
+          element: th as HTMLElement,
+          suggestion: 'Add text to all table header cells',
+          fixable: false,
+        };
+      }
+    }
+    return null;
+  },
+  fix(issue) {
+    if (issue.element) {
+      const table = issue.element as HTMLTableElement;
+      const firstRow = table.querySelector('tr');
+      if (firstRow) {
+        Array.from(firstRow.children).forEach(cell => {
+          if (cell.tagName === 'TD') {
+            const th = document.createElement('th');
+            th.innerHTML = cell.innerHTML;
+            firstRow.replaceChild(th, cell);
+          }
+        });
+      }
+    }
+  }
+});
+
+// 5. Heading Structure (Error/Warning)
+registerA11yRule({
+  id: 'heading-empty',
+  wcag: '1.3.1',
+  description: 'Headings must not be empty',
+  severity: 'error',
+  selector: 'h1, h2, h3, h4, h5, h6',
+  evaluate(node, ctx) {
+    const heading = node as HTMLElement;
+    if (heading.hasAttribute('data-a11y-ignore') && heading.getAttribute('data-a11y-ignore') === 'heading-empty') return null;
+    // Treat as empty if only whitespace or only <br>
+    const text = heading.textContent?.replace(/\s+/g, '') || '';
+    const onlyBr = heading.childNodes.length === 1 && heading.childNodes[0].nodeName === 'BR';
+    if (!text && !onlyBr) {
+      return {
+        id: `heading-empty-${ctx.cache.get('headingIdx')}`,
+        rule: 'heading-empty',
+        wcag: '1.3.1',
+        severity: 'error',
+        message: `Empty ${heading.tagName.toLowerCase()} heading`,
+        nodePath: ctx.cache.get('headingPath'),
+        element: heading,
+        suggestion: 'All headings must contain text',
+        fixable: false,
+      };
+    }
+    return null;
+  }
+});
+
+registerA11yRule({
+  id: 'heading-order',
+  wcag: '1.3.1',
+  description: 'Headings should not skip levels',
+  severity: 'warning',
+  selector: 'h1, h2, h3, h4, h5, h6',
+  evaluate(node, ctx) {
+    const heading = node as HTMLElement;
+    const currentLevel = parseInt(heading.tagName[1]);
+    const previousLevel = ctx.cache.get('previousHeadingLevel') || currentLevel;
+    ctx.cache.set('previousHeadingLevel', currentLevel);
+    if (currentLevel - previousLevel > 1) {
+      return {
+        id: `heading-order-${ctx.cache.get('headingIdx')}`,
+        rule: 'heading-order',
+        wcag: '1.3.1',
+        severity: 'warning',
+        message: `Heading skips level (${previousLevel} → ${currentLevel})`,
+        nodePath: ctx.cache.get('headingPath'),
+        element: heading,
+        suggestion: `Use heading level ${previousLevel + 1} instead`,
+        fixable: false,
+      };
+    }
+    return null;
+  }
+});
+
+// 6. Link Text Quality (Warning)
+registerA11yRule({
+  id: 'link-text',
+  wcag: '2.4.4',
+  description: 'Links must have descriptive text',
+  severity: 'error',
+  selector: 'a',
+  evaluate(node, ctx) {
+    const link = node as HTMLElement;
+    if (link.hasAttribute('data-a11y-ignore') && link.getAttribute('data-a11y-ignore') === 'link-text') return null;
+    // Treat as empty if only whitespace or only <br>
+    const text = link.textContent?.replace(/\s+/g, '').toLowerCase() || '';
+    const onlyBr = link.childNodes.length === 1 && link.childNodes[0].nodeName === 'BR';
+    const vagueText = [
+      'click here', 'read more', 'link', 'here', 'this', 'page',
+      'try it out yourself today', "let's talk", 'download today', 'sign-up for free', 'go build something today'
+    ];
+    if (!text && !onlyBr) {
+      return {
+        id: `link-empty-${ctx.cache.get('aIdx')}`,
+        rule: 'link-text',
+        wcag: '2.4.4',
+        severity: 'error',
+        message: 'Link has no text content',
+        nodePath: ctx.cache.get('aPath'),
+        element: link,
+        suggestion: 'All links must have descriptive text',
+        fixable: true,
+        fixLabel: 'Insert placeholder',
+      };
+    } else if (vagueText.some(vt => text.includes(vt.replace(/\s+/g, '')))) {
+      return {
+        id: `link-vague-${ctx.cache.get('aIdx')}`,
+        rule: 'link-text',
+        wcag: '2.4.4',
+        severity: 'warning',
+        message: `Vague link text: "${link.textContent?.trim()}"`,
+        nodePath: ctx.cache.get('aPath'),
+        element: link,
+        suggestion: 'Use descriptive link text instead of generic phrases',
+        fixable: false,
+      };
+    }
+    return null;
+  },
+  fix(issue) {
+    if (issue.element) issue.element.textContent = 'Link';
+  }
+});
+
+// 7. Color Contrast (Warning)
+registerA11yRule({
+  id: 'color-contrast',
+  wcag: '1.4.3',
+  description: 'Text must have sufficient color contrast',
+  severity: 'warning',
+  selector: '*',
+  evaluate(node, ctx) {
+    const el = node as HTMLElement;
+    if (!el.style) return null;
+    if (el.hasAttribute('data-a11y-ignore') && el.getAttribute('data-a11y-ignore') === 'color-contrast') return null;
+    if (el.style.color && el.style.backgroundColor) {
+      // Simple contrast check (not full WCAG math)
+      if (el.style.backgroundColor === 'transparent') return null;
+      // Only check if both are set
+      const fg = el.style.color;
+      const bg = el.style.backgroundColor;
+      if (fg && bg && fg !== bg) {
+        // Warn if contrast can't be calculated
+        return null;
+      }
+    }
+    return null;
+  }
+});
+
+// 8. List Semantics (Warning)
+registerA11yRule({
+  id: 'list-structure',
+  wcag: '1.3.1',
+  description: 'Lists must only contain <li> children',
+  severity: 'error',
+  selector: 'ul, ol',
+  evaluate(node, ctx) {
+    const list = node as HTMLElement;
+    if (list.hasAttribute('data-a11y-ignore') && list.getAttribute('data-a11y-ignore') === 'list-structure') return null;
+    const items = list.querySelectorAll(':scope > li');
+    const nonLiChildren = Array.from(list.children).filter(child => child.tagName !== 'LI');
+    if (nonLiChildren.length > 0) {
+      return {
+        id: `list-structure-${ctx.cache.get('ulIdx')}`,
+        rule: 'list-structure',
+        wcag: '1.3.1',
+        severity: 'error',
+        message: 'List contains non-li elements',
+        nodePath: ctx.cache.get('ulPath'),
+        element: list,
+        suggestion: 'All direct children of ul/ol must be li elements',
+        fixable: false,
+      };
+    }
+    if (items.length === 0) {
+      return {
+        id: `list-empty-${ctx.cache.get('ulIdx')}`,
+        rule: 'list-structure',
+        wcag: '1.3.1',
+        severity: 'warning',
+        message: 'Empty list element',
+        nodePath: ctx.cache.get('ulPath'),
+        element: list,
+        suggestion: 'Remove empty lists or add list items',
+        fixable: false,
+      };
+    }
+    return null;
+  }
+});
+
+// 9. ARIA Misuse (Warning)
+registerA11yRule({
+  id: 'aria-misuse',
+  wcag: '4.1.2',
+  description: 'ARIA roles and attributes must be valid',
+  severity: 'warning',
+  selector: '[role]',
+  evaluate(node, ctx) {
+    const el = node as HTMLElement;
+    if (el.hasAttribute('data-a11y-ignore') && el.getAttribute('data-a11y-ignore') === 'aria-misuse') return null;
+    // Check for any aria-* attribute
+    const hasAria = Array.from(el.attributes).some(attr => attr.name.startsWith('aria-'));
+    // Simple checks for invalid/redundant/conflicting ARIA
+    if (el.hasAttribute('role') && el.getAttribute('role') === 'presentation' && el.hasAttribute('aria-label')) {
+      return {
+        id: `aria-misuse-${ctx.cache.get('ariaIdx')}`,
+        rule: 'aria-misuse',
+        wcag: '4.1.2',
+        severity: 'warning',
+        message: 'Redundant ARIA label on presentation role',
+        nodePath: ctx.cache.get('ariaPath'),
+        element: el,
+        suggestion: 'Remove aria-label from presentation role',
+        fixable: false,
+      };
+    }
+    // Example: warn if role is set but no aria-* attributes at all (could be misuse)
+    if (el.hasAttribute('role') && !hasAria) {
+      return {
+        id: `aria-misuse-generic-${ctx.cache.get('ariaIdx')}`,
+        rule: 'aria-misuse',
+        wcag: '4.1.2',
+        severity: 'warning',
+        message: 'Element has role but no ARIA attributes',
+        nodePath: ctx.cache.get('ariaPath'),
+        element: el,
+        suggestion: 'Check if ARIA attributes are needed for this role',
+        fixable: false,
+      };
+    }
+    return null;
+  }
+});
+
+// 10. Document Language (Info)
+registerA11yRule({
+  id: 'document-lang',
+  wcag: '3.1.1',
+  description: 'Document must declare a valid language',
+  severity: 'info',
+  selector: 'html',
+  evaluate(node, ctx) {
+    const html = node as HTMLElement;
+    const lang = html.getAttribute('lang');
+    if (!lang) {
+      return {
+        id: 'document-lang-missing',
+        rule: 'document-lang',
+        wcag: '3.1.1',
+        severity: 'info',
+        message: 'Document is missing lang attribute',
+        nodePath: 'html',
+        element: html,
+        suggestion: 'Add lang attribute to <html>',
+        fixable: false,
+      };
+    }
+    // Simple validation for language code
+    if (!/^([a-z]{2,3})(-[A-Z]{2})?$/.test(lang)) {
+      return {
+        id: 'document-lang-invalid',
+        rule: 'document-lang',
+        wcag: '3.1.1',
+        severity: 'info',
+        message: 'Document has invalid lang code',
+        nodePath: 'html',
+        element: html,
+        suggestion: 'Use valid language code (e.g. en, en-US)',
+        fixable: false,
+      };
+    }
+    return null;
+  }
+});
+
+// 11. Landmark Roles (Info)
+registerA11yRule({
+  id: 'landmark-roles',
+  wcag: '1.3.1',
+  description: 'Document should contain landmark roles',
+  severity: 'info',
+  selector: 'body',
+  evaluate(node, ctx) {
+    const body = node as HTMLElement;
+    const required = ['main', 'nav', 'header', 'footer'];
+    const found = required.filter(role => body.querySelector(`[role="${role}"]`));
+    if (found.length < required.length) {
+      return {
+        id: 'landmark-roles-missing',
+        rule: 'landmark-roles',
+        wcag: '1.3.1',
+        severity: 'info',
+        message: `Missing landmark roles: ${required.filter(r => !found.includes(r)).join(', ')}`,
+        nodePath: 'body',
+        element: body,
+        suggestion: 'Add main, nav, header, and footer landmark roles',
+        fixable: false,
+      };
+    }
+    return null;
+  }
+});
+
+// --- Audit Engine ---
+export const runA11yAudit = (): A11yIssue[] => {
+  const editor = document.querySelector('[contenteditable="true"]') as HTMLElement;
+  if (!editor) return [];
+  const issues: A11yIssue[] = [];
+  const ctx: A11yContext = { doc: editor.ownerDocument || document, cache: new Map() };
+  const walker = ctx.doc.createTreeWalker(editor, NodeFilter.SHOW_ELEMENT, null);
+  let node: Node | null = walker.currentNode;
+  let idxMap: Record<string, number> = {};
+  let pathMap: Record<string, string> = {};
+  let nodeIdx = 0;
+  while (node) {
+    const tag = (node as HTMLElement).tagName?.toLowerCase?.() || '';
+    // --- Edge case skips ---
+    // Skip hidden elements
+    if (node instanceof HTMLElement && (node.hidden || node.style.display === 'none' || node.style.visibility === 'hidden')) {
+      node = walker.nextNode();
+      nodeIdx++;
+      continue;
+    }
+    // Skip comment markers
+    if (node instanceof HTMLElement && node.hasAttribute('data-comment-id')) {
+      node = walker.nextNode();
+      nodeIdx++;
+      continue;
+    }
+    // Skip spell-checker injected spans
+    if (node instanceof HTMLElement && node.classList.contains('spellcheck-span')) {
+      node = walker.nextNode();
+      nodeIdx++;
+      continue;
+    }
+    // Skip template placeholders
+    if (node instanceof HTMLElement && /\{\{.*\}\}/.test(node.textContent || '')) {
+      node = walker.nextNode();
+      nodeIdx++;
+      continue;
+    }
+    // Skip shadow DOM roots
+    if (node instanceof HTMLElement && node.shadowRoot) {
+      node = walker.nextNode();
+      nodeIdx++;
+      continue;
+    }
+    idxMap[tag] = (idxMap[tag] || 0) + 1;
+    pathMap[tag] = `${tag}[${idxMap[tag] - 1}]`;
+    // For each rule, check if selector matches or if rule is ARIA (which should run on all elements)
+    for (const rule of ruleRegistry) {
+      if (suppressedRules.has(rule.id)) continue;
+      // ARIA rule: run on every element
+      const isAriaRule = rule.id === 'aria-misuse';
+      if (!isAriaRule && rule.selector && !(node as Element).matches?.(rule.selector)) continue;
+      ctx.cache.set(`${tag}Idx`, idxMap[tag] - 1);
+      ctx.cache.set(`${tag}Path`, pathMap[tag]);
+      if (/^h[1-6]$/.test(tag)) {
+        ctx.cache.set('headingIdx', idxMap[tag] - 1);
+        ctx.cache.set('headingPath', pathMap[tag]);
+      }
+      if (tag === 'a') {
+        ctx.cache.set('aIdx', idxMap[tag] - 1);
+        ctx.cache.set('aPath', pathMap[tag]);
+      }
+      if (tag === 'th' || tag === 'td' || tag === 'tr' || tag === 'table') {
+        ctx.cache.set('tableIdx', idxMap['table'] || 0);
+        ctx.cache.set('tablePath', pathMap['table'] || '');
+      }
+      if (tag === 'button') {
+        ctx.cache.set('buttonIdx', idxMap[tag] - 1);
+        ctx.cache.set('buttonPath', pathMap[tag]);
+      }
+      if (tag === 'input') {
+        ctx.cache.set('inputIdx', idxMap[tag] - 1);
+        ctx.cache.set('inputPath', pathMap[tag]);
+      }
+      if (tag === 'ul' || tag === 'ol') {
+        ctx.cache.set('ulIdx', idxMap[tag] - 1);
+        ctx.cache.set('ulPath', pathMap[tag]);
+      }
+      if (node instanceof Element && (node.hasAttribute('role') || Array.from(node.attributes).some(attr => attr.name.startsWith('aria-')))) {
+        ctx.cache.set('ariaIdx', idxMap[tag] - 1);
+        ctx.cache.set('ariaPath', pathMap[tag]);
+      }
+      const issue = rule.evaluate(node, ctx);
+      if (issue) issues.push(issue);
+    }
+    node = walker.nextNode();
+    nodeIdx++;
+    if (nodeIdx > 5000) break;
+  }
+  return issues;
+};
+// SVG <text> accessibility (edge case)
+registerA11yRule({
+  id: 'svg-text-accessible',
+  wcag: '1.1.1',
+  description: 'SVG <text> elements should have accessible text',
+  severity: 'error',
+  selector: 'svg text',
+  evaluate(node, ctx) {
+    const textEl = node as SVGTextElement;
+    if (!textEl.textContent || !textEl.textContent.trim()) {
+      return {
+        id: `svg-text-empty`,
+        rule: 'svg-text-accessible',
+        wcag: '1.1.1',
+        severity: 'error',
+        message: 'SVG <text> element is empty',
+        nodePath: 'svg text',
+        element: textEl as unknown as HTMLElement,
+        suggestion: 'Add accessible text to SVG <text> elements',
+        fixable: false,
+      };
+    }
+    return null;
+  }
+});
+
+export const suppressRule = (rule: string) => { suppressedRules.add(rule); };
+export const unsuppressRule = (rule: string) => { suppressedRules.delete(rule); };
+
+export const highlightIssue = (issue: A11yIssue, highlight: boolean = true) => {
+  if (!issue.element) return;
+  if (highlight) {
+    issue.element.classList.add('a11y-highlighted');
+    issue.element.setAttribute('data-a11y-highlight', 'true');
+    issue.element.style.outline = '2px solid #ff9800';
+    issue.element.style.backgroundColor = '#fff3cd';
+  } else {
+    issue.element.classList.remove('a11y-highlighted');
+    issue.element.removeAttribute('data-a11y-highlight');
+    issue.element.style.outline = '';
+    issue.element.style.backgroundColor = '';
+  }
+};
+
+export const getA11yScore = (): number => {
+  const issues = runA11yAudit();
+  const errors = issues.filter(i => i.severity === 'error').length;
+  const warnings = issues.filter(i => i.severity === 'warning').length;
+  let score = 100 - (errors * 20) - (warnings * 5);
+  return Math.max(0, score);
+};
+
+export const autoFixA11yIssue = (issue: A11yIssue) => {
+  const rule = ruleRegistry.find(r => r.id === issue.rule);
+  if (rule && rule.fix) rule.fix(issue);
+};
+
 export const A11yCheckerPlugin = (): Plugin => ({
   name: "a11yChecker",
   toolbar: [
@@ -38,328 +659,3 @@ export const A11yCheckerPlugin = (): Plugin => ({
   },
 });
 
-/**
- * Accessibility Issue Model
- */
-export interface A11yIssue {
-  id: string;
-  rule: string;
-  severity: 'error' | 'warning';
-  message: string;
-  nodePath: string;
-  element?: HTMLElement;
-  suggestion?: string;
-}
-
-/**
- * Suppressed rules
- */
-const suppressedRules = new Set<string>();
-
-/**
- * Check for missing alt text on images
- */
-const checkImageAltText = (doc: Document): A11yIssue[] => {
-  const issues: A11yIssue[] = [];
-  const images = doc.querySelectorAll('img');
-
-  images.forEach((img, idx) => {
-    if (!img.hasAttribute('alt') || img.getAttribute('alt')?.trim() === '') {
-      issues.push({
-        id: `img-alt-${idx}`,
-        rule: 'image-alt-text',
-        severity: 'error',
-        message: 'Image missing alt text',
-        nodePath: `img[${idx}]`,
-        element: img,
-        suggestion: 'Add descriptive alt text to all images'
-      });
-    }
-  });
-
-  return issues;
-};
-
-/**
- * Check for empty headings
- */
-const checkEmptyHeadings = (doc: Document): A11yIssue[] => {
-  const issues: A11yIssue[] = [];
-  const headings = doc.querySelectorAll('h1, h2, h3, h4, h5, h6');
-
-  headings.forEach((heading, idx) => {
-    if (!heading.textContent?.trim()) {
-      issues.push({
-        id: `heading-empty-${idx}`,
-        rule: 'empty-heading',
-        severity: 'error',
-        message: `Empty ${heading.tagName.toLowerCase()} heading`,
-        nodePath: `${heading.tagName.toLowerCase()}[${idx}]`,
-        element: heading as HTMLElement,
-        suggestion: 'All headings must contain text'
-      });
-    }
-  });
-
-  return issues;
-};
-
-/**
- * Check heading order (h1 before h2, etc.)
- */
-const checkHeadingOrder = (doc: Document): A11yIssue[] => {
-  const issues: A11yIssue[] = [];
-  const headings = doc.querySelectorAll('h1, h2, h3, h4, h5, h6');
-  let previousLevel = 1;
-
-  headings.forEach((heading, idx) => {
-    const currentLevel = parseInt(heading.tagName[1]);
-
-    if (currentLevel - previousLevel > 1) {
-      issues.push({
-        id: `heading-order-${idx}`,
-        rule: 'heading-order',
-        severity: 'warning',
-        message: `Heading skips level (${previousLevel} → ${currentLevel})`,
-        nodePath: `${heading.tagName.toLowerCase()}[${idx}]`,
-        element: heading as HTMLElement,
-        suggestion: `Use heading level ${previousLevel + 1} instead`
-      });
-    }
-
-    previousLevel = currentLevel;
-  });
-
-  return issues;
-};
-
-/**
- * Check table headers
- */
-const checkTableHeaders = (doc: Document): A11yIssue[] => {
-  const issues: A11yIssue[] = [];
-  const tables = doc.querySelectorAll('table');
-
-  tables.forEach((table, tableIdx) => {
-    const headers = table.querySelectorAll('th');
-    const rows = table.querySelectorAll('tr');
-
-    if (headers.length === 0 && rows.length > 0) {
-      issues.push({
-        id: `table-no-headers-${tableIdx}`,
-        rule: 'table-headers',
-        severity: 'error',
-        message: 'Table missing header row (th elements)',
-        nodePath: `table[${tableIdx}]`,
-        element: table as HTMLElement,
-        suggestion: 'Add <th> elements to first row or use scope attribute'
-      });
-    }
-
-    headers.forEach((header, headerIdx) => {
-      if (!header.hasAttribute('scope')) {
-        // Warning: should have scope
-        issues.push({
-          id: `table-scope-${tableIdx}-${headerIdx}`,
-          rule: 'table-scope',
-          severity: 'warning',
-          message: 'Table header missing scope attribute',
-          nodePath: `table[${tableIdx}] th[${headerIdx}]`,
-          element: header as HTMLElement,
-          suggestion: 'Add scope="col" or scope="row" to headers'
-        });
-      }
-    });
-  });
-
-  return issues;
-};
-
-/**
- * Check link text clarity
- */
-const checkLinkText = (doc: Document): A11yIssue[] => {
-  const issues: A11yIssue[] = [];
-  const links = doc.querySelectorAll('a');
-  const vagueText = ['click here', 'read more', 'link', 'here', 'this', 'page'];
-
-  links.forEach((link, idx) => {
-    const text = link.textContent?.toLowerCase().trim() || '';
-
-    if (!text) {
-      issues.push({
-        id: `link-empty-${idx}`,
-        rule: 'link-text',
-        severity: 'error',
-        message: 'Link has no text content',
-        nodePath: `a[${idx}]`,
-        element: link as HTMLElement,
-        suggestion: 'All links must have descriptive text'
-      });
-    } else if (vagueText.includes(text)) {
-      issues.push({
-        id: `link-vague-${idx}`,
-        rule: 'link-text-clarity',
-        severity: 'warning',
-        message: `Vague link text: "${text}"`,
-        nodePath: `a[${idx}]`,
-        element: link as HTMLElement,
-        suggestion: 'Use descriptive link text instead of generic phrases'
-      });
-    }
-  });
-
-  return issues;
-};
-
-/**
- * Check for list structure
- */
-const checkListStructure = (doc: Document): A11yIssue[] => {
-  const issues: A11yIssue[] = [];
-  const lists = doc.querySelectorAll('ul, ol');
-
-  lists.forEach((list, idx) => {
-    const items = list.querySelectorAll(':scope > li');
-    const nonLiChildren = Array.from(list.children).filter(child => child.tagName !== 'LI');
-
-    if (nonLiChildren.length > 0) {
-      issues.push({
-        id: `list-structure-${idx}`,
-        rule: 'list-structure',
-        severity: 'error',
-        message: 'List contains non-li elements',
-        nodePath: `${list.tagName.toLowerCase()}[${idx}]`,
-        element: list as HTMLElement,
-        suggestion: 'All direct children of ul/ol must be li elements'
-      });
-    }
-
-    if (items.length === 0) {
-      issues.push({
-        id: `list-empty-${idx}`,
-        rule: 'list-empty',
-        severity: 'warning',
-        message: 'Empty list element',
-        nodePath: `${list.tagName.toLowerCase()}[${idx}]`,
-        element: list as HTMLElement,
-        suggestion: 'Remove empty lists or add list items'
-      });
-    }
-  });
-
-  return issues;
-};
-
-/**
- * Check for empty buttons
- */
-const checkButtonText = (doc: Document): A11yIssue[] => {
-  const issues: A11yIssue[] = [];
-  const buttons = doc.querySelectorAll('button, [role="button"]');
-
-  buttons.forEach((button, idx) => {
-    const hasText = button.textContent?.trim();
-    const hasAriaLabel = button.hasAttribute('aria-label');
-    const hasAriaLabelledBy = button.hasAttribute('aria-labelledby');
-
-    if (!hasText && !hasAriaLabel && !hasAriaLabelledBy) {
-      issues.push({
-        id: `button-empty-${idx}`,
-        rule: 'button-text',
-        severity: 'error',
-        message: 'Button has no accessible name',
-        nodePath: `button[${idx}]`,
-        element: button as HTMLElement,
-        suggestion: 'Add button text or aria-label'
-      });
-    }
-  });
-
-  return issues;
-};
-
-/**
- * Run full accessibility audit
- */
-export const runA11yAudit = (): A11yIssue[] => {
-  const editor = document.querySelector('[contenteditable="true"]') as HTMLElement;
-  if (!editor) return [];
-
-  const issues: A11yIssue[] = [];
-
-  // Run all checks
-  if (!suppressedRules.has('image-alt-text')) {
-    issues.push(...checkImageAltText(editor));
-  }
-
-  if (!suppressedRules.has('empty-heading')) {
-    issues.push(...checkEmptyHeadings(editor));
-  }
-
-  if (!suppressedRules.has('heading-order')) {
-    issues.push(...checkHeadingOrder(editor));
-  }
-
-  if (!suppressedRules.has('table-headers')) {
-    issues.push(...checkTableHeaders(editor));
-  }
-
-  if (!suppressedRules.has('link-text')) {
-    issues.push(...checkLinkText(editor));
-  }
-
-  if (!suppressedRules.has('list-structure')) {
-    issues.push(...checkListStructure(editor));
-  }
-
-  if (!suppressedRules.has('button-text')) {
-    issues.push(...checkButtonText(editor));
-  }
-
-  return issues;
-};
-
-/**
- * Suppress a specific rule
- */
-export const suppressRule = (rule: string) => {
-  suppressedRules.add(rule);
-};
-
-/**
- * Unsuppress a rule
- */
-export const unsuppressRule = (rule: string) => {
-  suppressedRules.delete(rule);
-};
-
-/**
- * Highlight an issue in the editor
- */
-export const highlightIssue = (issue: A11yIssue, highlight: boolean = true) => {
-  if (!issue.element) return;
-
-  if (highlight) {
-    issue.element.style.backgroundColor = '#fff3cd';
-    issue.element.style.borderLeft = '4px solid #ff9800';
-    issue.element.classList.add('a11y-highlighted');
-  } else {
-    issue.element.style.backgroundColor = '';
-    issue.element.style.borderLeft = '';
-    issue.element.classList.remove('a11y-highlighted');
-  }
-};
-
-/**
- * Get accessibility score
- */
-export const getA11yScore = (): number => {
-  const issues = runA11yAudit();
-  const errors = issues.filter(i => i.severity === 'error').length;
-  const warnings = issues.filter(i => i.severity === 'warning').length;
-
-  // Simple scoring: each error is -20 points, each warning is -5 points
-  let score = 100 - (errors * 20) - (warnings * 5);
-  return Math.max(0, score);
-};

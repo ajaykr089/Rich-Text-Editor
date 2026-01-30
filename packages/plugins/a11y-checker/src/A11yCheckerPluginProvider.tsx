@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   runA11yAudit,
   A11yIssue,
@@ -18,23 +18,44 @@ const A11yCheckerPanel: React.FC<{
   const [issues, setIssues] = useState<A11yIssue[]>([]);
   const [score, setScore] = useState(100);
   const [expandedIssues, setExpandedIssues] = useState<Set<string>>(new Set());
+  const [filter, setFilter] = useState<'all' | 'error' | 'warning'>('all');
+  const [overlay, setOverlay] = useState(false);
 
+  // Debounced audit
+  const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
   useEffect(() => {
-    if (isVisible) {
-      const updateAudit = () => {
-        const newIssues = runA11yAudit();
-        setIssues(newIssues);
-        setScore(getA11yScore());
-      };
-
-      updateAudit();
-      const interval = setInterval(updateAudit, 1000);
-      return () => clearInterval(interval);
-    }
-  }, [isVisible]);
+    if (!isVisible) return;
+    const updateAudit = () => {
+      const newIssues = runA11yAudit();
+      setIssues(newIssues);
+      setScore(getA11yScore());
+      if (overlay) {
+        // Highlight all issues
+        newIssues.forEach(issue => highlightIssue(issue, true));
+      } else {
+        newIssues.forEach(issue => highlightIssue(issue, false));
+      }
+    };
+    updateAudit();
+    const handleInput = () => {
+      if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+      debounceTimeout.current = setTimeout(updateAudit, 400);
+    };
+    // Listen for input events in the contenteditable area
+    const editor = document.querySelector('[contenteditable="true"]');
+    if (editor) editor.addEventListener('input', handleInput);
+    return () => {
+      if (editor) editor.removeEventListener('input', handleInput);
+      if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+      // Remove all overlays
+      issues.forEach(issue => highlightIssue(issue, false));
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isVisible, overlay]);
 
   const errorCount = issues.filter(i => i.severity === 'error').length;
   const warningCount = issues.filter(i => i.severity === 'warning').length;
+  const filteredIssues = filter === 'all' ? issues : issues.filter(i => i.severity === filter);
 
   const toggleExpanded = (issueId: string) => {
     const newExpanded = new Set(expandedIssues);
@@ -88,6 +109,19 @@ const A11yCheckerPanel: React.FC<{
         </div>
       </div>
 
+      {/* Advanced UI: Filtering and Overlay */}
+      <div style={{ display: 'flex', gap: 8, padding: '8px 16px', alignItems: 'center' }}>
+        <label style={{ fontSize: 12 }}>Filter:</label>
+        <select value={filter} onChange={e => setFilter(e.target.value as any)} style={{ fontSize: 12 }}>
+          <option value="all">All</option>
+          <option value="error">Errors</option>
+          <option value="warning">Warnings</option>
+        </select>
+        <label style={{ fontSize: 12, marginLeft: 16 }}>Overlay:</label>
+        <input type="checkbox" checked={overlay} onChange={e => setOverlay(e.target.checked)} />
+        <span style={{ fontSize: 12 }}>Highlight all issues</span>
+      </div>
+
       {/* Summary Stats */}
       <div className="a11y-stats">
         <div className="stat error-stat">
@@ -102,10 +136,10 @@ const A11yCheckerPanel: React.FC<{
 
       {/* Issues List */}
       <div className="a11y-issues">
-        {issues.length === 0 ? (
+        {filteredIssues.length === 0 ? (
           <div className="a11y-empty">✓ No accessibility issues found</div>
         ) : (
-          issues.map((issue) => (
+          filteredIssues.map((issue) => (
             <div
               key={issue.id}
               className={`issue-item ${issue.severity}`}
@@ -152,6 +186,52 @@ const A11yCheckerPanel: React.FC<{
                     >
                       Jump to Element
                     </button>
+                    {issue.fixable && (
+                      <button
+                        className="action-btn fix"
+                        onClick={async () => {
+                          // Special prompt for alt text
+                          // --- Undoable auto-fix integration ---
+                          // Use execEditorCommand for command execution, fallback to direct
+                          const execCmd = (window as any).execEditorCommand
+                            ? (window as any).execEditorCommand
+                            : (window as any).registerEditorCommand;
+                          let userValue: string | null = null;
+                          if (issue.rule === 'image-alt-text') {
+                            userValue = window.prompt('Enter alt text for image:', '');
+                            if (userValue !== null && issue.element && execCmd) {
+                              execCmd('setAttribute', issue.element, 'alt', userValue);
+                            } else if (userValue !== null && issue.element) {
+                              issue.element.setAttribute('alt', userValue); // fallback
+                            }
+                          } else if (issue.rule === 'form-label') {
+                            userValue = window.prompt('Enter aria-label for input:', 'Input');
+                            if (userValue !== null && issue.element && execCmd) {
+                              execCmd('setAttribute', issue.element, 'aria-label', userValue);
+                            } else if (userValue !== null && issue.element) {
+                              issue.element.setAttribute('aria-label', userValue); // fallback
+                            }
+                          } else if (issue.rule === 'link-text') {
+                            userValue = window.prompt('Enter link text:', 'Link');
+                            if (userValue !== null && issue.element && execCmd) {
+                              execCmd('setText', issue.element, userValue);
+                            } else if (userValue !== null && issue.element) {
+                              issue.element.textContent = userValue;
+                            }
+                          } else {
+                            const { autoFixA11yIssue } = await import('./A11yCheckerPlugin');
+                            if (execCmd && issue.element) {
+                              execCmd('autoFixA11y', issue);
+                            } else {
+                              autoFixA11yIssue(issue); // fallback
+                            }
+                          }
+                          setIssues(runA11yAudit());
+                        }}
+                      >
+                        {issue.fixLabel || 'Auto-fix'}
+                      </button>
+                    )}
                     <button
                       className="action-btn suppress"
                       onClick={() => handleSuppress(issue.rule)}
