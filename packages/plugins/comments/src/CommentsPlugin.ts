@@ -1,5 +1,11 @@
 import { Plugin } from '@editora/core';
 import { CommentsPluginProvider } from './CommentsPluginProvider';
+// Use toast if available for error notification
+let toast: any = undefined;
+try {
+  // @ts-ignore
+  toast = require('@editora/toast').toast;
+} catch {}
 
 /**
  * Comments Plugin for Rich Text Editor
@@ -125,10 +131,29 @@ function deserializeRange(serialized: SerializedRange): Range | null {
  *
  * Creates comment anchor and opens editor
  */
-export const addCommentCommand = (author: string = 'Anonymous', text: string = ''): string => {
+
+// If general is true, add a general comment (no selection/anchor)
+export const addCommentCommand = (author: string = 'Anonymous', text: string = '', general?: boolean): string => {
+  if (general) {
+    const commentId = `comment-${Date.now()}`;
+    const comment: Comment = {
+      id: commentId,
+      anchorId: '',
+      range: { startContainer: '', startOffset: 0, endContainer: '', endOffset: 0 },
+      selectedText: '',
+      author,
+      text,
+      createdAt: new Date().toISOString(),
+      resolved: false,
+      replies: []
+    };
+    commentRegistry.set(commentId, comment);
+    return commentId;
+  }
+
   const selection = window.getSelection();
   if (!selection || selection.rangeCount === 0 || selection.toString().length === 0) {
-    console.warn('No text selected for comment');
+    if (toast) toast.error('Please select some text in the editor to comment on.');
     return '';
   }
 
@@ -168,7 +193,6 @@ export const addCommentCommand = (author: string = 'Anonymous', text: string = '
   // Register comment
   commentRegistry.set(commentId, comment);
 
-  console.log(`Comment added: ${commentId}`);
   return commentId;
 };
 

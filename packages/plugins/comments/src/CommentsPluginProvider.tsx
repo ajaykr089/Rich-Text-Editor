@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { toast } from '@editora/toast';
 import {
   Comment,
   getAllComments,
@@ -21,13 +22,20 @@ import {
  * - Delete functionality
  * - Add reply interface
  */
-const CommentsSidePanel: React.FC<{
+
+interface CommentsSidePanelProps {
   isVisible: boolean;
-}> = ({ isVisible }) => {
+  onAddComment: (author: string, text: string) => void;
+  commentAuthor: string;
+}
+
+const CommentsSidePanel: React.FC<CommentsSidePanelProps> = ({ isVisible, onAddComment, commentAuthor }) => {
   const [comments, setComments] = useState<Comment[]>([]);
   const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
   const [replyText, setReplyText] = useState<{ [key: string]: string }>({});
   const [hoveredComment, setHoveredComment] = useState<string | null>(null);
+  const [newComment, setNewComment] = useState('');
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     const refreshComments = () => {
@@ -86,7 +94,6 @@ const CommentsSidePanel: React.FC<{
         <button
           className="rte-comments-close"
           onClick={() => {
-            // Find the provider's setIsCommentsVisible and call it
             const evt = new CustomEvent('rte-close-comments-panel');
             window.dispatchEvent(evt);
           }}
@@ -94,6 +101,34 @@ const CommentsSidePanel: React.FC<{
           style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#888', marginLeft: 8 }}
         >
           ✕
+        </button>
+      </div>
+
+      {/* Add Comment Input (always enabled) */}
+      <div className="comment-add-box" style={{ padding: 12, borderBottom: '1px solid #eee', background: '#fafafa', display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <textarea
+          ref={inputRef}
+          placeholder="Add a new comment..."
+          value={newComment}
+          onChange={e => setNewComment(e.target.value)}
+          rows={2}
+          style={{ fontSize: 13, padding: 8, borderRadius: 3, border: '1px solid #ddd', resize: 'vertical', fontFamily: 'inherit' }}
+        />
+        <button
+          className="rte-button-small"
+          style={{ alignSelf: 'flex-end', opacity: !newComment.trim() ? 0.5 : 1, pointerEvents: !newComment.trim() ? 'none' : 'auto' }}
+          onClick={() => {
+            if (!newComment.trim()) {
+              toast.error('Comment cannot be empty');
+              if (inputRef.current) inputRef.current.focus();
+              return;
+            }
+            onAddComment(commentAuthor, newComment.trim());
+            setNewComment('');
+          }}
+          disabled={!newComment.trim()}
+        >
+          Add Comment
         </button>
       </div>
 
@@ -215,14 +250,43 @@ interface CommentsPluginProviderProps {
 export const CommentsPluginProvider: React.FC<CommentsPluginProviderProps> = ({ children }) => {
   const [isCommentsVisible, setIsCommentsVisible] = useState(false);
   const [commentAuthor, setCommentAuthor] = useState('Anonymous');
+  const selectionRef = useRef<Range | null>(null);
+
+  // Add comment handler for panel
+  const handleAddComment = (author: string, text: string) => {
+    // Restore the last saved selection (if any) before adding comment
+    if (selectionRef.current) {
+      const sel = window.getSelection();
+      sel?.removeAllRanges();
+      sel?.addRange(selectionRef.current);
+      const result = addCommentCommand(author, text);
+      // After adding, clear selection (both ref and editor)
+      selectionRef.current = null;
+      sel?.removeAllRanges();
+      if (!result) {
+        toast.error('Could not add comment to selection.');
+      }
+    } else {
+      // No selection: add as general comment
+      const result = addCommentCommand(author, text, true);
+      if (!result) {
+        toast.error('Could not add general comment.');
+      }
+    }
+  };
 
   useEffect(() => {
-    // Register add comment command
+    // Register add comment command (for toolbar button)
     (window as any).registerEditorCommand?.('addComment', () => {
-      const text = prompt('Enter your comment:');
-      if (text) {
-        addCommentCommand(commentAuthor, text);
+      // Save current selection when opening panel
+      const sel = window.getSelection();
+      if (sel && sel.rangeCount > 0 && !sel.isCollapsed) {
+        selectionRef.current = sel.getRangeAt(0).cloneRange();
+      } else {
+        selectionRef.current = null;
       }
+      toast.info('Use the comments panel to add a comment.');
+      setIsCommentsVisible(true);
     });
 
     // Register toggle comments command
@@ -238,10 +302,26 @@ export const CommentsPluginProvider: React.FC<CommentsPluginProviderProps> = ({ 
     };
   }, [isCommentsVisible, commentAuthor]);
 
+  // While panel is open, always save the latest selection on selectionchange
+  useEffect(() => {
+    if (!isCommentsVisible) return;
+
+    const updateSelection = () => {
+      const sel = window.getSelection();
+      if (sel && sel.rangeCount > 0 && !sel.isCollapsed) {
+        selectionRef.current = sel.getRangeAt(0).cloneRange();
+      }
+    };
+    document.addEventListener('selectionchange', updateSelection);
+    return () => {
+      document.removeEventListener('selectionchange', updateSelection);
+    };
+  }, [isCommentsVisible]);
+
   return (
     <>
       {children}
-      <CommentsSidePanel isVisible={isCommentsVisible} />
+      <CommentsSidePanel isVisible={isCommentsVisible} onAddComment={handleAddComment} commentAuthor={commentAuthor} />
       <style>{`
         .rte-comments-close:hover {
           color: #d32f2f;
