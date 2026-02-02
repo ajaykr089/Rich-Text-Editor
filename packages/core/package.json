@@ -20,10 +20,15 @@
     "contenteditable",
     "modular",
     "framework-agnostic",
-    "typescript"
+    "typescript",
+    "umd",
+    "browser"
   ],
   "main": "dist/index.cjs.js",
   "module": "dist/index.esm.js",
+  "browser": "dist/editora.min.js",
+  "unpkg": "dist/editora.min.js",
+  "jsdelivr": "dist/editora.min.js",
   "types": "dist/index.d.ts",
   "exports": {
     ".": {
