@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { findContentElement } from '../../shared/editorContainerHelpers';
 
 /**
  * HeadingPluginProvider
@@ -13,7 +14,7 @@ export const HeadingPluginProvider: React.FC<{ children: React.ReactNode }> = ({
      * Save the current selection when the editor is active
      */
     const saveSelection = () => {
-      const contentEl = document.querySelector('.rte-content') as HTMLElement;
+      const contentEl = findContentElement(document.activeElement as HTMLElement);
       if (!contentEl) return;
 
       // Only save if the editor actually has focus
@@ -47,7 +48,7 @@ export const HeadingPluginProvider: React.FC<{ children: React.ReactNode }> = ({
      * Set block type command with comprehensive edge case handling
      */
     const setBlockTypeCommand = (blockType: string) => {
-      const contentEl = document.querySelector('.rte-content') as HTMLElement;
+      const contentEl = findContentElement(document.activeElement as HTMLElement);
       if (!contentEl) {
         console.error('Content element not found');
         return;
@@ -317,19 +318,25 @@ export const HeadingPluginProvider: React.FC<{ children: React.ReactNode }> = ({
     }
 
     // Add event listeners to save selection when editor is active
-    const contentEl = document.querySelector('.rte-content') as HTMLElement;
-    if (contentEl) {
-      contentEl.addEventListener('mouseup', saveSelection);
-      contentEl.addEventListener('keyup', saveSelection);
-      // Don't listen to focus - it can overwrite selection when toolbar is clicked
-    }
+    // Find all editor content elements and attach listeners
+    const allEditors = document.querySelectorAll('[data-editora-editor]');
+    const contentElements: HTMLElement[] = [];
+    
+    allEditors.forEach(editor => {
+      const contentEl = editor.querySelector('.rte-content') as HTMLElement;
+      if (contentEl) {
+        contentElements.push(contentEl);
+        contentEl.addEventListener('mouseup', saveSelection);
+        contentEl.addEventListener('keyup', saveSelection);
+      }
+    });
 
     // Cleanup on unmount
     return () => {
-      if (contentEl) {
+      contentElements.forEach(contentEl => {
         contentEl.removeEventListener('mouseup', saveSelection);
         contentEl.removeEventListener('keyup', saveSelection);
-      }
+      });
     };
   }, []);
 

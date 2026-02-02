@@ -82,9 +82,11 @@ export const TablePlugin = (): Plugin => ({
  * Implements the requirements from Table-manager.md
  */
 
+import { findContentElement } from '../../shared/editorContainerHelpers';
+
 // Insert table command - creates a 3x3 table with thead/tbody
 export const insertTableCommand = () => {
-  const contentEl = document.querySelector('.rte-content') as HTMLElement;
+  const contentEl = findContentElement(document.activeElement as HTMLElement);
   if (!contentEl) return;
 
   const selection = window.getSelection();

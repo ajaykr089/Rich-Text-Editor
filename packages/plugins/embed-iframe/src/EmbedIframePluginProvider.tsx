@@ -1,5 +1,6 @@
 import React, { ReactNode } from 'react';
 import { EmbedIframeDialog } from './EmbedIframeDialog';
+import { findContentElement, findEditorContainerFromSelection } from '../../shared/editorContainerHelpers';
 
 interface EmbedIframePluginProviderProps {
   children: ReactNode;
@@ -31,8 +32,10 @@ export const EmbedIframePluginProvider: React.FC<EmbedIframePluginProviderProps>
     showBorder: boolean;
     enableScrollbar: boolean;
   }) => {
-    // Ensure editor content is focused before inserting
-    const contentEl = document.querySelector('.rte-content') as HTMLElement;
+    // Find editor from selection rather than activeElement (which may be dialog button)
+    const editorContainer = findEditorContainerFromSelection();
+    const contentEl = editorContainer ? findContentElement(editorContainer) : null;
+    
     if (contentEl) {
       contentEl.focus();
 

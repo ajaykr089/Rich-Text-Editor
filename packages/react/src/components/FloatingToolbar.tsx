@@ -16,12 +16,16 @@ export const FloatingToolbar: React.FC<FloatingToolbarProps> = ({
   const toolbarRef = useRef<HTMLDivElement>(null);
   const selectionRef = useRef<Range | null>(null);
   const showTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const editorContainerRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     if (!isEnabled) {
       setIsVisible(false);
       return;
     }
+
+    // Find the parent editor container for this floating toolbar
+    editorContainerRef.current = toolbarRef.current?.closest('[data-editora-editor]') as HTMLElement;
 
     const handleSelectionChange = () => {
       // Clear any existing timeout
@@ -39,8 +43,8 @@ export const FloatingToolbar: React.FC<FloatingToolbarProps> = ({
       const range = selection.getRangeAt(0);
       const selectedText = selection.toString().trim();
 
-      // Check if the selection is within the editor content
-      const editorElement = document.querySelector('.rte-content');
+      // Check if the selection is within THIS editor's content (not another editor instance)
+      const editorElement = editorContainerRef.current?.querySelector('.rte-content');
       if (!editorElement || !editorElement.contains(range.commonAncestorContainer)) {
         setIsVisible(false);
         selectionRef.current = null;
@@ -91,7 +95,8 @@ export const FloatingToolbar: React.FC<FloatingToolbarProps> = ({
       // Hide toolbar if clicked outside
       if (toolbarRef.current && !toolbarRef.current.contains(e.target as Node)) {
         const selection = window.getSelection();
-        const clickedInEditor = document.querySelector('.rte-content')?.contains(e.target as Node);
+        // Check if clicking within THIS editor instance
+        const clickedInEditor = editorContainerRef.current?.querySelector('.rte-content')?.contains(e.target as Node);
 
         // Don't hide if clicking within the editor (user might be adjusting selection)
         if (!clickedInEditor) {
@@ -123,7 +128,7 @@ export const FloatingToolbar: React.FC<FloatingToolbarProps> = ({
   const handleCommand = (command: string, value?: string) => {
     if (!selectionRef.current) return;
 
-    const contentEl = document.querySelector('.rte-content') as HTMLElement;
+    const contentEl = editorContainerRef.current?.querySelector('.rte-content') as HTMLElement;
     if (contentEl) {
       contentEl.focus();
     }

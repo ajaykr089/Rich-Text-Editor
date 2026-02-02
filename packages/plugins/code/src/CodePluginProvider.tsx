@@ -1,5 +1,6 @@
 import React, { ReactNode, useRef, useState } from 'react';
 import { SourceEditorDialog } from './SourceEditorDialog';
+import { findContentElement } from '../../shared/editorContainerHelpers';
 
 interface CodePluginProviderProps {
   children: ReactNode;
@@ -31,7 +32,7 @@ export const CodePluginProvider: React.FC<CodePluginProviderProps> = ({ children
 
   // Serialize editor content to HTML string
   const serializeEditorContent = (): string => {
-    const editorElement = document.querySelector('.rte-content') as HTMLElement;
+    const editorElement = findContentElement(document.activeElement as HTMLElement);
     if (!editorElement) return '';
 
     // Clone the content to avoid modifying the original
@@ -46,7 +47,7 @@ export const CodePluginProvider: React.FC<CodePluginProviderProps> = ({ children
 
   // Parse HTML string and replace editor content
   const parseHTMLToEditor = (html: string): void => {
-    const editorElement = document.querySelector('.rte-content') as HTMLElement;
+    const editorElement = findContentElement(document.activeElement as HTMLElement);
     if (!editorElement) return;
 
     // Sanitize and set the HTML
@@ -143,7 +144,7 @@ export const CodePluginProvider: React.FC<CodePluginProviderProps> = ({ children
       setIsSourceEditorOpen(false);
 
       // Focus back to editor
-      const editorElement = document.querySelector('.rte-content') as HTMLElement;
+      const editorElement = findContentElement(document.activeElement as HTMLElement);
       if (editorElement) {
         editorElement.focus();
       }

@@ -1,5 +1,6 @@
 import { Plugin } from '@editora/core';
 import { FootnotePluginProvider } from './FootnotePluginProvider';
+import { findContentElement, findEditorContainer, findEditorContainerFromSelection, queryScopedElements, getScopedElementById } from '../../shared/editorContainerHelpers';
 
 /**
  * Footnote Plugin for Rich Text Editor
@@ -54,8 +55,13 @@ const footnoteRegistry = new Map<string, FootnoteData>();
  * Get or create footnote container
  * Always at the end of the contenteditable content
  */
-function getFootnoteContainer(): HTMLElement {
-  let container = document.querySelector('[contenteditable="true"] .rte-footnotes') as HTMLElement;
+function getFootnoteContainer(editorContainer: HTMLDivElement | null): HTMLElement {
+  if (!editorContainer) {
+    console.warn('Editor container not found for footnotes');
+    editorContainer = document.querySelector('[data-editora-editor]') as HTMLDivElement;
+  }
+  
+  let container = editorContainer?.querySelector('.rte-footnotes') as HTMLElement;
   
   if (!container) {
     container = document.createElement('section');
@@ -66,10 +72,12 @@ function getFootnoteContainer(): HTMLElement {
     const ol = document.createElement('ol');
     container.appendChild(ol);
     
-    // Append to the contenteditable area (at the end)
-    const contentEditable = document.querySelector('[contenteditable="true"]');
+    // Append to the content area (at the end)
+    const contentEditable = findContentElement(editorContainer);
     if (contentEditable) {
-      contentEditable.appendChild(container);
+      // Find the parent container if needed
+      const parent = contentEditable.parentElement;
+      parent?.appendChild(container);
     } else {
       console.warn('Could not find contenteditable element for footnotes');
     }
@@ -114,7 +122,9 @@ export const insertFootnoteCommand = (content: string = '') => {
   }
 
   // Get or create footnote container
-  const container = getFootnoteContainer();
+  // Find editor from the inserted reference
+  const editorContainer = findEditorContainer(reference);
+  const container = getFootnoteContainer(editorContainer);
   const ol = container.querySelector('ol');
 
   // Create footnote item
@@ -155,7 +165,8 @@ export const insertFootnoteCommand = (content: string = '') => {
  * Counts existing footnotes and returns next number
  */
 function getNextFootnoteNumber(): number {
-  const container = document.querySelector('.rte-footnotes');
+  const editorContainer = findEditorContainerFromSelection() || document.querySelector('[data-editora-editor]') as HTMLDivElement;
+  const container = editorContainer?.querySelector('.rte-footnotes');
   if (!container) return 1;
 
   const items = container.querySelectorAll('li[data-type="footnote"]');
@@ -167,11 +178,12 @@ function getNextFootnoteNumber(): number {
  * Called when a footnote is deleted or reordered
  */
 export const renumberAllFootnotes = () => {
-  const container = document.querySelector('.rte-footnotes');
+  const editorContainer = findEditorContainerFromSelection() || document.querySelector('[data-editora-editor]') as HTMLDivElement;
+  const container = editorContainer?.querySelector('.rte-footnotes');
   if (!container) return;
 
   const items = container.querySelectorAll('li[data-type="footnote"]');
-  const references = document.querySelectorAll('.rte-footnote-ref');
+  const references = editorContainer?.querySelectorAll('.rte-footnote-ref');
 
   let number = 1;
 
@@ -183,7 +195,7 @@ export const renumberAllFootnotes = () => {
     const contentDiv = item.querySelector('.rte-footnote-content');
     
     // Update reference
-    const ref = document.querySelector(`.rte-footnote-ref[data-footnote-id="${footnoteId}"]`);
+    const ref = editorContainer?.querySelector(`.rte-footnote-ref[data-footnote-id="${footnoteId}"]`);
     if (ref) {
       ref.setAttribute('data-number', number.toString());
       ref.textContent = number.toString();
@@ -204,8 +216,9 @@ export const renumberAllFootnotes = () => {
  * Automatically renumbers remaining footnotes
  */
 export const deleteFootnote = (footnoteId: string) => {
-  const reference = document.querySelector(`.rte-footnote-ref[data-footnote-id="${footnoteId}"]`);
-  const footnoteItem = document.getElementById(footnoteId);
+  const editorContainer = findEditorContainerFromSelection() || document.querySelector('[data-editora-editor]') as HTMLDivElement;
+  const reference = editorContainer?.querySelector(`.rte-footnote-ref[data-footnote-id="${footnoteId}"]`);
+  const footnoteItem = getScopedElementById(editorContainer, footnoteId);
 
   if (reference) reference.remove();
   if (footnoteItem) footnoteItem.remove();

@@ -10,6 +10,7 @@ export interface EditorContextValue {
   plugins: readonly Plugin[];
   editor: Editor;
   view?: any; // Editor view instance
+  editorContainerRef?: React.RefObject<HTMLDivElement>; // Reference to editor container for scoped DOM queries
 }
 
 /**
@@ -38,6 +39,7 @@ export interface EditorProviderProps {
   plugins?: readonly Plugin[];
   editor: Editor;
   view?: any;
+  editorContainerRef?: React.RefObject<HTMLDivElement>;
   children: ReactNode;
 }
 
@@ -50,6 +52,7 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({
   plugins = [],
   editor,
   view,
+  editorContainerRef,
   children
 }) => {
   const contextValue: EditorContextValue = {
@@ -57,7 +60,8 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({
     dispatch,
     plugins,
     editor,
-    view
+    view,
+    editorContainerRef
   };
 
   return (

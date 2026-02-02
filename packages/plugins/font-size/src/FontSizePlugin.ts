@@ -1,5 +1,6 @@
 import { Plugin } from '@editora/core';
 import { FontSizeProvider } from './FontSizeProvider';
+import { findEditorContainer, queryScopedElement, findEditorContainerFromSelection } from '../../shared/editorContainerHelpers';
 
 /**
  * Font Size Plugin for Rich Text Editor
@@ -183,7 +184,8 @@ function isSelectionEntirelyWithinSpan(range: Range, span: HTMLElement): boolean
 // Helper function to update the font size input field
 function updateFontSizeInput() {
   const currentSize = getCurrentFontSizeFromSelection();
-  const input = document.querySelector('.rte-toolbar-input') as HTMLInputElement;
+  const editorContainer = findEditorContainerFromSelection() || document.querySelector('[data-editora-editor]') as HTMLDivElement;
+  const input = queryScopedElement(editorContainer, '.rte-toolbar-input') as HTMLInputElement;
   if (input) {
     input.value = currentSize.toString();
   }

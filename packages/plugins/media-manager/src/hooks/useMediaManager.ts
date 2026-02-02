@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { MediaManager } from '../MediaManager';
 import { RichTextEditorAdapter } from '../adapters/EditorAdapter';
 import { MediaManagerConfig } from '../types/media';
+import { findContentElement } from '../../shared/editorContainerHelpers';
 
 export const useMediaManager = (config: MediaManagerConfig) => {
   const [manager, setManager] = useState<MediaManager | null>(null);
@@ -10,7 +11,7 @@ export const useMediaManager = (config: MediaManagerConfig) => {
   const contentRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
-    const contentEl = document.querySelector('.rte-content') as HTMLElement;
+    const contentEl = findContentElement(document.activeElement as HTMLElement);
     if (contentEl) {
       contentRef.current = contentEl;
       const adapter = new RichTextEditorAdapter(contentEl);

@@ -1,5 +1,6 @@
 import { Plugin } from '@editora/core';
 import { MergeTagPluginProvider } from './MergeTagPluginProvider';
+import { getScopedElementById, queryScopedElements, findEditorContainer, findEditorContainerFromSelection } from '../../shared/editorContainerHelpers';
 
 /**
  * Merge Tag Plugin for Rich Text Editor
@@ -124,7 +125,6 @@ export const insertMergeTagCommand = (tag: MergeTag) => {
   selection.removeAllRanges();
   selection.addRange(newRange);
 
-  console.log(`Merge tag inserted: ${tag.key}`);
 };
 
 /**
@@ -132,8 +132,9 @@ export const insertMergeTagCommand = (tag: MergeTag) => {
  */
 export const getAllMergeTags = (): { id: string; tag: MergeTag }[] => {
   const tags: { id: string; tag: MergeTag }[] = [];
+  const editorContainer = findEditorContainerFromSelection() || document.querySelector('[data-editora-editor]') as HTMLDivElement;
   mergeTagRegistry.forEach((tag, id) => {
-    if (document.getElementById(id)) {
+    if (getScopedElementById(editorContainer, id)) {
       tags.push({ id, tag });
     }
   });
@@ -145,7 +146,8 @@ export const getAllMergeTags = (): { id: string; tag: MergeTag }[] => {
  * Useful for export or processing
  */
 export const replaceMergeTagValue = (tagId: string, value: string) => {
-  const element = document.getElementById(tagId);
+  const editorContainer = findEditorContainerFromSelection() || document.querySelector('[data-editora-editor]') as HTMLDivElement;
+  const element = getScopedElementById(editorContainer, tagId);
   if (element) {
     element.textContent = value;
   }
@@ -175,7 +177,8 @@ export const exportWithResolvedTags = (resolver: (tag: MergeTag) => string): str
  * Validate merge tag integrity
  */
 export const validateMergeTags = (): boolean => {
-  const tags = document.querySelectorAll('.rte-merge-tag');
+  const editorContainer = findEditorContainerFromSelection() || document.querySelector('[data-editora-editor]') as HTMLDivElement;
+  const tags = queryScopedElements(editorContainer, '.rte-merge-tag');
   let isValid = true;
 
   tags.forEach(tag => {

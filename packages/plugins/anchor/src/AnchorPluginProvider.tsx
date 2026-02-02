@@ -90,7 +90,6 @@ export const AnchorPluginProvider: React.FC<AnchorPluginProviderProps> = ({ chil
 
       // Check if pasted content has anchors
       if (pastedData.includes('rte-anchor')) {
-        console.log('Pasted content contains anchors - validating for uniqueness');
         // Sanitization would happen in the paste handler
       }
     };

@@ -1,5 +1,6 @@
 import { Plugin } from '@editora/core';
 import { AnchorPluginProvider } from './AnchorPluginProvider';
+import { getScopedElementById, queryScopedElements, findEditorContainer, findEditorContainerFromSelection } from '../../shared/editorContainerHelpers';
 import { toast } from '@editora/toast';
 
 /**
@@ -151,8 +152,6 @@ export const insertAnchorCommand = (customId: string = '') => {
   range.collapse(true);
   selection.removeAllRanges();
   selection.addRange(range);
-
-  console.log(`Anchor created: ${anchorId}`);
 };
 
 /**
@@ -211,7 +210,8 @@ export const renameAnchorCommand = (oldId: string, newId: string) => {
     return false;
   }
 
-  const anchor = document.getElementById(oldId);
+  const editorContainer = findEditorContainerFromSelection() || document.querySelector('[data-editora-editor]') as HTMLDivElement;
+  const anchor = getScopedElementById(editorContainer, oldId);
   if (!anchor) {
     toast.error(`Anchor not found: ${oldId}`);
     return false;
@@ -238,7 +238,8 @@ export const renameAnchorCommand = (oldId: string, newId: string) => {
  * Safely removes an anchor element
  */
 export const deleteAnchorCommand = (anchorId: string) => {
-  const anchor = document.getElementById(anchorId);
+  const editorContainer = findEditorContainerFromSelection() || document.querySelector('[data-editora-editor]') as HTMLDivElement;
+  const anchor = getScopedElementById(editorContainer, anchorId);
   if (!anchor) return;
 
   anchor.remove();
@@ -285,7 +286,8 @@ export const isAnchorIdUnique = (id: string): boolean => {
  * This ensures registry stays consistent with DOM state
  */
 function syncAnchorRegistry() {
-  const anchors = document.querySelectorAll('.rte-anchor');
+  const editorContainer = findEditorContainerFromSelection() || document.querySelector('[data-editora-editor]') as HTMLDivElement;
+  const anchors = queryScopedElements(editorContainer, '.rte-anchor');
   const domAnchors = new Set<string>();
 
   anchors.forEach((anchor) => {
@@ -341,7 +343,8 @@ export const sanitizeAnchorsPaste = (pastedHTML: string): string => {
  * Ensures anchors are properly formed and unique
  */
 export const validateAnchors = (): boolean => {
-  const anchors = document.querySelectorAll('.rte-anchor');
+  const editorContainer = findEditorContainerFromSelection() || document.querySelector('[data-editora-editor]') as HTMLDivElement;
+  const anchors = queryScopedElements(editorContainer, '.rte-anchor');
   const ids = new Set<string>();
   let isValid = true;
 

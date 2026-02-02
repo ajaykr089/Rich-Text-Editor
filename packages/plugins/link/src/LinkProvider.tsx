@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { LinkDialog } from './components/LinkDialog';
+import { findContentElement, findEditorContainer } from '../../shared/editorContainerHelpers';
 import './components/LinkDialog.css';
 
 interface LinkContextType {
@@ -33,7 +34,20 @@ export const LinkProvider: React.FC<LinkProviderProps> = ({ children }) => {
   const [editingLinkElement, setEditingLinkElement] = useState<HTMLAnchorElement | null>(null);
 
   const handleInsertLink = (linkData: any) => {
-    const contentEl = document.querySelector('.rte-content') as HTMLElement;
+    // Use the stored selection range from when dialog opened
+    if (!selectionRange) {
+      console.warn('No selection range stored');
+      return;
+    }
+
+    // Get editor container from the stored range
+    const rangeNode = selectionRange.startContainer;
+    const element = rangeNode.nodeType === Node.TEXT_NODE 
+      ? rangeNode.parentElement 
+      : rangeNode as HTMLElement;
+    
+    const editorContainer = findEditorContainer(element);
+    const contentEl = editorContainer ? findContentElement(editorContainer) : null;
     if (!contentEl) return;
 
     if (isEditingLink && selectionRange) {
@@ -61,8 +75,6 @@ export const LinkProvider: React.FC<LinkProviderProps> = ({ children }) => {
           range.selectNodeContents(link);
           selection.removeAllRanges();
           selection.addRange(range);
-
-          console.log('Link edited:', linkData);
         }
       }
     } else {
@@ -99,8 +111,6 @@ export const LinkProvider: React.FC<LinkProviderProps> = ({ children }) => {
         selection.removeAllRanges();
         selection.addRange(rangeToUse);
       }
-
-      console.log('Link inserted:', linkData);
     }
 
     // Focus back to editor
@@ -138,14 +148,6 @@ export const LinkProvider: React.FC<LinkProviderProps> = ({ children }) => {
     const isWithinLink = startLink && endLink && startLink === endLink;
     const containsLink = range.cloneContents().querySelector('a') !== null;
 
-    console.log('Selection analysis:', {
-      selectedText: selectedTextValue,
-      startContainer: startContainer.nodeType,
-      startLink: !!startLink,
-      endLink: !!endLink,
-      isWithinLink,
-      containsLink
-    });
 
     if (isWithinLink || containsLink) {
       // Edit mode: extract link properties from the actual DOM element
@@ -157,21 +159,12 @@ export const LinkProvider: React.FC<LinkProviderProps> = ({ children }) => {
         setInitialUrl(linkElement.href);
         setInitialTarget((linkElement.target as '_blank' | '_self') || '_self');
         setInitialTitle(linkElement.title || '');
-
-        // Pre-fill the dialog with existing link attributes
-        console.log('Opening link dialog in EDIT mode for link:', {
-          href: linkElement.href,
-          text: linkElement.textContent,
-          target: linkElement.target,
-          title: linkElement.title
-        });
       } else {
         // Fallback to insert mode if we can't find the link
         setIsEditingLink(false);
         setEditingLinkElement(null);
         setSelectedText(selectedTextValue);
         setInitialUrl('');
-        console.log('Opening link dialog in INSERT mode (fallback)');
       }
     } else {
       // Insert mode
@@ -179,7 +172,6 @@ export const LinkProvider: React.FC<LinkProviderProps> = ({ children }) => {
       setEditingLinkElement(null);
       setSelectedText(selectedTextValue);
       setInitialUrl('');
-      console.log('Opening link dialog in INSERT mode');
     }
 
     setLinkDialogOpen(true);

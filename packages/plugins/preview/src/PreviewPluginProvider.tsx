@@ -1,5 +1,6 @@
 import React, { ReactNode, useRef, useState } from 'react';
 import { PreviewEditorDialog } from "./PreviewEditorDialog";
+import { findContentElement } from '../../shared/editorContainerHelpers';
 
 interface PreviewPluginProviderProps {
   children: ReactNode;
@@ -33,7 +34,7 @@ export const PreviewPluginProvider: React.FC<PreviewPluginProviderProps> = ({
 
   // Serialize editor content to HTML string
   const serializeEditorContent = (): string => {
-    const editorElement = document.querySelector(".rte-content") as HTMLElement;
+    const editorElement = findContentElement(document.activeElement as HTMLElement);
     if (!editorElement) return "";
 
     // Clone the content to avoid modifying the original

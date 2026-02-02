@@ -1,5 +1,6 @@
 import { Plugin } from '@editora/core';
 import { CommentsPluginProvider } from './CommentsPluginProvider';
+import { getScopedElementById, findEditorContainer, findContentElement, findEditorContainerFromSelection } from '../../shared/editorContainerHelpers';
 // Use toast if available for error notification
 let toast: any = undefined;
 try {
@@ -113,8 +114,9 @@ function serializeRange(range: Range): SerializedRange {
 function deserializeRange(serialized: SerializedRange): Range | null {
   try {
     const range = document.createRange();
-    const startEl = document.getElementById(serialized.startContainer) || document.body;
-    const endEl = document.getElementById(serialized.endContainer) || document.body;
+    const editorContainer = findEditorContainerFromSelection() || document.querySelector('[data-editora-editor]') as HTMLDivElement;
+    const startEl = getScopedElementById(editorContainer, serialized.startContainer) || document.body;
+    const endEl = getScopedElementById(editorContainer, serialized.endContainer) || document.body;
 
     range.setStart(startEl, serialized.startOffset);
     range.setEnd(endEl, serialized.endOffset);
@@ -243,7 +245,8 @@ export const reopenComment = (commentId: string) => {
 export const deleteComment = (commentId: string) => {
   const comment = commentRegistry.get(commentId);
   if (comment) {
-    const anchor = document.getElementById(comment.anchorId);
+    const editorContainer = findEditorContainerFromSelection() || document.querySelector('[data-editora-editor]') as HTMLDivElement;
+    const anchor = getScopedElementById(editorContainer, comment.anchorId);
     if (anchor) anchor.remove();
     commentRegistry.delete(commentId);
   }
@@ -285,7 +288,7 @@ export const updateCommentText = (commentId: string, text: string) => {
  * Export document with/without comments
  */
 export const exportDocumentWithComments = (includeComments: boolean = false): string => {
-  const editor = document.querySelector('[contenteditable="true"]');
+  const editor = findContentElement(document.activeElement as HTMLElement);
   if (!editor) return '';
 
   const clone = editor.cloneNode(true) as HTMLElement;
@@ -305,7 +308,8 @@ export const highlightComment = (commentId: string, highlight: boolean = true) =
   const comment = commentRegistry.get(commentId);
   if (!comment) return;
 
-  const anchor = document.getElementById(comment.anchorId);
+  const editorContainer = findEditorContainerFromSelection() || document.querySelector('[data-editora-editor]') as HTMLDivElement;
+  const anchor = getScopedElementById(editorContainer, comment.anchorId);
   if (anchor) {
     if (highlight) {
       anchor.classList.add('highlighted');
@@ -324,9 +328,10 @@ export const highlightComment = (commentId: string, highlight: boolean = true) =
  */
 export const validateComments = (): boolean => {
   let isValid = true;
+  const editorContainer = findEditorContainerFromSelection() || document.querySelector('[data-editora-editor]') as HTMLDivElement;
 
   commentRegistry.forEach(comment => {
-    const anchor = document.getElementById(comment.anchorId);
+    const anchor = getScopedElementById(editorContainer, comment.anchorId);
     if (!anchor) {
       console.warn(`Comment anchor not found: ${comment.anchorId}`);
       isValid = false;

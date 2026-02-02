@@ -1,5 +1,6 @@
 import { Plugin } from '@editora/core';
 import { CodeSamplePluginProvider } from './CodeSamplePluginProvider';
+import { getScopedElementById, queryScopedElements, findEditorContainer, findEditorContainerFromSelection } from '../../shared/editorContainerHelpers';
 // Prism theme CSS will be loaded dynamically when Prism is initialized
 
 /**
@@ -109,8 +110,6 @@ export const insertCodeBlockCommand = (language: string = 'javascript', code: st
   newRange.collapse(true);
   selection.removeAllRanges();
   selection.addRange(newRange);
-
-  console.log(`Code block inserted with language: ${language}`);
 };
 
 /**
@@ -119,7 +118,8 @@ export const insertCodeBlockCommand = (language: string = 'javascript', code: st
  * Opens dialog to edit an existing code block
  */
 export const editCodeBlockCommand = (codeBlockId: string, language: string = '', code: string = '') => {
-  const codeBlock = document.getElementById(codeBlockId) as HTMLPreElement;
+  const editorContainer = findEditorContainerFromSelection() || document.querySelector('[data-editora-editor]') as HTMLDivElement;
+  const codeBlock = getScopedElementById(editorContainer, codeBlockId) as HTMLPreElement;
   if (!codeBlock) return;
 
   // Update attributes
@@ -149,7 +149,8 @@ export const editCodeBlockCommand = (codeBlockId: string, language: string = '',
  * Safely remove a code block when user deletes it
  */
 export const deleteCodeBlockCommand = (codeBlockId: string) => {
-  const codeBlock = document.getElementById(codeBlockId);
+  const editorContainer = findEditorContainerFromSelection() || document.querySelector('[data-editora-editor]') as HTMLDivElement;
+  const codeBlock = getScopedElementById(editorContainer, codeBlockId);
   if (codeBlock) {
     codeBlock.remove();
     codeBlockRegistry.delete(codeBlockId);
@@ -161,7 +162,8 @@ export const deleteCodeBlockCommand = (codeBlockId: string) => {
  * Extracts plain text from code block
  */
 export const copyCodeBlockCommand = (codeBlockId: string) => {
-  const codeBlock = document.getElementById(codeBlockId) as HTMLPreElement;
+  const editorContainer = findEditorContainerFromSelection() || document.querySelector('[data-editora-editor]') as HTMLDivElement;
+  const codeBlock = getScopedElementById(editorContainer, codeBlockId) as HTMLPreElement;
   if (!codeBlock) return false;
 
   const codeEl = codeBlock.querySelector('code');
@@ -238,7 +240,8 @@ export const getAllCodeBlocks = (): CodeBlockData[] => {
  * Ensures code blocks haven't been corrupted by user edits
  */
 export const validateCodeBlocks = (): boolean => {
-  const codeBlocks = document.querySelectorAll('.rte-code-block');
+  const editorContainer = findEditorContainerFromSelection() || document.querySelector('[data-editora-editor]') as HTMLDivElement;
+  const codeBlocks = queryScopedElements(editorContainer, '.rte-code-block');
   let isValid = true;
 
   codeBlocks.forEach(block => {

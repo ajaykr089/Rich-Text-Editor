@@ -57,6 +57,7 @@ const EditorCore: React.FC<RichTextEditorProps> = (props) => {
   const apiRef = useRef<EditorAPI | null>(null);
   const onInitRef = useRef(props.onInit);
   const onDestroyRef = useRef(props.onDestroy);
+  const editorContainerRef = useRef<HTMLDivElement>(null);
   
   // Keep callback refs up to date
   useEffect(() => {
@@ -76,11 +77,11 @@ const EditorCore: React.FC<RichTextEditorProps> = (props) => {
   useEffect(() => {
     const api: EditorAPI = {
       getHTML: () => {
-        const contentEl = document.querySelector('.rte-content') as HTMLElement;
+        const contentEl = editorContainerRef.current?.querySelector('.rte-content') as HTMLElement;
         return contentEl?.innerHTML || '';
       },
       setHTML: (html: string) => {
-        const contentEl = document.querySelector('.rte-content') as HTMLElement;
+        const contentEl = editorContainerRef.current?.querySelector('.rte-content') as HTMLElement;
         if (contentEl) {
           contentEl.innerHTML = html;
         }
@@ -96,11 +97,11 @@ const EditorCore: React.FC<RichTextEditorProps> = (props) => {
         }
       },
       focus: () => {
-        const contentEl = document.querySelector('.rte-content') as HTMLElement;
+        const contentEl = editorContainerRef.current?.querySelector('.rte-content') as HTMLElement;
         contentEl?.focus();
       },
       blur: () => {
-        const contentEl = document.querySelector('.rte-content') as HTMLElement;
+        const contentEl = editorContainerRef.current?.querySelector('.rte-content') as HTMLElement;
         contentEl?.blur();
       },
       destroy: () => {
@@ -143,6 +144,7 @@ const EditorCore: React.FC<RichTextEditorProps> = (props) => {
   return (
     <DynamicProviderWrapper plugins={config.plugins}>
       <div
+        ref={editorContainerRef}
         id={config.id}
         data-editora-editor
         className={`rte-editor ${config.className || ""}`}

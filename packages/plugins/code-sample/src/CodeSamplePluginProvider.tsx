@@ -54,7 +54,8 @@ export const CodeSamplePluginProvider: React.FC<CodeSamplePluginProviderProps> =
       });
 
       (window as any).registerEditorCommand?.('editCodeBlock', (codeBlockId: string) => {
-        const codeBlock = document.getElementById(codeBlockId) as HTMLElement;
+        const editorContainer = document.querySelector('[data-editora-editor]') as HTMLDivElement;
+        const codeBlock = editorContainer?.querySelector(`#${codeBlockId}`) as HTMLElement;
         if (!codeBlock) return;
 
         const code = codeBlock.textContent || '';

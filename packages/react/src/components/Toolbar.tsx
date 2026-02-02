@@ -100,7 +100,9 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   };
 
   const handleCommand = (command: string, value?: string) => {
-    const contentEl = document.querySelector('.rte-content') as HTMLElement;
+    // Find the content element within the toolbar's parent editor container
+    const editorContainer = toolbarRef.current?.closest('[data-editora-editor]');
+    const contentEl = editorContainer?.querySelector('.rte-content') as HTMLElement;
     if (contentEl) {
       contentEl.focus();
     }
@@ -121,8 +123,10 @@ export const Toolbar: React.FC<ToolbarProps> = ({
     }
     setOpenDropdown(null);
 
-    if (contentEl) {
-      contentEl.focus();
+    // Focus the content element
+    const focusEl = editorContainer?.querySelector('.rte-content') as HTMLElement;
+    if (focusEl) {
+      focusEl.focus();
     }
   };
 

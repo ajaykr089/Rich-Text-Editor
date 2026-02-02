@@ -5,7 +5,7 @@ import { ImageEditor } from './components/ImageEditor';
 import { RichTextEditorAdapter } from './adapters/EditorAdapter';
 import { MediaManager } from './MediaManager';
 import { ImageResizer } from './utils/resizable';
-
+import { findContentElement } from '../../shared/editorContainerHelpers';
 import { getMediaManagerConfig } from './constants';
 import './components/MediaModal.css';
 import './components/ImageFloatingToolbar.css';
@@ -72,7 +72,7 @@ export const MediaProvider: React.FC<MediaProviderProps> = ({ children }) => {
   useEffect(() => {
     // Use setTimeout to ensure DOM is ready
     setTimeout(() => {
-      const contentEl = document.querySelector('.rte-content') as HTMLElement;
+      const contentEl = findContentElement(document.activeElement as HTMLElement);
       if (contentEl) {
         contentElRef.current = contentEl;
         const adapter = new RichTextEditorAdapter(contentEl);
