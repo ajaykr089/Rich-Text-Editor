@@ -20,8 +20,7 @@
     "version": {
       "conventionalCommits": true,
       "message": "chore(release): bump version to %s",
-      "allowBranch": ["main", "develop"],
-      "createRelease": "github"
+      "allowBranch": ["main", "develop"]
     }
   }
 }

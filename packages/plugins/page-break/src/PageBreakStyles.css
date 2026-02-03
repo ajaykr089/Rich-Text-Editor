@@ -16,6 +16,10 @@
   cursor: pointer;
   user-select: none;
   transition: all 0.2s ease;
+  outline: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
 }
 
 .rte-page-break::before {
@@ -36,11 +40,21 @@
 .rte-page-break:hover {
   background: linear-gradient(90deg, #999 0%, transparent 100%);
   border-top-color: #666;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1);
 }
 
 .rte-page-break:hover::before {
   opacity: 1;
   color: #333;
+}
+
+.rte-page-break:focus,
+.rte-page-break:focus-visible,
+.rte-page-break-selected {
+  outline: 2px solid #0066cc;
+  outline-offset: -2px;
+  border-top-color: #0066cc;
+  background: linear-gradient(90deg, #0066cc 0%, transparent 100%);
 }
 
 /* Prevent selection inside page break */

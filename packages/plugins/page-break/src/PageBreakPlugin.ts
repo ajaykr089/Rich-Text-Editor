@@ -1,5 +1,6 @@
 import { Plugin } from '@editora/core';
 import { PageBreakPluginProvider } from './PageBreakPluginProvider';
+import { findEditorContainerFromSelection, findEditorContainer } from '../../shared/editorContainerHelpers';
 
 /**
  * Page Break Plugin for Rich Text Editor
@@ -46,10 +47,18 @@ export const PageBreakPlugin = (): Plugin => ({
  * - Collapses adjacent page breaks
  * - Prevents insertion in inline contexts
  * - Maintains block-level structure
+ * - Only inserts within editor container
  */
 export const insertPageBreakCommand = () => {
   const selection = window.getSelection();
   if (!selection || selection.rangeCount === 0) return;
+
+  // Find the editor container from the current selection
+  const editorContainer = findEditorContainerFromSelection();
+  if (!editorContainer) {
+    console.warn('Selection not in editor container, skipping page break insertion');
+    return;
+  }
 
   const range = selection.getRangeAt(0);
   const container = range.commonAncestorContainer as HTMLElement;
@@ -62,16 +71,55 @@ export const insertPageBreakCommand = () => {
 
   // Get the block element containing the selection
   const blockElement = getContainingBlock(container);
-  if (!blockElement) return;
+  if (!blockElement) {
+    console.warn('No block element found for page break insertion');
+    return;
+  }
+
+  // Verify the block element is within the editor
+  if (!editorContainer.contains(blockElement)) {
+    console.warn('Selection block is not within editor container');
+    return;
+  }
 
   // Create page break element
   const pageBreak = document.createElement('div');
   pageBreak.className = 'rte-page-break';
   pageBreak.setAttribute('data-page-break', 'true');
   pageBreak.setAttribute('data-type', 'page-break');
+  pageBreak.setAttribute('contenteditable', 'false');
+  pageBreak.setAttribute('tabindex', '0');
+  pageBreak.setAttribute('role', 'img');
+  pageBreak.setAttribute('aria-label', 'Page break');
   
-  // Insert after the current block
-  blockElement.parentNode?.insertBefore(pageBreak, blockElement.nextSibling);
+  // Handle click to select the page break
+  pageBreak.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    pageBreak.focus();
+    
+    // Select the page break element
+    const range = document.createRange();
+    range.selectNode(pageBreak);
+    selection.removeAllRanges();
+    selection.addRange(range);
+  });
+  
+  // Insert the page break inside the editor container
+  // Find the content element to ensure insertion happens within the editor
+  const contentElement = editorContainer.querySelector('.rte-content');
+  if (contentElement) {
+    // Insert after the current block
+    blockElement.parentNode?.insertBefore(pageBreak, blockElement.nextSibling);
+    
+    // Ensure the page break is inside the editor content
+    if (!contentElement.contains(pageBreak)) {
+      contentElement.appendChild(pageBreak);
+    }
+  } else {
+    // Fallback: insert after the block element
+    blockElement.parentNode?.insertBefore(pageBreak, blockElement.nextSibling);
+  }
 
   // Collapse adjacent page breaks
   collapseAdjacentPageBreaks(pageBreak);
@@ -87,9 +135,13 @@ export const insertPageBreakCommand = () => {
  * Check if element is in an inline context
  * Page breaks cannot exist inside inline elements like <span>, <a>, etc.
  */
-function isInlineContext(node: HTMLElement): boolean {
+function isInlineContext(node: Node): boolean {
   const inlineElements = ['SPAN', 'A', 'STRONG', 'EM', 'B', 'I', 'U', 'SUP', 'SUB', 'CODE'];
-  let current: HTMLElement | null = node;
+  
+  // Convert text node to its parent element
+  let current: HTMLElement | null = node.nodeType === Node.TEXT_NODE 
+    ? (node.parentElement as HTMLElement) 
+    : (node as HTMLElement);
 
   while (current && current.getAttribute('data-editora-editor') === null) {
     if (inlineElements.includes(current.tagName)) {
