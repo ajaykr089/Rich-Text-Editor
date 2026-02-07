@@ -37,7 +37,10 @@
     "accessible-editor",
     "a11y-editor",
     "keyboard-shortcuts",
-    "plugins-support"
+    "plugins-support",
+    "web-component",
+    "custom-element",
+    "framework-agnostic"
   ],
   "main": "dist/index.cjs.js",
   "module": "dist/index.esm.js",
@@ -49,10 +52,37 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.esm.js",
-      "require": "./dist/index.cjs.js"
+      "require": "./dist/index.cjs.js",
+      "browser": "./dist/editora.min.js"
+    },
+    "./webcomponent": {
+      "types": "./dist/webcomponent/index.d.ts",
+      "import": "./dist/webcomponent.esm.js",
+      "require": "./dist/webcomponent.cjs.js",
+      "browser": "./dist/webcomponent.min.js"
     },
     "./KeyboardShortcuts": {
       "types": "./dist/index.d.ts",
+      "import": "./dist/index.esm.js",
+      "require": "./dist/index.cjs.js"
+    },
+    "./core": {
+      "types": "./dist/core/index.d.ts",
+      "import": "./dist/index.esm.js",
+      "require": "./dist/index.cjs.js"
+    },
+    "./ui": {
+      "types": "./dist/ui/index.d.ts",
+      "import": "./dist/index.esm.js",
+      "require": "./dist/index.cjs.js"
+    },
+    "./adapters": {
+      "types": "./dist/adapters/index.d.ts",
+      "import": "./dist/index.esm.js",
+      "require": "./dist/index.cjs.js"
+    },
+    "./config": {
+      "types": "./dist/config/index.d.ts",
       "import": "./dist/index.esm.js",
       "require": "./dist/index.cjs.js"
     }
@@ -63,7 +93,7 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "vite build",
+    "build": "vite build && vite build --config vite.umd.config.ts && vite build --config vite.webcomponent.config.ts",
     "dev": "vite build --watch",
     "clean": "rm -rf dist",
     "prepublishOnly": "npm run build"

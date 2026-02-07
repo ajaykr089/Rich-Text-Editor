@@ -121,7 +121,7 @@ export class Editor {
   private handleToolbarCommand(commandId: string, value?: any): void {
     // Find the actual command name (in case id differs from command)
     const toolbarItems = this.pluginManager.getToolbarItems();
-    const item = toolbarItems.find(btn => btn.id === commandId || btn.command === commandId);
+    const item = toolbarItems.find(btn => (btn.id && btn.id === commandId) || btn.command === commandId);
     
     if (item) {
       if (value !== undefined) {
@@ -201,23 +201,7 @@ export class Editor {
     return this.state.doc;
   }
 
-  getToolbar(): ToolbarEngine | undefined {
-    return this.toolbar;
-  }
-
-  getToolbarRenderer(): ToolbarRenderer | undefined {
-    return this.toolbarRenderer;
-  }
-
   destroy(): void {
-    // Cleanup toolbar
-    if (this.toolbar) {
-      this.toolbar.destroy?.();
-    }
-    if (this.toolbarRenderer) {
-      this.toolbarRenderer.destroy?.();
-    }
-
     // Cleanup listeners
     this.listeners = [];
 

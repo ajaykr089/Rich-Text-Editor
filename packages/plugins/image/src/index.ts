@@ -1,1 +1,1 @@
-export { ImagePlugin, createImagePlugin } from './ImagePlugin';
+export { ImagePlugin } from './ImagePlugin.native';

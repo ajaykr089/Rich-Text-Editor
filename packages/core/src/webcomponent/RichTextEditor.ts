@@ -1,0 +1,557 @@
+/**
+ * RichTextEditor Web Component
+ * TinyMCE-style declarative API for framework-agnostic usage
+ */
+
+import { EditorEngine } from '../core/EditorEngine';
+import { ToolbarRenderer } from '../ui/ToolbarRenderer';
+import { FloatingToolbar } from '../ui/FloatingToolbar';
+import { StatusBar } from '../ui/StatusBar';
+import { ConfigResolver, EditorConfigDefaults } from '../config/ConfigResolver';
+import { PluginLoader } from '../config/PluginLoader';
+import { Plugin } from '../plugins/Plugin';
+
+// Global plugin registry for the web component
+// Will be set by standalone.ts before custom element definition
+let globalPluginRegistry: PluginLoader;
+
+/**
+ * Get or create the global plugin registry
+ */
+function getGlobalRegistry(): PluginLoader {
+  if (!globalPluginRegistry) {
+    // Check if it was set externally (by standalone.ts)
+    const externalRegistry = (RichTextEditorElement as any).__globalPluginRegistry;
+    if (externalRegistry) {
+      globalPluginRegistry = externalRegistry;
+    } else {
+      // Fallback: create new registry
+      globalPluginRegistry = new PluginLoader();
+    }
+  }
+  return globalPluginRegistry;
+}
+
+/**
+ * Initialize web component with plugin factories
+ * This should be called once to register all available plugins
+ */
+export function initWebComponent(plugins: Record<string, () => Plugin>): void {
+  const registry = getGlobalRegistry();
+  Object.entries(plugins).forEach(([name, factory]) => {
+    registry.register(name, factory);
+  });
+}
+
+export class RichTextEditorElement extends HTMLElement {
+  private engine?: EditorEngine;
+  private toolbar?: ToolbarRenderer;
+  private floatingToolbar?: FloatingToolbar;
+  private statusBar?: StatusBar;
+  private pluginLoader: PluginLoader;
+  private config: EditorConfigDefaults = {};
+  private contentElement?: HTMLElement;
+  private toolbarElement?: HTMLElement;
+  private statusBarElement?: HTMLElement;
+  private jsConfig?: EditorConfigDefaults;
+  private isInitialized = false;
+
+  // Observed attributes for reactive updates
+  static get observedAttributes(): string[] {
+    return [
+      'height',
+      'width',
+      'menubar',
+      'plugins',
+      'toolbar',
+      'readonly',
+      'disabled',
+      'theme',
+      'placeholder',
+      'autofocus',
+      'language',
+      'spellcheck',
+    ];
+  }
+
+  constructor() {
+    super();
+    this.pluginLoader = getGlobalRegistry();
+    console.log('[RichTextEditor] constructor - pluginLoader has plugins:', this.pluginLoader.getRegisteredPluginNames());
+  }
+
+  /**
+   * Called when element is added to DOM
+   */
+  connectedCallback(): void {
+    this.initialize();
+  }
+
+  /**
+   * Called when element is removed from DOM
+   */
+  disconnectedCallback(): void {
+    this.destroy();
+  }
+
+  /**
+   * Called when an observed attribute changes
+   */
+  attributeChangedCallback(name: string, oldValue: string, newValue: string): void {
+    if (oldValue === newValue) return;
+    
+    // Update config and reinitialize affected parts
+    this.config = this.resolveConfig();
+    this.handleAttributeChange(name, newValue);
+  }
+
+  /**
+   * Set configuration via JavaScript API
+   */
+  setConfig(config: EditorConfigDefaults): void {
+    this.jsConfig = config;
+    this.config = this.resolveConfig();
+    
+    // Reinitialize if already connected
+    if (this.isConnected) {
+      this.destroy();
+      this.initialize();
+    }
+  }
+
+  /**
+   * Initialize the editor
+   */
+  private initialize(): void {
+    // Prevent re-initialization
+    if (this.isInitialized) return;
+    
+    // Resolve configuration
+    this.config = this.resolveConfig();
+    
+    // Apply dimensions
+    if (this.config.height) {
+      this.style.height = typeof this.config.height === 'number'
+        ? `${this.config.height}px`
+        : this.config.height;
+    }
+    
+    if (this.config.width) {
+      this.style.width = typeof this.config.width === 'number'
+        ? `${this.config.width}px`
+        : this.config.width;
+    }
+    
+    // Add base class
+    this.classList.add('editora-editor');
+    
+    if (this.config.theme) {
+      this.classList.add(`editora-theme-${this.config.theme}`);
+    }
+    
+    // Load plugins
+    const plugins = this.loadPlugins();
+    
+    // Create editor engine
+    this.engine = new EditorEngine({
+      content: this.getInitialContent(),
+      plugins,
+      readonly: this.config.readonly,
+    });
+    
+    // Create UI elements
+    this.createUI(plugins);
+    
+    // Setup event listeners
+    this.setupEventListeners();
+    
+    // Mark as initialized
+    this.isInitialized = true;
+    
+    // Emit ready event
+    this.dispatchEvent(new CustomEvent('editor-ready', {
+      detail: { api: this.getAPI() },
+      bubbles: true,
+    }));
+  }
+
+  /**
+   * Get initial content from slot or attribute
+   */
+  private getInitialContent(): string {
+    // Check for content in slot
+    const slotContent = this.innerHTML.trim();
+    if (slotContent) {
+      return slotContent;
+    }
+    
+    // Check for content attribute
+    if (this.config.content) {
+      return this.config.content;
+    }
+    
+    return '';
+  }
+
+  /**
+   * Load plugins based on configuration
+   */
+  private loadPlugins(): Plugin[] {
+    const plugins: Plugin[] = [];
+    
+    console.log('[RichTextEditor] loadPlugins - config.plugins:', this.config.plugins);
+    
+    // Check if plugins are explicitly configured (non-empty array or string)
+    const hasPluginConfig = this.config.plugins && (
+      (typeof this.config.plugins === 'string' && this.config.plugins.length > 0) ||
+      (Array.isArray(this.config.plugins) && this.config.plugins.length > 0)
+    );
+    
+    if (hasPluginConfig) {
+      if (typeof this.config.plugins === 'string') {
+        // Parse plugin string
+        const loadedPlugins = this.pluginLoader.parsePluginString(this.config.plugins);
+        plugins.push(...loadedPlugins);
+      } else if (Array.isArray(this.config.plugins)) {
+        // Already plugin instances or names
+        this.config.plugins.forEach(p => {
+          if (typeof p === 'string') {
+            const plugin = this.pluginLoader.load(p);
+            if (plugin) plugins.push(plugin);
+          } else {
+            plugins.push(p as Plugin);
+          }
+        });
+      }
+    } else {
+      // No plugins specified - load all registered plugins
+      const registeredNames = this.pluginLoader.getRegisteredPluginNames();
+      console.log('[RichTextEditor] Registered plugin names:', registeredNames);
+      const loadedPlugins = this.pluginLoader.loadMultiple(registeredNames);
+      console.log('[RichTextEditor] loadMultiple returned:', loadedPlugins.length, loadedPlugins.map(p => p.name));
+      plugins.push(...loadedPlugins);
+    }
+    
+    console.log('[RichTextEditor] Loaded plugins:', plugins.map(p => p.name));
+    return plugins;
+  }
+
+  /**
+   * Create UI elements
+   */
+  private createUI(plugins: Plugin[]): void {
+    // Preserve slot elements and initial content before clearing
+    const toolbarSlot = this.querySelector('[slot="toolbar"]');
+    const statusBarSlot = this.querySelector('[slot="statusbar"]');
+    const initialContent = this.getInitialContent();
+    
+    console.log('[RichTextEditor] createUI - plugins:', plugins.length, plugins.map(p => p.name));
+    console.log('[RichTextEditor] createUI - config.toolbar:', this.config.toolbar);
+    
+    // Clear existing content
+    this.innerHTML = '';
+    
+    // Restore or create toolbar
+    if (this.config.toolbar !== false && !toolbarSlot) {
+      console.log('[RichTextEditor] Creating default toolbar...');
+      // Create default toolbar
+      this.toolbarElement = document.createElement('div');
+      this.toolbarElement.className = 'editora-toolbar-container';
+      this.appendChild(this.toolbarElement);
+      
+      this.toolbar = new ToolbarRenderer(
+        {
+          items: typeof this.config.toolbar === 'string' ? this.config.toolbar : undefined,
+          sticky: this.config.toolbar && typeof this.config.toolbar === 'object'
+            ? (this.config.toolbar as any).sticky
+            : false,
+          position: 'top',
+        },
+        plugins
+      );
+      
+      this.toolbar.setCommandHandler((command, value) => {
+        this.engine?.execCommand(command, value);
+      });
+      
+      this.toolbar.render(this.toolbarElement);
+      console.log('[RichTextEditor] Toolbar rendered, innerHTML:', this.toolbarElement.innerHTML.substring(0, 200));
+    } else if (toolbarSlot) {
+      // Use custom toolbar from slot
+      this.appendChild(toolbarSlot);
+    }
+    
+    // Create content area
+    this.contentElement = document.createElement('div');
+    this.contentElement.className = 'editora-content';
+    this.contentElement.contentEditable = this.config.readonly ? 'false' : 'true';
+    this.contentElement.setAttribute('role', 'textbox');
+    this.contentElement.setAttribute('aria-multiline', 'true');
+    
+    if (this.config.placeholder) {
+      this.contentElement.setAttribute('data-placeholder', this.config.placeholder);
+    }
+    
+    // Set initial content (already captured before clearing)
+    if (initialContent) {
+      this.contentElement.innerHTML = initialContent;
+    }
+    
+    this.appendChild(this.contentElement);
+    
+    // Floating toolbar
+    if (this.config.toolbar && typeof this.config.toolbar === 'object' && (this.config.toolbar as any).floating) {
+      this.floatingToolbar = new FloatingToolbar({ enabled: true });
+      this.floatingToolbar.create(this);
+    }
+    
+    // Status bar - restore custom slot if exists
+    if (statusBarSlot) {
+      this.appendChild(statusBarSlot);
+    } else {
+      // Create default status bar if configured
+      if (this.config.statusbar) {
+        this.statusBarElement = document.createElement('div');
+        this.statusBarElement.className = 'editora-statusbar-container';
+        this.appendChild(this.statusBarElement);
+        
+        this.statusBar = new StatusBar({ position: 'bottom' });
+        this.statusBar.create(this.statusBarElement);
+      }
+    }
+    
+    // Auto-focus if configured
+    if (this.config.autofocus) {
+      setTimeout(() => this.contentElement?.focus(), 0);
+    }
+  }
+
+  /**
+   * Setup event listeners
+   */
+  private setupEventListeners(): void {
+    if (!this.contentElement || !this.engine) return;
+    
+    // Content change
+    this.contentElement.addEventListener('input', () => {
+      const html = this.contentElement!.innerHTML;
+      
+      this.dispatchEvent(new CustomEvent('content-change', {
+        detail: { html },
+        bubbles: true,
+      }));
+      
+      // Update status bar
+      if (this.statusBar) {
+        const text = this.contentElement!.textContent || '';
+        const wordCount = text.trim().split(/\s+/).filter(Boolean).length;
+        const charCount = text.length;
+        
+        this.statusBar.update({ wordCount, charCount });
+      }
+    });
+    
+    // Focus/blur
+    this.contentElement.addEventListener('focus', () => {
+      this.dispatchEvent(new Event('editor-focus', { bubbles: true }));
+    });
+    
+    this.contentElement.addEventListener('blur', () => {
+      this.dispatchEvent(new Event('editor-blur', { bubbles: true }));
+    });
+    
+    // Selection change for floating toolbar
+    if (this.floatingToolbar) {
+      document.addEventListener('selectionchange', () => {
+        this.updateFloatingToolbar();
+      });
+    }
+  }
+
+  /**
+   * Update floating toolbar position
+   */
+  private updateFloatingToolbar(): void {
+    if (!this.floatingToolbar) return;
+    
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) {
+      this.floatingToolbar.hide();
+      return;
+    }
+    
+    const range = selection.getRangeAt(0);
+    if (range.collapsed) {
+      this.floatingToolbar.hide();
+      return;
+    }
+    
+    const rect = range.getBoundingClientRect();
+    this.floatingToolbar.show(rect.left, rect.top - 40);
+  }
+
+  /**
+   * Handle attribute changes
+   */
+  private handleAttributeChange(name: string, value: string): void {
+    switch (name) {
+      case 'readonly':
+        if (this.contentElement) {
+          this.contentElement.contentEditable = value === 'true' ? 'false' : 'true';
+        }
+        if (this.engine) {
+          this.engine.setReadonly(value === 'true');
+        }
+        break;
+        
+      case 'theme':
+        // Remove old theme classes
+        this.classList.forEach(cls => {
+          if (cls.startsWith('editora-theme-')) {
+            this.classList.remove(cls);
+          }
+        });
+        // Add new theme class
+        if (value) {
+          this.classList.add(`editora-theme-${value}`);
+        }
+        break;
+        
+      case 'placeholder':
+        if (this.contentElement) {
+          this.contentElement.setAttribute('data-placeholder', value);
+        }
+        break;
+        
+      case 'toolbar':
+      case 'plugins':
+        // These require re-initialization
+        if (this.isConnected) {
+          this.destroy();
+          this.initialize();
+        }
+        break;
+    }
+  }
+
+  /**
+   * Resolve configuration from all sources
+   */
+  private resolveConfig(): EditorConfigDefaults {
+    const attributes: Record<string, string> = {};
+    
+    // Collect all attributes
+    for (let i = 0; i < this.attributes.length; i++) {
+      const attr = this.attributes[i];
+      attributes[attr.name] = attr.value;
+    }
+    
+    return ConfigResolver.resolve({
+      jsConfig: this.jsConfig,
+      attributes,
+    });
+  }
+
+  /**
+   * Get public API
+   */
+  getAPI(): EditorAPI {
+    return {
+      getContent: () => {
+        return this.contentElement?.innerHTML || '';
+      },
+      
+      setContent: (html: string) => {
+        if (this.contentElement) {
+          this.contentElement.innerHTML = html;
+        }
+      },
+      
+      execCommand: (name: string, value?: any) => {
+        return this.engine?.execCommand(name, value) || false;
+      },
+      
+      focus: () => {
+        this.contentElement?.focus();
+      },
+      
+      blur: () => {
+        this.contentElement?.blur();
+      },
+      
+      destroy: () => {
+        this.destroy();
+      },
+      
+      on: (event: string, handler: (...args: any[]) => void) => {
+        this.addEventListener(event, handler as EventListener);
+        return () => this.removeEventListener(event, handler as EventListener);
+      },
+      
+      getConfig: () => {
+        return { ...this.config };
+      },
+      
+      setReadonly: (readonly: boolean) => {
+        this.setAttribute('readonly', readonly.toString());
+      },
+    };
+  }
+
+  /**
+   * Destroy the editor
+   */
+  private destroy(): void {
+    this.engine?.destroy();
+    this.toolbar?.destroy();
+    this.floatingToolbar?.destroy();
+    this.statusBar?.destroy();
+    
+    this.innerHTML = '';
+    this.isInitialized = false;
+    
+    this.dispatchEvent(new Event('editor-destroy', { bubbles: true }));
+  }
+
+  // Public API methods
+  
+  public getContent(): string {
+    return this.contentElement?.innerHTML || '';
+  }
+
+  public setContent(html: string): void {
+    if (this.contentElement) {
+      this.contentElement.innerHTML = html;
+    }
+  }
+
+  public execCommand(name: string, value?: any): boolean {
+    return this.engine?.execCommand(name, value) || false;
+  }
+
+  public focus(): void {
+    this.contentElement?.focus();
+  }
+
+  public blur(): void {
+    this.contentElement?.blur();
+  }
+}
+
+/**
+ * Editor API interface
+ */
+export interface EditorAPI {
+  getContent(): string;
+  setContent(html: string): void;
+  execCommand(name: string, value?: any): boolean;
+  focus(): void;
+  blur(): void;
+  destroy(): void;
+  on(event: string, handler: (...args: any[]) => void): () => void;
+  getConfig(): EditorConfigDefaults;
+  setReadonly(readonly: boolean): void;
+}
+
+// Note: Custom element registration moved to standalone.ts
+// to ensure plugins are registered before element instances are created

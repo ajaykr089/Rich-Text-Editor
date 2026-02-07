@@ -1,5 +1,4 @@
 import { Plugin } from '@editora/core';
-import { A11yCheckerPluginProvider } from './A11yCheckerPluginProvider';
 
 // --- Rule Engine Types ---
 export interface A11yContext {

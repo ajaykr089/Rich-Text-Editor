@@ -67,7 +67,17 @@ const EditorCore: React.FC<RichTextEditorProps> = (props) => {
 
   const editor = useMemo(() => {
     const pluginManager = new PluginManager();
-    config.plugins.forEach(p => pluginManager.register(p));
+    config.plugins.forEach(p => {
+      pluginManager.register(p);
+      
+      // Register commands from native plugins
+      if (p.commands && typeof window !== 'undefined') {
+        Object.entries(p.commands).forEach(([commandName, commandFn]) => {
+          commandRegistry.set(commandName, commandFn);
+          console.log(`[Editora] Registered command: ${commandName} from ${p.name}`);
+        });
+      }
+    });
     const editorInstance = new Editor(pluginManager);
     editorRef.current = editorInstance;
     return editorInstance;

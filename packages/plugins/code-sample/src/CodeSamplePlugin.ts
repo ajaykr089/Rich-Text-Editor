@@ -1,5 +1,4 @@
 import { Plugin } from '@editora/core';
-import { CodeSamplePluginProvider } from './CodeSamplePluginProvider';
 import { getScopedElementById, queryScopedElements, findEditorContainer, findEditorContainerFromSelection } from '../../shared/editorContainerHelpers';
 // Prism theme CSS will be loaded dynamically when Prism is initialized
 
@@ -41,10 +40,8 @@ export const CodeSamplePlugin = (): Plugin => ({
       type: 'button',
       icon: '{ ; }'
     }
-  ],
-  context: {
-    provider: CodeSamplePluginProvider
-  }
+  ],  // 
+  // context: { provider: ... } // Removed - needs native refactoring // Removed - needs native refactoring
 });
 
 /**

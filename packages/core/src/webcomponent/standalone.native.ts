@@ -1,0 +1,163 @@
+/**
+ * Standalone Web Component Bundle - Framework Agnostic
+ * Entry point for browser usage via script tag
+ * 
+ * Uses native plugins with NO React dependency
+ * Lightweight, fast, and works in any JavaScript environment
+ */
+
+import { PluginLoader } from '../config/PluginLoader';
+
+// Import native plugins (framework-agnostic - NO REACT)
+import { BoldPlugin } from '../../../plugins/bold/src/BoldPlugin.native';
+import { ItalicPlugin } from '../../../plugins/italic/src/ItalicPlugin.native';
+import { UnderlinePlugin } from '../../../plugins/underline/src/UnderlinePlugin.native';
+import { StrikethroughPlugin } from '../../../plugins/strikethrough/src/StrikethroughPlugin.native';
+import { LinkPlugin } from '../../../plugins/link/src/LinkPlugin.native';
+import { TablePlugin } from '../../../plugins/table/src/TablePlugin.native';
+import { ListPlugin } from '../../../plugins/list/src/ListPlugin.native';
+import { HistoryPlugin } from '../../../plugins/history/src/HistoryPlugin.native';
+import { ClearFormattingPlugin } from '../../../plugins/clear-formatting/src/ClearFormattingPlugin.native';
+import { HeadingPlugin } from '../../../plugins/heading/src/HeadingPlugin.native';
+import { BlockquotePlugin } from '../../../plugins/blockquote/src/BlockquotePlugin.native';
+import { CodePlugin } from '../../../plugins/code/src/CodePlugin.native';
+import { IndentPlugin } from '../../../plugins/indent/src/IndentPlugin.native';
+import { TextAlignmentPlugin } from '../../../plugins/text-alignment/src/TextAlignmentPlugin.native';
+import { TextColorPlugin } from '../../../plugins/text-color/src/TextColorPlugin.native';
+import { BackgroundColorPlugin } from '../../../plugins/background-color/src/BackgroundColorPlugin.native';
+import { FontSizePlugin } from '../../../plugins/font-size/src/FontSizePlugin.native';
+import { FontFamilyPlugin } from '../../../plugins/font-family/src/FontFamilyPlugin.native';
+import { LineHeightPlugin } from '../../../plugins/line-height/src/LineHeightPlugin.native';
+import { ImagePlugin } from '../../../plugins/image/src/ImagePlugin.native';
+// ParagraphPlugin removed - paragraph option is in HeadingPlugin dropdown
+import { DirectionPlugin } from '../../../plugins/direction/src/DirectionPlugin.native';
+import { CapitalizationPlugin } from '../../../plugins/capitalization/src/CapitalizationPlugin.native';
+import { ChecklistPlugin } from '../../../plugins/checklist/src/ChecklistPlugin.native';
+import { AnchorPlugin } from '../../../plugins/anchor/src/AnchorPlugin.native';
+import { EmbedIframePlugin } from '../../../plugins/embed-iframe/src/EmbedIframePlugin.native';
+import { MathPlugin } from '../../../plugins/math/src/MathPlugin.native';
+import { SpecialCharactersPlugin } from '../../../plugins/special-characters/src/SpecialCharactersPlugin.native';
+import { EmojisPlugin } from '../../../plugins/emojis/src/EmojisPlugin.native';
+
+/**
+ * All plugins are now native! No more legacy plugins needed.
+ * Phase 2: 100% COMPLETE!
+ */
+
+// Create global plugin loader instance
+const globalPluginLoader = new PluginLoader();
+
+/**
+ * Initialize web component with global plugin registry
+ */
+export function initWebComponent() {
+  console.log('[Editora] Initializing web component with native plugins...');
+
+  // Register native plugins (framework-agnostic, no React) ✅
+  const nativePlugins = [
+    // Basic formatting
+    BoldPlugin(),
+    ItalicPlugin(),
+    UnderlinePlugin(),
+    StrikethroughPlugin(),
+    ClearFormattingPlugin(),
+    
+    // Block types (paragraph option is in HeadingPlugin dropdown)
+    HeadingPlugin(),
+    BlockquotePlugin(),
+    CodePlugin(),
+    
+    // Lists
+    ListPlugin(),
+    ChecklistPlugin(),
+    
+    // Layout & Alignment
+    TextAlignmentPlugin(),
+    IndentPlugin(),
+    DirectionPlugin(),
+    
+    // Typography
+    TextColorPlugin(),
+    BackgroundColorPlugin(),
+    FontSizePlugin(),
+    FontFamilyPlugin(),
+    LineHeightPlugin(),
+    CapitalizationPlugin(),
+    
+    // Content insertion
+    LinkPlugin(),
+    ImagePlugin(),
+    TablePlugin(),
+    AnchorPlugin(),
+    EmbedIframePlugin(),
+    
+    // Special content
+    MathPlugin(),
+    SpecialCharactersPlugin(),
+    EmojisPlugin(),
+    
+    // History
+    HistoryPlugin()
+  ];
+
+  // All plugins are now native! ✅✅✅
+  const allPlugins = nativePlugins;
+
+  // Register plugins globally
+  allPlugins.forEach(plugin => {
+    globalPluginLoader.register(plugin.name, () => plugin);
+    console.log(`[Editora] ✓ Registered plugin: ${plugin.name}`, {
+      hasCommands: !!plugin.commands,
+      hasToolbar: !!plugin.toolbar?.length,
+      type: plugin.commands ? 'native' : 'legacy'
+    });
+  });
+
+  console.log(`[Editora] ✅ ALL ${allPlugins.length} PLUGINS ARE NATIVE! Phase 2 Complete!`);
+  console.log('[Editora] Available plugins:', globalPluginLoader.getRegisteredPluginNames().join(', '));
+  
+  // Return the plugins array directly
+  return allPlugins;
+}
+
+// Register the custom element
+import { RichTextEditorElement } from './RichTextEditor';
+
+// Auto-initialize when script loads
+if (typeof window !== 'undefined') {
+  // Initialize plugins first
+  const plugins = initWebComponent();
+  
+  // Attach plugins to the element class
+  (RichTextEditorElement as any).__globalPlugins = plugins;
+  (RichTextEditorElement as any).__globalPluginLoader = globalPluginLoader;
+  
+  // Register custom element
+  if (!customElements.get('rich-text-editor')) {
+    customElements.define('rich-text-editor', RichTextEditorElement);
+    console.log('[Editora] ✅ Web Component registered as <rich-text-editor>');
+  }
+  
+  // Expose global API (TinyMCE-style)
+  (window as any).Editora = {
+    version: '1.0.0',
+    plugins: globalPluginLoader.getRegisteredPluginNames(),
+    WebComponent: RichTextEditorElement,
+    init: (selector: string, config?: any) => {
+      const element = document.querySelector(selector);
+      if (element instanceof RichTextEditorElement) {
+        if (config) {
+          element.setConfig(config);
+        }
+        return element.getAPI();
+      }
+      return null;
+    }
+  };
+  
+  console.log('[Editora] ✅ Global API exposed as window.Editora');
+}
+
+// Export for module usage (initWebComponent already exported above)
+export { RichTextEditorElement };
+export type { EditorAPI } from './RichTextEditor';

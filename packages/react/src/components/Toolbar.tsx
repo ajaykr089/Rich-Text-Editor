@@ -167,7 +167,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   const renderIcon = (iconName?: string, command?: string) => {
     // Handle inline SVG strings from plugins
     if (iconName && iconName.startsWith('<svg') && iconName.endsWith('</svg>')) {
-      return <span dangerouslySetInnerHTML={{ __html: iconName }} style={{ display: 'inline-block', width: '24px', height: '24px' }} />;
+      return <span dangerouslySetInnerHTML={{ __html: iconName }} />;
     }
 
     // Handle single character icons (B, I, U, S, H)

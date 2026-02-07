@@ -142,12 +142,16 @@
   flex-shrink: 0;
   fill: currentColor;
   stroke: currentColor;
-  width: 14px;
-  height: 14px;
+  width: 20px;
+  height: 20px;
+}
+
+.rte-toolbar-button svg path {
+  fill: currentColor;
 }
 
 .rte-toolbar-button:hover svg {
-  opacity: 0.8;
+  opacity: 0.9;
 }
 
 .rte-toolbar-button[data-active="true"] svg {

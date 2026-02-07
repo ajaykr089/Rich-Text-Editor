@@ -1,5 +1,4 @@
 import { Plugin } from '@editora/core';
-import { CommentsPluginProvider } from './CommentsPluginProvider';
 import { getScopedElementById, findEditorContainer, findContentElement, findEditorContainerFromSelection } from '../../shared/editorContainerHelpers';
 // Use toast if available for error notification
 let toast: any = undefined;
