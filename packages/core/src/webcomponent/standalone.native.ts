@@ -9,43 +9,60 @@
 import { PluginLoader } from '../config/PluginLoader';
 
 // Import native plugins (framework-agnostic - NO REACT)
-import { BoldPlugin } from '../../../plugins/bold/src/BoldPlugin.native';
-import { ItalicPlugin } from '../../../plugins/italic/src/ItalicPlugin.native';
-import { UnderlinePlugin } from '../../../plugins/underline/src/UnderlinePlugin.native';
-import { StrikethroughPlugin } from '../../../plugins/strikethrough/src/StrikethroughPlugin.native';
-import { LinkPlugin } from '../../../plugins/link/src/LinkPlugin.native';
-import { TablePlugin } from '../../../plugins/table/src/TablePlugin.native';
-import { ListPlugin } from '../../../plugins/list/src/ListPlugin.native';
-import { HistoryPlugin } from '../../../plugins/history/src/HistoryPlugin.native';
-import { ClearFormattingPlugin } from '../../../plugins/clear-formatting/src/ClearFormattingPlugin.native';
-import { HeadingPlugin } from '../../../plugins/heading/src/HeadingPlugin.native';
-import { BlockquotePlugin } from '../../../plugins/blockquote/src/BlockquotePlugin.native';
-import { CodePlugin } from '../../../plugins/code/src/CodePlugin.native';
-import { IndentPlugin } from '../../../plugins/indent/src/IndentPlugin.native';
-import { TextAlignmentPlugin } from '../../../plugins/text-alignment/src/TextAlignmentPlugin.native';
-import { TextColorPlugin } from '../../../plugins/text-color/src/TextColorPlugin.native';
-import { BackgroundColorPlugin } from '../../../plugins/background-color/src/BackgroundColorPlugin.native';
-import { FontSizePlugin } from '../../../plugins/font-size/src/FontSizePlugin.native';
-import { FontFamilyPlugin } from '../../../plugins/font-family/src/FontFamilyPlugin.native';
-import { LineHeightPlugin } from '../../../plugins/line-height/src/LineHeightPlugin.native';
-import { ImagePlugin } from '../../../plugins/image/src/ImagePlugin.native';
+import { BoldPlugin } from "../../../plugins/bold/src/BoldPlugin.native";
+import { ItalicPlugin } from "../../../plugins/italic/src/ItalicPlugin.native";
+import { UnderlinePlugin } from "../../../plugins/underline/src/UnderlinePlugin.native";
+import { StrikethroughPlugin } from "../../../plugins/strikethrough/src/StrikethroughPlugin.native";
+import { LinkPlugin } from "../../../plugins/link/src/LinkPlugin.native";
+import { TablePlugin } from "../../../plugins/table/src/TablePlugin.native";
+import { ListPlugin } from "../../../plugins/list/src/ListPlugin.native";
+import { HistoryPlugin } from "../../../plugins/history/src/HistoryPlugin.native";
+import { ClearFormattingPlugin } from "../../../plugins/clear-formatting/src/ClearFormattingPlugin.native";
+import { HeadingPlugin } from "../../../plugins/heading/src/HeadingPlugin.native";
+import { BlockquotePlugin } from "../../../plugins/blockquote/src/BlockquotePlugin.native";
+import { CodePlugin } from "../../../plugins/code/src/CodePlugin.native";
+import { IndentPlugin } from "../../../plugins/indent/src/IndentPlugin.native";
+import { TextAlignmentPlugin } from "../../../plugins/text-alignment/src/TextAlignmentPlugin.native";
+import { TextColorPlugin } from "../../../plugins/text-color/src/TextColorPlugin.native";
+import { BackgroundColorPlugin } from "../../../plugins/background-color/src/BackgroundColorPlugin.native";
+import { FontSizePlugin } from "../../../plugins/font-size/src/FontSizePlugin.native";
+import { FontFamilyPlugin } from "../../../plugins/font-family/src/FontFamilyPlugin.native";
+import { LineHeightPlugin } from "../../../plugins/line-height/src/LineHeightPlugin.native";
+import { FootnotePlugin } from "../../../plugins/footnote/src/FootnotePlugin.native";
 // ParagraphPlugin removed - paragraph option is in HeadingPlugin dropdown
-import { DirectionPlugin } from '../../../plugins/direction/src/DirectionPlugin.native';
-import { CapitalizationPlugin } from '../../../plugins/capitalization/src/CapitalizationPlugin.native';
-import { ChecklistPlugin } from '../../../plugins/checklist/src/ChecklistPlugin.native';
-import { AnchorPlugin } from '../../../plugins/anchor/src/AnchorPlugin.native';
-import { EmbedIframePlugin } from '../../../plugins/embed-iframe/src/EmbedIframePlugin.native';
-import { MathPlugin } from '../../../plugins/math/src/MathPlugin.native';
-import { SpecialCharactersPlugin } from '../../../plugins/special-characters/src/SpecialCharactersPlugin.native';
-import { EmojisPlugin } from '../../../plugins/emojis/src/EmojisPlugin.native';
+import { DirectionPlugin } from "../../../plugins/direction/src/DirectionPlugin.native";
+import { CapitalizationPlugin } from "../../../plugins/capitalization/src/CapitalizationPlugin.native";
+import { ChecklistPlugin } from "../../../plugins/checklist/src/ChecklistPlugin.native";
+import { AnchorPlugin } from "../../../plugins/anchor/src/AnchorPlugin.native";
+import { EmbedIframePlugin } from "../../../plugins/embed-iframe/src/EmbedIframePlugin.native";
+import { MathPlugin } from "../../../plugins/math/src/MathPlugin.native";
+import { MediaManagerPlugin } from "../../../plugins/media-manager/src/MediaManagerPlugin.native";
+import { MergeTagPlugin } from "../../../plugins/merge-tag/src/MergeTagPlugin.native";
+import { PageBreakPlugin } from "../../../plugins/page-break/src/PageBreakPlugin.native";
+import { PrintPlugin } from "../../../plugins/print/src/PrintPlugin.native";
+import { PreviewPlugin } from "../../../plugins/preview/src/PreviewPlugin.native";
+import { SpecialCharactersPlugin } from "../../../plugins/special-characters/src/SpecialCharactersPlugin.native";
+import { SpellCheckPlugin } from "../../../plugins/spell-check/src/SpellCheckPlugin.native";
+import { EmojisPlugin } from "../../../plugins/emojis/src/EmojisPlugin.native";
+import { A11yCheckerPlugin } from "../../../plugins/a11y-checker/src/A11yCheckerPlugin.native";
+import { CommentsPlugin } from "../../../plugins/comments/src/CommentsPlugin.native";
+import { DocumentManagerPlugin } from "../../../plugins/document-manager/src/DocumentManagerPlugin.native";
+import { FullscreenPlugin } from "../../../plugins/fullscreen/src/FullscreenPlugin.native";
+import { TemplatePlugin } from "../../../plugins/template/src/TemplatePlugin.native";
 
 /**
  * All plugins are now native! No more legacy plugins needed.
  * Phase 2: 100% COMPLETE!
  */
 
+// Import RichTextEditor FIRST
+import { RichTextEditorElement } from './RichTextEditor';
+
 // Create global plugin loader instance
 const globalPluginLoader = new PluginLoader();
+
+// Set it on the class IMMEDIATELY before doing anything else
+(RichTextEditorElement as any).__globalPluginLoader = globalPluginLoader;
 
 /**
  * Initialize web component with global plugin registry
@@ -55,49 +72,46 @@ export function initWebComponent() {
 
   // Register native plugins (framework-agnostic, no React) ✅
   const nativePlugins = [
-    // Basic formatting
     BoldPlugin(),
     ItalicPlugin(),
     UnderlinePlugin(),
     StrikethroughPlugin(),
     ClearFormattingPlugin(),
-    
-    // Block types (paragraph option is in HeadingPlugin dropdown)
+    // ParagraphPlugin removed - paragraph option is in HeadingPlugin dropdown
     HeadingPlugin(),
     BlockquotePlugin(),
     CodePlugin(),
-    
-    // Lists
     ListPlugin(),
     ChecklistPlugin(),
-    
-    // Layout & Alignment
     TextAlignmentPlugin(),
     IndentPlugin(),
     DirectionPlugin(),
-    
-    // Typography
     TextColorPlugin(),
     BackgroundColorPlugin(),
     FontSizePlugin(),
     FontFamilyPlugin(),
     LineHeightPlugin(),
     CapitalizationPlugin(),
-    
-    // Content insertion
     LinkPlugin(),
-    ImagePlugin(),
     TablePlugin(),
     AnchorPlugin(),
     EmbedIframePlugin(),
-    
-    // Special content
     MathPlugin(),
+    MediaManagerPlugin(),
+    MergeTagPlugin(),
+    PageBreakPlugin(),
+    PrintPlugin(),
+    PreviewPlugin(),
     SpecialCharactersPlugin(),
+    SpellCheckPlugin(),
     EmojisPlugin(),
-    
-    // History
-    HistoryPlugin()
+    A11yCheckerPlugin(),
+    CommentsPlugin(),
+    DocumentManagerPlugin(),
+    FullscreenPlugin(),
+    TemplatePlugin(),
+    HistoryPlugin(),
+    FootnotePlugin(),
   ];
 
   // All plugins are now native! ✅✅✅
@@ -120,9 +134,6 @@ export function initWebComponent() {
   return allPlugins;
 }
 
-// Register the custom element
-import { RichTextEditorElement } from './RichTextEditor';
-
 // Auto-initialize when script loads
 if (typeof window !== 'undefined') {
   // Initialize plugins first
@@ -130,7 +141,6 @@ if (typeof window !== 'undefined') {
   
   // Attach plugins to the element class
   (RichTextEditorElement as any).__globalPlugins = plugins;
-  (RichTextEditorElement as any).__globalPluginLoader = globalPluginLoader;
   
   // Register custom element
   if (!customElements.get('rich-text-editor')) {

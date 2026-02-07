@@ -555,32 +555,49 @@ function applyBackgroundColor(color: string): boolean {
       const selection = window.getSelection();
       if (selection) {
         selection.removeAllRanges();
-        selection.addRange(savedRange);
+        selection.addRange(savedRange.cloneRange()); // Clone to avoid mutating saved range
       }
     }
 
     const selection = window.getSelection();
     if (!selection || selection.rangeCount === 0 || selection.isCollapsed) {
+      console.warn('[BackgroundColor] No valid selection');
       return false;
     }
 
     const range = selection.getRangeAt(0);
+    
+    // Check if range is valid and has content
+    if (range.collapsed) {
+      console.warn('[BackgroundColor] Range is collapsed');
+      return false;
+    }
+
     const span = document.createElement('span');
     span.style.backgroundColor = color;
     span.className = 'rte-bg-color';
 
+    // Extract and wrap contents
     const contents = range.extractContents();
     span.appendChild(contents);
     range.insertNode(span);
 
-    // Restore selection
-    range.selectNode(span);
+    // Move cursor to end of inserted span
+    range.setStartAfter(span);
+    range.setEndAfter(span);
     selection.removeAllRanges();
     selection.addRange(range);
 
+    // Trigger input event to notify editor
+    const editorContent = span.closest('[contenteditable="true"]') || document.querySelector('[contenteditable="true"]');
+    if (editorContent) {
+      editorContent.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+
+    console.log('[BackgroundColor] Applied color:', color);
     return true;
   } catch (error) {
-    console.error('Failed to apply background color:', error);
+    console.error('[BackgroundColor] Failed to apply background color:', error);
     return false;
   }
 }
@@ -621,7 +638,23 @@ function positionColorPicker(button: HTMLElement, picker: HTMLDivElement) {
 
   // Adjust if picker would go off bottom edge
   if (top + pickerHeight > window.innerHeight) {
-    top = buttonRect.top - pickerHeight - 5;
+    // Try to position above the button
+    const topAbove = buttonRect.top - pickerHeight - 5;
+    
+    // If above position is also off-screen, just position at top of viewport with scroll offset
+    if (topAbove < 0) {
+      top = window.scrollY + 10; // 10px from top of viewport
+    } else {
+      top = topAbove + window.scrollY;
+    }
+  } else {
+    // Add scroll offset for below position
+    top = top + window.scrollY;
+  }
+  
+  // Ensure left is not negative
+  if (left < 0) {
+    left = 10;
   }
 
   picker.style.top = `${top}px`;
@@ -629,81 +662,64 @@ function positionColorPicker(button: HTMLElement, picker: HTMLDivElement) {
 }
 
 /**
+ * Open background color picker
+ */
+function openBackgroundColorPicker(): boolean {
+  // Ensure styles are injected
+  injectStyles();
+  
+  // Close any existing picker
+  if (colorPickerElement) {
+    closeColorPicker();
+    return true;
+  }
+
+  // Find the background color button
+  const button = document.querySelector('[data-command="openBackgroundColorPicker"]') as HTMLElement;
+  
+  if (!button) {
+    return false;
+  }
+
+  // Check if there's a selection
+  const selection = window.getSelection();
+  
+  if (!selection || selection.isCollapsed) {
+    alert('Please select text to apply background color');
+    return false;
+  }
+
+  // Save current selection
+  if (selection.rangeCount > 0) {
+    savedRange = selection.getRangeAt(0).cloneRange();
+  }
+
+  // Get current color
+  selectedColor = getCurrentBackgroundColor();
+
+  // Create and show picker
+  colorPickerElement = createColorPicker();
+  document.body.appendChild(colorPickerElement);
+
+  currentButton = button;
+  positionColorPicker(button, colorPickerElement);
+
+  // Initialize preview
+  updateColorPreview();
+  updateSelectedSwatch();
+
+  // Attach listeners
+  attachColorPickerListeners();
+
+  return true;
+}
+
+/**
  * Auto-initialization
  */
-let initialized = false;
-
-function initBackgroundColorPlugin() {
-  if (initialized) return;
-  initialized = true;
-
-  injectStyles();
-
-  // Listen for toolbar button clicks
-  document.addEventListener('click', (e) => {
-    const target = e.target as HTMLElement;
-    const button = target.closest('[data-command="openBackgroundColorPicker"]') as HTMLElement;
-
-    if (button) {
-      e.preventDefault();
-      e.stopPropagation();
-
-      // If picker is already open for this button, close it
-      if (colorPickerElement && currentButton === button) {
-        closeColorPicker();
-        return;
-      }
-
-      // Close existing picker if any
-      if (colorPickerElement) {
-        closeColorPicker();
-      }
-
-      // Check if there's a selection
-      const selection = window.getSelection();
-      if (!selection || selection.isCollapsed) {
-        alert('Please select text to apply background color');
-        return;
-      }
-
-      // Save current selection
-      if (selection.rangeCount > 0) {
-        savedRange = selection.getRangeAt(0).cloneRange();
-      }
-
-      // Get current color
-      selectedColor = getCurrentBackgroundColor();
-
-      // Create and show picker
-      colorPickerElement = createColorPicker();
-      document.body.appendChild(colorPickerElement);
-
-      currentButton = button;
-      positionColorPicker(button, colorPickerElement);
-
-      // Initialize preview
-      updateColorPreview();
-      updateSelectedSwatch();
-
-      // Attach listeners
-      attachColorPickerListeners();
-    }
-  });
-}
-
-// Initialize on DOM ready
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initBackgroundColorPlugin);
-} else {
-  initBackgroundColorPlugin();
-}
-
-// Fallback initialization
-setTimeout(() => {
-  if (!initialized) {
-    initBackgroundColorPlugin();
-  }
-}, 100);
+// Note: Auto-initialization removed - picker is now opened via command handler
+// The openBackgroundColorPicker() function is called directly by RichTextEditor
+// when the toolbar button is clicked, preventing race conditions
 
 export const BackgroundColorPlugin = (): Plugin => {
   return {
@@ -760,8 +776,7 @@ export const BackgroundColorPlugin = (): Plugin => {
 
     commands: {
       openBackgroundColorPicker: () => {
-        // Command is handled by auto-initialization click listener
-        return true;
+        return openBackgroundColorPicker();
       },
 
       setBackgroundColor: (color?: string) => {

@@ -26,7 +26,6 @@ import { BackgroundColorPlugin } from "../../packages/plugins/background-color/s
 import { FontSizePlugin } from "../../packages/plugins/font-size/src/FontSizePlugin.native";
 import { FontFamilyPlugin } from "../../packages/plugins/font-family/src/FontFamilyPlugin.native";
 import { LineHeightPlugin } from "../../packages/plugins/line-height/src/LineHeightPlugin.native";
-import { ImagePlugin } from "../../packages/plugins/image/src/ImagePlugin.native";
 import { FootnotePlugin } from "../../packages/plugins/footnote/src/FootnotePlugin.native";
 // ParagraphPlugin removed - paragraph option is in HeadingPlugin dropdown
 import { DirectionPlugin } from "../../packages/plugins/direction/src/DirectionPlugin.native";
@@ -101,7 +100,6 @@ const allNativePlugins = [
   LineHeightPlugin(),
   CapitalizationPlugin(),
   LinkPlugin(),
-  ImagePlugin(),
   TablePlugin(),
   AnchorPlugin(),
   EmbedIframePlugin(),

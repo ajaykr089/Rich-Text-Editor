@@ -53,6 +53,9 @@ export function createEditor(options: any) {
 /**
  * Initialize Web Component globally
  * Allows usage via <rich-text-editor> HTML tag
+ * 
+ * NOTE: Auto-initialization is disabled here to avoid conflicts.
+ * The standalone.native.ts bundle handles web component registration.
  */
 export function initWebComponent() {
   if (typeof window !== 'undefined' && !customElements.get('rich-text-editor')) {
@@ -60,7 +63,7 @@ export function initWebComponent() {
   }
 }
 
-// Auto-initialize Web Component
-if (typeof window !== 'undefined') {
-  initWebComponent();
-}
+// Auto-initialization DISABLED - handled by standalone bundles
+// if (typeof window !== 'undefined') {
+//   initWebComponent();
+// }

@@ -7,7 +7,6 @@ export { createHistoryPlugin } from './history/src';
 export { createListPlugin } from './list/src';
 export { createBlockquotePlugin } from './blockquote/src';
 export { createTablePlugin } from './table/src';
-export { createImagePlugin } from './image/src';
 export { createLinkPlugin } from './link/src';
 export { createCodeBlockPlugin } from './codeblock/src';
 
@@ -21,7 +20,6 @@ export { ListPlugin } from './list/src/ListPlugin';
 export { BlockquotePlugin } from './blockquote/src/BlockquotePlugin';
 export { TablePlugin } from './table/src/TablePlugin';
 export { UnderlinePlugin } from './underline/src/UnderlinePlugin';
-export { ImagePlugin } from './image/src/ImagePlugin';
 export { LinkPlugin } from './link/src/LinkPlugin';
 export { CodeBlockPlugin } from './codeblock/src/CodeBlockPlugin';
 export { StrikethroughPlugin } from './strikethrough/src/StrikethroughPlugin';

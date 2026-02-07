@@ -27,10 +27,12 @@ export class ToolbarRenderer {
   private plugins: Plugin[];
   private container?: HTMLElement;
   private commandHandler?: (command: string, value?: any) => void;
+  private pluginLoader?: any; // PluginLoader instance to get all registered plugins
 
-  constructor(config: ToolbarConfig, plugins: Plugin[]) {
+  constructor(config: ToolbarConfig, plugins: Plugin[], pluginLoader?: any) {
     this.config = config;
     this.plugins = plugins;
+    this.pluginLoader = pluginLoader;
   }
 
   /**
@@ -48,14 +50,67 @@ export class ToolbarRenderer {
     const sections = toolbarString.split('|').map(s => s.trim());
     
     const allToolbarItems = this.getAvailableToolbarItems();
+    console.log('[ToolbarRenderer] All toolbar items from plugins:', allToolbarItems.length, allToolbarItems.map(i => i.command));
     const itemMap = new Map(allToolbarItems.map(item => [item.command, item]));
+    
+    // Common command aliases for backward compatibility
+    const aliases: Record<string, string> = {
+      'bold': 'toggleBold',
+      'italic': 'toggleItalic',
+      'underline': 'toggleUnderline',
+      'strikethrough': 'toggleStrikethrough',
+      'bullist': 'toggleBulletList',
+      'numlist': 'toggleOrderedList',
+      'checklist': 'toggleCheckList',
+      'link': 'openLinkDialog',
+      'image': 'openImageDialog',
+      'table': 'insertTable',
+      'anchor': 'insertAnchor',
+      'code': 'toggleSourceView',
+      'blockquote': 'toggleBlockquote',
+      'undo': 'undo',
+      'redo': 'redo',
+      'textColor': 'openTextColorPicker',
+      'backgroundColor': 'openBackgroundColorPicker',
+      'fontSize': 'setFontSize',
+      'fontFamily': 'setFontFamily',
+      'lineHeight': 'setLineHeight',
+      'heading': 'setBlockType',
+      'paragraph': 'setParagraph',
+      'textAlignment': 'setTextAlignment',
+      'direction': 'setDirection',
+      'indent': 'indent',
+      'outdent': 'outdent',
+      'capitalization': 'setCapitalization',
+      'math': 'insertMath',
+      'specialCharacters': 'insertSpecialCharacter',
+      'emojis': 'insertEmoji',
+      'embedIframe': 'openEmbedIframeDialog',
+      'fullscreen': 'toggleFullscreen',
+      'preview': 'togglePreview',
+      'print': 'print',
+      'a11yChecker': 'checkAccessibility',
+      'spellCheck': 'toggleSpellCheck',
+      'comments': 'addComment',
+      'footnote': 'insertFootnote',
+      'mergeTags': 'insertMergeTag',
+      'pageBreak': 'insertPageBreak',
+      'template': 'applyTemplate',
+      'importWord': 'importWord',
+      'exportWord': 'exportWord',
+      'exportPdf': 'exportPdf',
+      'insertImage': 'insertImage',
+      'insertVideo': 'insertVideo',
+    };
     
     sections.forEach(section => {
       const buttons: ToolbarButton[] = [];
       const commands = section.split(/\s+/).filter(Boolean);
       
       commands.forEach(cmd => {
-        const item = itemMap.get(cmd);
+        // Try direct command first, then alias
+        const actualCommand = aliases[cmd] || cmd;
+        const item = itemMap.get(actualCommand);
         if (item) {
           buttons.push({
             id: cmd,
@@ -80,7 +135,23 @@ export class ToolbarRenderer {
    * Get all available toolbar items from plugins
    */
   private getAvailableToolbarItems(): ToolbarItem[] {
-    const items = this.plugins.flatMap(p => p.toolbar || []);
+    let allPlugins = this.plugins;
+    
+    // If we have a plugin loader, get ALL registered plugins for toolbar items
+    if (this.pluginLoader) {
+      const registeredNames = this.pluginLoader.getRegisteredPluginNames();
+      const allRegisteredPlugins = registeredNames
+        .map((name: string) => {
+          // Try to get from already loaded first
+          const loaded = this.pluginLoader.load(name);
+          return loaded;
+        })
+        .filter((p: Plugin | null): p is Plugin => p !== null);
+      
+      allPlugins = allRegisteredPlugins;
+    }
+    
+    const items = allPlugins.flatMap(p => p.toolbar || []);
     console.log('[ToolbarRenderer] Available toolbar items:', items.length, items.map(i => i.command));
     return items;
   }
@@ -102,7 +173,9 @@ export class ToolbarRenderer {
     }
     
     const toolbarString = this.config.items || this.getDefaultToolbarString();
+    console.log('[ToolbarRenderer] Toolbar string:', toolbarString);
     const buttonGroups = this.parseToolbarString(toolbarString);
+    console.log('[ToolbarRenderer] Button groups:', buttonGroups.length, buttonGroups);
     
     buttonGroups.forEach((group, groupIndex) => {
       const groupEl = document.createElement('div');

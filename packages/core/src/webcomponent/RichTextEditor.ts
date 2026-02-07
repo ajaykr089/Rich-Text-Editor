@@ -21,7 +21,7 @@ let globalPluginRegistry: PluginLoader;
 function getGlobalRegistry(): PluginLoader {
   if (!globalPluginRegistry) {
     // Check if it was set externally (by standalone.ts)
-    const externalRegistry = (RichTextEditorElement as any).__globalPluginRegistry;
+    const externalRegistry = (RichTextEditorElement as any).__globalPluginLoader;
     if (externalRegistry) {
       globalPluginRegistry = externalRegistry;
     } else {
@@ -64,6 +64,7 @@ export class RichTextEditorElement extends HTMLElement {
       'menubar',
       'plugins',
       'toolbar',
+      'toolbar-items',
       'readonly',
       'disabled',
       'theme',
@@ -125,6 +126,9 @@ export class RichTextEditorElement extends HTMLElement {
   private initialize(): void {
     // Prevent re-initialization
     if (this.isInitialized) return;
+    
+    // Mark this element as an editor container for multi-instance support
+    this.setAttribute('data-editora-editor', 'true');
     
     // Resolve configuration
     this.config = this.resolveConfig();
@@ -259,19 +263,68 @@ export class RichTextEditorElement extends HTMLElement {
       this.toolbarElement.className = 'editora-toolbar-container';
       this.appendChild(this.toolbarElement);
       
+      // Support both toolbar and toolbarItems attributes
+      const toolbarItems = (this.config as any).toolbarItems || this.config.toolbar;
+      
       this.toolbar = new ToolbarRenderer(
         {
-          items: typeof this.config.toolbar === 'string' ? this.config.toolbar : undefined,
+          items: typeof toolbarItems === 'string' ? toolbarItems : undefined,
           sticky: this.config.toolbar && typeof this.config.toolbar === 'object'
             ? (this.config.toolbar as any).sticky
             : false,
           position: 'top',
         },
-        plugins
+        plugins,
+        this.pluginLoader // Pass plugin loader to get all registered plugins
       );
       
       this.toolbar.setCommandHandler((command, value) => {
-        this.engine?.execCommand(command, value);
+        // Ensure editor has focus and a valid selection for multi-instance support
+        if (this.contentElement) {
+          // Focus the editor
+          this.contentElement.focus();
+          
+          // Ensure there's a selection in this editor instance
+          const selection = window.getSelection();
+          if (!selection || selection.rangeCount === 0 || !this.contentElement.contains(selection.anchorNode)) {
+            // Create a selection at the end of the content
+            const range = document.createRange();
+            const lastChild = this.contentElement.lastChild || this.contentElement;
+            
+            if (lastChild.nodeType === Node.TEXT_NODE) {
+              range.setStart(lastChild, lastChild.textContent?.length || 0);
+            } else if (lastChild.nodeType === Node.ELEMENT_NODE) {
+              range.selectNodeContents(lastChild);
+              range.collapse(false); // Collapse to end
+            } else {
+              range.setStart(this.contentElement, 0);
+            }
+            
+            range.collapse(true);
+            selection?.removeAllRanges();
+            selection?.addRange(range);
+          }
+        }
+        
+        // Try to find the command in loaded plugins first (for native commands)
+        const plugin = plugins.find(p => p.commands && p.commands[command]);
+        if (plugin && plugin.commands) {
+          const commandFn = plugin.commands[command];
+          if (typeof commandFn === 'function') {
+            // Call native command directly
+            try {
+              const result = commandFn(value);
+              console.log(`[RichTextEditor] Executed native command: ${command}, result:`, result);
+              return result;
+            } catch (error) {
+              console.error(`[RichTextEditor] Error executing native command ${command}:`, error);
+              return false;
+            }
+          }
+        }
+        
+        // Fallback to engine command (ProseMirror-style)
+        return this.engine?.execCommand(command, value) || false;
       });
       
       this.toolbar.render(this.toolbarElement);
@@ -283,7 +336,7 @@ export class RichTextEditorElement extends HTMLElement {
     
     // Create content area
     this.contentElement = document.createElement('div');
-    this.contentElement.className = 'editora-content';
+    this.contentElement.className = 'editora-content rte-content'; // Add rte-content class for plugin helpers
     this.contentElement.contentEditable = this.config.readonly ? 'false' : 'true';
     this.contentElement.setAttribute('role', 'textbox');
     this.contentElement.setAttribute('aria-multiline', 'true');

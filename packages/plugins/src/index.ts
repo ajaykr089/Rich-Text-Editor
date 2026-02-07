@@ -26,7 +26,6 @@ export { MathPlugin } from '../math/src/index';
 export { SpecialCharactersPlugin } from '../special-characters/src/index';
 export { EmojisPlugin } from '../emojis/src/index';
 export { EmbedIframePlugin } from '../embed-iframe/src/index';
-export { ImagePlugin } from '../image/src/index';
 export { AnchorPlugin } from '../anchor/src/index';
 
 // Regular plugins (with React components - 13 total)
