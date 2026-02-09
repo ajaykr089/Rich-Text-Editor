@@ -21,6 +21,7 @@ import { ClearFormattingPlugin } from "../../../plugins/clear-formatting/src/Cle
 import { HeadingPlugin } from "../../../plugins/heading/src/HeadingPlugin.native";
 import { BlockquotePlugin } from "../../../plugins/blockquote/src/BlockquotePlugin.native";
 import { CodePlugin } from "../../../plugins/code/src/CodePlugin.native";
+import { CodeSamplePlugin } from "../../../plugins/code-sample/src/CodeSamplePlugin.native";
 import { IndentPlugin } from "../../../plugins/indent/src/IndentPlugin.native";
 import { TextAlignmentPlugin } from "../../../plugins/text-alignment/src/TextAlignmentPlugin.native";
 import { TextColorPlugin } from "../../../plugins/text-color/src/TextColorPlugin.native";
@@ -81,6 +82,7 @@ export function initWebComponent() {
     { name: 'HeadingPlugin', factory: HeadingPlugin },
     { name: 'BlockquotePlugin', factory: BlockquotePlugin },
     { name: 'CodePlugin', factory: CodePlugin },
+    { name: 'codeSample', factory: CodeSamplePlugin },
     { name: 'ListPlugin', factory: ListPlugin },
     { name: 'ChecklistPlugin', factory: ChecklistPlugin },
     { name: 'TextAlignmentPlugin', factory: TextAlignmentPlugin },

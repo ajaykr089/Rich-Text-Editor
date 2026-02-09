@@ -55,54 +55,55 @@ export class ToolbarRenderer {
     
     // Common command aliases for backward compatibility
     const aliases: Record<string, string> = {
-      'bold': 'toggleBold',
-      'italic': 'toggleItalic',
-      'underline': 'toggleUnderline',
-      'strikethrough': 'toggleStrikethrough',
-      'bullist': 'toggleBulletList',
-      'numlist': 'toggleOrderedList',
-      'checklist': 'toggleChecklist',
-      'link': 'openLinkDialog',
-      'image': 'openImageDialog',
-      'table': 'insertTable',
-      'anchor': 'insertAnchor',
-      'code': 'toggleSourceView',
-      'blockquote': 'toggleBlockquote',
-      'undo': 'undo',
-      'redo': 'redo',
-      'textColor': 'openTextColorPicker',
-      'backgroundColor': 'openBackgroundColorPicker',
-      'fontSize': 'setFontSize',
-      'fontFamily': 'setFontFamily',
-      'lineHeight': 'setLineHeight',
-      'heading': 'setBlockType',
-      'paragraph': 'setParagraph',
-      'textAlignment': 'setTextAlignment',
-      'direction': 'setDirectionLTR',
-      'indent': 'increaseIndent',
-      'outdent': 'decreaseIndent',
-      'capitalization': 'setCapitalization',
-      'math': 'insertMath',
-      'specialCharacters': 'insertSpecialCharacter',
-      'emojis': 'openEmojiDialog',
-      'embedIframe': 'openEmbedIframeDialog',
-      'fullscreen': 'toggleFullscreen',
-      'preview': 'togglePreview',
-      'print': 'print',
-      'a11yChecker': 'toggleA11yChecker',
-      'spellCheck': 'toggleSpellCheck',
-      'comments': 'addComment',
-      'showHideComments': 'toggleComments',
-      'toggleComments': 'toggleComments',
-      'footnote': 'insertFootnote',
-      'mergeTags': 'insertMergeTag',
-      'pageBreak': 'insertPageBreak',
-      'template': 'insertTemplate',
-      'importWord': 'importWord',
-      'exportWord': 'exportWord',
-      'exportPdf': 'exportPdf',
-      'insertImage': 'insertImage',
-      'insertVideo': 'insertVideo',
+      bold: "toggleBold",
+      italic: "toggleItalic",
+      underline: "toggleUnderline",
+      strikethrough: "toggleStrikethrough",
+      bullist: "toggleBulletList",
+      numlist: "toggleOrderedList",
+      checklist: "toggleChecklist",
+      link: "openLinkDialog",
+      image: "openImageDialog",
+      table: "insertTable",
+      anchor: "insertAnchor",
+      code: "toggleSourceView",
+      blockquote: "toggleBlockquote",
+      undo: "undo",
+      redo: "redo",
+      textColor: "openTextColorPicker",
+      backgroundColor: "openBackgroundColorPicker",
+      fontSize: "setFontSize",
+      fontFamily: "setFontFamily",
+      lineHeight: "setLineHeight",
+      heading: "setBlockType",
+      paragraph: "setParagraph",
+      textAlignment: "setTextAlignment",
+      direction: "setDirectionLTR",
+      indent: "increaseIndent",
+      outdent: "decreaseIndent",
+      capitalization: "setCapitalization",
+      math: "insertMath",
+      specialCharacters: "insertSpecialCharacter",
+      emojis: "openEmojiDialog",
+      embedIframe: "openEmbedIframeDialog",
+      fullscreen: "toggleFullscreen",
+      preview: "togglePreview",
+      print: "print",
+      a11yChecker: "toggleA11yChecker",
+      spellCheck: "toggleSpellCheck",
+      comments: "addComment",
+      showHideComments: "toggleComments",
+      toggleComments: "toggleComments",
+      footnote: "insertFootnote",
+      mergeTags: "insertMergeTag",
+      pageBreak: "insertPageBreak",
+      template: "insertTemplate",
+      importWord: "importWord",
+      exportWord: "exportWord",
+      exportPdf: "exportPdf",
+      insertImage: "insertImage",
+      insertVideo: "insertVideo",
+      codeBlock: "insertCodeBlock",
     };
     
     sections.forEach(section => {
@@ -193,7 +194,6 @@ export class ToolbarRenderer {
    */
   private getAvailableToolbarItems(): ToolbarItem[] {
     let allPlugins = this.plugins;
-    
     // If we have a plugin loader, get ALL registered plugins for toolbar items
     if (this.pluginLoader) {
       const registeredNames = this.pluginLoader.getRegisteredPluginNames();
@@ -204,12 +204,14 @@ export class ToolbarRenderer {
           return loaded;
         })
         .filter((p: Plugin | null): p is Plugin => p !== null);
-      
       allPlugins = allRegisteredPlugins;
     }
-    
     const items = allPlugins.flatMap(p => p.toolbar || []);
-    console.log('[ToolbarRenderer] Available toolbar items:', items.length, items.map(i => i.command));
+    // DEBUG: Print all plugin names and their toolbar items
+    allPlugins.forEach(p => {
+      console.log(`[ToolbarRenderer][DEBUG] Plugin: ${p.name}, toolbar:`, p.toolbar);
+    });
+    console.log('[ToolbarRenderer][DEBUG] All available toolbar items:', items.map(i => `${i.command} (${i.label})`));
     return items;
   }
 
@@ -230,9 +232,10 @@ export class ToolbarRenderer {
     }
     
     const toolbarString = this.config.items || this.getDefaultToolbarString();
-    console.log('[ToolbarRenderer] Toolbar string:', toolbarString);
+    // DEBUG: Print the final toolbar string used for rendering
+    console.log('[ToolbarRenderer][DEBUG] Final toolbar string:', toolbarString);
     const buttonGroups = this.parseToolbarString(toolbarString);
-    console.log('[ToolbarRenderer] Button groups:', buttonGroups.length, buttonGroups);
+    console.log('[ToolbarRenderer][DEBUG] Button groups:', buttonGroups.length, buttonGroups);
     
     buttonGroups.forEach((group, groupIndex) => {
       const groupEl = document.createElement('div');

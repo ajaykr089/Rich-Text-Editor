@@ -19,6 +19,7 @@ import { ClearFormattingPlugin } from "../../packages/plugins/clear-formatting/s
 import { HeadingPlugin } from "../../packages/plugins/heading/src/HeadingPlugin.native";
 import { BlockquotePlugin } from "../../packages/plugins/blockquote/src/BlockquotePlugin.native";
 import { CodePlugin } from "../../packages/plugins/code/src/CodePlugin.native";
+import { CodeSamplePlugin } from "../../packages/plugins/code-sample/src/CodeSamplePlugin.native";
 import { IndentPlugin } from "../../packages/plugins/indent/src/IndentPlugin.native";
 import { TextAlignmentPlugin } from "../../packages/plugins/text-alignment/src/TextAlignmentPlugin.native";
 import { TextColorPlugin } from "../../packages/plugins/text-color/src/TextColorPlugin.native";
@@ -58,7 +59,7 @@ const meta: Meta = {
 # Editora Web Component - Framework Agnostic Rich Text Editor
 
 **Bundle Size**: 115 KB minified (28.65 KB gzipped)  
-**Native Plugins**: 39  
+**Native Plugins**: 40  
 **Framework Dependencies**: 0  
 **Supports**: React, Vue, Angular, Svelte, Vanilla JS
 
@@ -67,7 +68,7 @@ const meta: Meta = {
 - ✅ 91% bundle size reduction
 - ✅ TinyMCE-style declarative API
 - ✅ Works everywhere
-- ✅ 36 native plugins including Media Manager, Math, Merge Tags, Page Break, Template, A11y Checker, Comments, and more
+- ✅ 37 native plugins including Code Sample, Media Manager, Math, Merge Tags, Page Break, Template, A11y Checker, Comments, and more
         `,
       },
     },
@@ -88,6 +89,7 @@ const allNativePlugins = [
   HeadingPlugin(),
   BlockquotePlugin(),
   CodePlugin(),
+  CodeSamplePlugin(),
   ListPlugin(),
   ChecklistPlugin(),
   TextAlignmentPlugin(),
@@ -123,7 +125,7 @@ const allNativePlugins = [
 
 /**
  * Basic usage with default configuration
- * All 36 native plugins loaded automatically
+ * All 37 native plugins loaded automatically
  */
 export const Basic: Story = {
   render: () => (
@@ -131,7 +133,7 @@ export const Basic: Story = {
       plugins={allNativePlugins}
       defaultValue={`
         <h2>Welcome to Editora!</h2>
-        <p>This is a <strong>framework-agnostic</strong> rich text editor with <mark style="background: #ffeb3b;">35 native plugins</mark>.</p>
+        <p>This is a <strong>framework-agnostic</strong> rich text editor with <mark style="background: #ffeb3b;">37 native plugins</mark>.</p>
         <p>✨ <strong>Key Features:</strong></p>
         <ul>
           <li>Zero framework dependencies</li>
