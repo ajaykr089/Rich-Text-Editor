@@ -14,12 +14,13 @@ export interface ToolbarConfig {
 export interface ToolbarButton {
   id: string;
   label: string;
-  command: string;
+  command?: string;
   icon?: string;
-  type?: 'button' | 'dropdown' | 'input' | 'separator' | 'inline-menu';
+  type?: 'button' | 'dropdown' | 'input' | 'separator' | 'inline-menu' | 'group';
   options?: Array<{ label: string; value: string }>;
   active?: boolean;
   disabled?: boolean;
+  items?: ToolbarButton[]; // For groups
 }
 
 export class ToolbarRenderer {
@@ -47,12 +48,21 @@ export class ToolbarRenderer {
    */
   private parseToolbarString(toolbarString: string): ToolbarButton[][] {
     const groups: ToolbarButton[][] = [];
-    const sections = toolbarString.split('|').map(s => s.trim());
-    
+    const sections = toolbarString.split("|").map((s) => s.trim());
+
     const allToolbarItems = this.getAvailableToolbarItems();
-    console.log('[ToolbarRenderer] All toolbar items from plugins:', allToolbarItems.length, allToolbarItems.map(i => i.command));
-    const itemMap = new Map(allToolbarItems.map(item => [item.command, item]));
-    
+    console.log(
+      "[ToolbarRenderer] All toolbar items from plugins:",
+      allToolbarItems.length,
+      allToolbarItems.map((i) => i.command),
+    );
+    // Index items by command and by label (for group types with no command)
+    const itemMap = new Map<string, ToolbarItem>();
+    allToolbarItems.forEach((item) => {
+      if (item.command) itemMap.set(item.command, item);
+      if (item.type === "group" && item.label) itemMap.set(item.label, item);
+    });
+
     // Common command aliases for backward compatibility
     const aliases: Record<string, string> = {
       bold: "toggleBold",
@@ -72,7 +82,7 @@ export class ToolbarRenderer {
       redo: "redo",
       textColor: "openTextColorPicker",
       backgroundColor: "openBackgroundColorPicker",
-      fontSize: "setFontSize",
+      fontSize: "fontSize",
       fontFamily: "setFontFamily",
       lineHeight: "setLineHeight",
       heading: "setBlockType",
@@ -105,87 +115,91 @@ export class ToolbarRenderer {
       insertVideo: "insertVideo",
       codeBlock: "insertCodeBlock",
     };
-    
-    sections.forEach(section => {
+
+    sections.forEach((section) => {
       const buttons: ToolbarButton[] = [];
       const commands = section.split(/\s+/).filter(Boolean);
-      
-      commands.forEach(cmd => {
+
+      commands.forEach((cmd) => {
         // Special handling for multi-button shortcuts
-        if (cmd === 'direction') {
+        if (cmd === "direction") {
           // Direction has two buttons: LTR and RTL
-          const ltrItem = itemMap.get('setDirectionLTR');
-          const rtlItem = itemMap.get('setDirectionRTL');
+          const ltrItem = itemMap.get("setDirectionLTR");
+          const rtlItem = itemMap.get("setDirectionRTL");
           if (ltrItem) {
             buttons.push({
-              id: 'directionLTR',
+              id: "directionLTR",
               label: ltrItem.label,
               command: ltrItem.command,
               icon: ltrItem.icon,
-              type: ltrItem.type || 'button',
+              type: ltrItem.type || "button",
               options: ltrItem.options,
             });
           }
           if (rtlItem) {
             buttons.push({
-              id: 'directionRTL',
+              id: "directionRTL",
               label: rtlItem.label,
               command: rtlItem.command,
               icon: rtlItem.icon,
-              type: rtlItem.type || 'button',
+              type: rtlItem.type || "button",
               options: rtlItem.options,
             });
           }
           return;
         }
-        
-        if (cmd === 'comments') {
+
+        if (cmd === "comments") {
           // Comments has two buttons: Add Comment and Toggle Comments
-          const addCommentItem = itemMap.get('addComment');
-          const toggleCommentsItem = itemMap.get('toggleComments');
+          const addCommentItem = itemMap.get("addComment");
+          const toggleCommentsItem = itemMap.get("toggleComments");
           if (addCommentItem) {
             buttons.push({
-              id: 'addComment',
+              id: "addComment",
               label: addCommentItem.label,
               command: addCommentItem.command,
               icon: addCommentItem.icon,
-              type: addCommentItem.type || 'button',
+              type: addCommentItem.type || "button",
               options: addCommentItem.options,
             });
           }
           if (toggleCommentsItem) {
             buttons.push({
-              id: 'toggleComments',
+              id: "toggleComments",
               label: toggleCommentsItem.label,
               command: toggleCommentsItem.command,
               icon: toggleCommentsItem.icon,
-              type: toggleCommentsItem.type || 'button',
+              type: toggleCommentsItem.type || "button",
               options: toggleCommentsItem.options,
             });
           }
           return;
         }
-        
+
         // Try direct command first, then alias
         const actualCommand = aliases[cmd] || cmd;
-        const item = itemMap.get(actualCommand);
+        let item = itemMap.get(actualCommand);
+        // If not found by command, try by label (for group type)
+        if (!item) item = itemMap.get(cmd);
         if (item) {
           buttons.push({
             id: cmd,
             label: item.label,
             command: item.command,
             icon: item.icon,
-            type: item.type === 'separator' ? 'separator' : (item.type || 'button'),
+            type:
+              item.type === "separator" ? "separator" : item.type || "button",
             options: item.options,
+            items: item.items,
           });
         }
       });
-      
+
       if (buttons.length > 0) {
         groups.push(buttons);
       }
     });
-    
+
     return groups;
   }
 
@@ -206,12 +220,18 @@ export class ToolbarRenderer {
         .filter((p: Plugin | null): p is Plugin => p !== null);
       allPlugins = allRegisteredPlugins;
     }
-    const items = allPlugins.flatMap(p => p.toolbar || []);
+    const items = allPlugins.flatMap((p) => p.toolbar || []);
     // DEBUG: Print all plugin names and their toolbar items
-    allPlugins.forEach(p => {
-      console.log(`[ToolbarRenderer][DEBUG] Plugin: ${p.name}, toolbar:`, p.toolbar);
+    allPlugins.forEach((p) => {
+      console.log(
+        `[ToolbarRenderer][DEBUG] Plugin: ${p.name}, toolbar:`,
+        p.toolbar,
+      );
     });
-    console.log('[ToolbarRenderer][DEBUG] All available toolbar items:', items.map(i => `${i.command} (${i.label})`));
+    console.log(
+      "[ToolbarRenderer][DEBUG] All available toolbar items:",
+      items.map((i) => `${i.command} (${i.label})`),
+    );
     return items;
   }
 
@@ -220,71 +240,156 @@ export class ToolbarRenderer {
    */
   render(container: HTMLElement): void {
     this.container = container;
-    container.innerHTML = '';
-    container.className = 'editora-toolbar';
-    
+    container.innerHTML = "";
+    container.className = "editora-toolbar";
+
     if (this.config.sticky) {
-      container.classList.add('editora-toolbar-sticky');
+      container.classList.add("editora-toolbar-sticky");
     }
-    
+
     if (this.config.position) {
       container.classList.add(`editora-toolbar-${this.config.position}`);
     }
-    
+
     const toolbarString = this.config.items || this.getDefaultToolbarString();
     // DEBUG: Print the final toolbar string used for rendering
-    console.log('[ToolbarRenderer][DEBUG] Final toolbar string:', toolbarString);
+    console.log(
+      "[ToolbarRenderer][DEBUG] Final toolbar string:",
+      toolbarString,
+    );
     const buttonGroups = this.parseToolbarString(toolbarString);
-    console.log('[ToolbarRenderer][DEBUG] Button groups:', buttonGroups.length, buttonGroups);
-    
+    console.log(
+      "[ToolbarRenderer][DEBUG] Button groups:",
+      buttonGroups.length,
+      buttonGroups,
+    );
+
     buttonGroups.forEach((group, groupIndex) => {
-      const groupEl = document.createElement('div');
-      groupEl.className = 'editora-toolbar-group';
-      
-      group.forEach(button => {
-        if (button.type === 'separator') {
-          const separator = document.createElement('div');
-          separator.className = 'editora-toolbar-separator';
-          groupEl.appendChild(separator);
-        } else if (button.type === 'dropdown') {
-          const dropdownEl = this.createDropdown(button);
-          groupEl.appendChild(dropdownEl);
-        } else if (button.type === 'inline-menu') {
-          const inlineMenuEl = this.createInlineMenu(button);
-          groupEl.appendChild(inlineMenuEl);
-        } else {
-          const buttonEl = this.createButton(button);
-          groupEl.appendChild(buttonEl);
-        }
+      const groupEl = document.createElement("div");
+      groupEl.className = "editora-toolbar-group";
+      console.log(
+        "[ToolbarRenderer][DEBUG] Rendering group:",
+        groupIndex,
+        group,
+      );
+      group.forEach((button) => {
+        this.appendToolbarButton(groupEl, button);
       });
-      
       container.appendChild(groupEl);
-      
       // Add separator between groups (except last)
       if (groupIndex < buttonGroups.length - 1) {
-        const separator = document.createElement('div');
-        separator.className = 'editora-toolbar-separator';
+        const separator = document.createElement("div");
+        separator.className = "editora-toolbar-separator";
         container.appendChild(separator);
       }
     });
   }
 
   /**
+   * Append a toolbar button or group to a parent element
+   */
+  private appendToolbarButton(
+    parent: HTMLElement,
+    button: ToolbarButton,
+  ): void {
+    if (button.type === "separator") {
+      const separator = document.createElement("div");
+      separator.className = "editora-toolbar-separator";
+      parent.appendChild(separator);
+    } else if (button.type === "dropdown") {
+      const dropdownEl = this.createDropdown(button);
+      parent.appendChild(dropdownEl);
+    } else if (button.type === "inline-menu") {
+      const inlineMenuEl = this.createInlineMenu(button);
+      parent.appendChild(inlineMenuEl);
+    } else if (button.type === "group" && button.items && button.items.length) {
+      const groupButtonEl = this.createGroupButton(button);
+      parent.appendChild(groupButtonEl);
+    } else if (button.type === "input") {
+      const inputEl = this.createInput(button);
+      parent.appendChild(inputEl);
+    } else {
+      const buttonEl = this.createButton(button);
+      parent.appendChild(buttonEl);
+    }
+  }
+
+  /**
+   * Create a toolbar button element
+   */
+  private createGroupButton(button: ToolbarButton): HTMLElement {
+    const el = document.createElement("div");
+    el.className = "editora-toolbar-group-button";
+    el.title = button.label;
+    // Optionally add a label or icon for the group itself
+    if (button.icon) {
+      if (button.icon.startsWith("<svg") && button.icon.endsWith("</svg>")) {
+        const iconWrapper = document.createElement("span");
+        iconWrapper.className = "editora-toolbar-icon";
+        iconWrapper.innerHTML = button.icon;
+        el.appendChild(iconWrapper);
+      } else {
+        el.innerHTML = button.icon;
+      }
+    }
+    // Recursively render group items
+    if (button.items && button.items.length) {
+      const itemsContainer = document.createElement("div");
+      itemsContainer.className = "editora-toolbar-group-items";
+      button.items.forEach((child) => {
+        console.log("child", child);
+        this.appendToolbarButton(itemsContainer, child);
+      });
+      el.appendChild(itemsContainer);
+    }
+    return el;
+  }
+
+  /**
+   * Create a toolbar button element
+   */
+  private createInput(button: ToolbarButton): HTMLElement {
+    const el = document.createElement("input");
+    el.className = `editora-toolbar-input ${button.label.toLowerCase().replace(/\s+/g, "-")}`;
+    el.type = "text";
+    el.title = button.label;
+    el.placeholder = button.placeholder || "";
+    el.setAttribute("data-command", button.command);
+
+    if (button.active) {
+      el.classList.add("active");
+    }
+
+    if (button.disabled) {
+      el.disabled = true;
+    }
+
+    el.addEventListener("click", (e) => {
+      e.preventDefault();
+      if (this.commandHandler) {
+        this.commandHandler(button.command);
+      }
+    });
+
+    return el;
+  }
+
+  /**
    * Create a toolbar button element
    */
   private createButton(button: ToolbarButton): HTMLElement {
-    const el = document.createElement('button');
-    el.className = 'editora-toolbar-button';
-    el.type = 'button';
+    const el = document.createElement("button");
+    el.className = "editora-toolbar-button";
+    el.type = "button";
     el.title = button.label;
-    el.setAttribute('data-command', button.command);
-    
+    el.setAttribute("data-command", button.command);
+
     if (button.icon) {
       // Check if it's an SVG icon
-      if (button.icon.startsWith('<svg') && button.icon.endsWith('</svg>')) {
+      if (button.icon.startsWith("<svg") && button.icon.endsWith("</svg>")) {
         // Create a wrapper span for the SVG with proper styling
-        const iconWrapper = document.createElement('span');
-        iconWrapper.className = 'editora-toolbar-icon';
+        const iconWrapper = document.createElement("span");
+        iconWrapper.className = "editora-toolbar-icon";
         iconWrapper.innerHTML = button.icon;
         el.appendChild(iconWrapper);
       } else {
@@ -294,22 +399,22 @@ export class ToolbarRenderer {
     } else {
       el.textContent = button.label;
     }
-    
+
     if (button.active) {
-      el.classList.add('active');
+      el.classList.add("active");
     }
-    
+
     if (button.disabled) {
       el.disabled = true;
     }
-    
-    el.addEventListener('click', (e) => {
+
+    el.addEventListener("click", (e) => {
       e.preventDefault();
       if (this.commandHandler) {
         this.commandHandler(button.command);
       }
     });
-    
+
     return el;
   }
 
@@ -317,46 +422,47 @@ export class ToolbarRenderer {
    * Create a dropdown element
    */
   private createDropdown(button: ToolbarButton): HTMLElement {
-    const container = document.createElement('div');
-    container.className = 'editora-toolbar-dropdown';
-    
-    const trigger = document.createElement('button');
-    trigger.className = 'editora-toolbar-button editora-toolbar-dropdown-trigger';
-    trigger.type = 'button';
+    const container = document.createElement("div");
+    container.className = "editora-toolbar-dropdown";
+
+    const trigger = document.createElement("button");
+    trigger.className =
+      "editora-toolbar-button editora-toolbar-dropdown-trigger";
+    trigger.type = "button";
     trigger.textContent = button.label;
-    
-    const menu = document.createElement('div');
-    menu.className = 'editora-toolbar-dropdown-menu';
-    menu.style.display = 'none';
-    
+
+    const menu = document.createElement("div");
+    menu.className = "editora-toolbar-dropdown-menu";
+    menu.style.display = "none";
+
     if (button.options) {
-      button.options.forEach(option => {
-        const item = document.createElement('button');
-        item.className = 'editora-toolbar-dropdown-item';
-        item.type = 'button';
+      button.options.forEach((option) => {
+        const item = document.createElement("button");
+        item.className = "editora-toolbar-dropdown-item";
+        item.type = "button";
         item.textContent = option.label;
-        item.setAttribute('data-value', option.value);
-        
-        item.addEventListener('click', (e) => {
+        item.setAttribute("data-value", option.value);
+
+        item.addEventListener("click", (e) => {
           e.preventDefault();
           if (this.commandHandler) {
             this.commandHandler(button.command, option.value);
           }
-          menu.style.display = 'none';
+          menu.style.display = "none";
         });
-        
+
         menu.appendChild(item);
       });
     }
-    
-    trigger.addEventListener('click', (e) => {
+
+    trigger.addEventListener("click", (e) => {
       e.preventDefault();
-      menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+      menu.style.display = menu.style.display === "none" ? "block" : "none";
     });
-    
+
     container.appendChild(trigger);
     container.appendChild(menu);
-    
+
     return container;
   }
 
@@ -364,19 +470,20 @@ export class ToolbarRenderer {
    * Create an inline menu element (like dropdown but triggered by button click)
    */
   private createInlineMenu(button: ToolbarButton): HTMLElement {
-    const container = document.createElement('div');
-    container.className = 'editora-toolbar-dropdown editora-toolbar-inline-menu';
-    
-    const trigger = document.createElement('button');
-    trigger.className = 'editora-toolbar-button';
-    trigger.type = 'button';
+    const container = document.createElement("div");
+    container.className =
+      "editora-toolbar-dropdown editora-toolbar-inline-menu";
+
+    const trigger = document.createElement("button");
+    trigger.className = "editora-toolbar-button";
+    trigger.type = "button";
     trigger.title = button.label;
-    
+
     // Add icon if available
     if (button.icon) {
-      if (button.icon.startsWith('<svg') && button.icon.endsWith('</svg>')) {
-        const iconWrapper = document.createElement('span');
-        iconWrapper.className = 'editora-toolbar-icon';
+      if (button.icon.startsWith("<svg") && button.icon.endsWith("</svg>")) {
+        const iconWrapper = document.createElement("span");
+        iconWrapper.className = "editora-toolbar-icon";
         iconWrapper.innerHTML = button.icon;
         trigger.appendChild(iconWrapper);
       } else {
@@ -385,58 +492,60 @@ export class ToolbarRenderer {
     } else {
       trigger.textContent = button.label;
     }
-    
-    const menu = document.createElement('div');
-    menu.className = 'editora-toolbar-dropdown-menu';
-    menu.style.display = 'none';
-    
+
+    const menu = document.createElement("div");
+    menu.className = "editora-toolbar-dropdown-menu";
+    menu.style.display = "none";
+
     if (button.options) {
-      button.options.forEach(option => {
-        const item = document.createElement('button');
-        item.className = 'editora-toolbar-dropdown-item';
-        item.type = 'button';
+      button.options.forEach((option) => {
+        const item = document.createElement("button");
+        item.className = "editora-toolbar-dropdown-item";
+        item.type = "button";
         item.textContent = option.label;
-        item.setAttribute('data-value', option.value);
-        
-        item.addEventListener('click', (e) => {
+        item.setAttribute("data-value", option.value);
+
+        item.addEventListener("click", (e) => {
           e.preventDefault();
           e.stopPropagation();
           if (this.commandHandler) {
             this.commandHandler(button.command, option.value);
           }
-          menu.style.display = 'none';
+          menu.style.display = "none";
         });
-        
+
         menu.appendChild(item);
       });
     }
-    
-    trigger.addEventListener('click', (e) => {
+
+    trigger.addEventListener("click", (e) => {
       e.preventDefault();
       e.stopPropagation();
-      
+
       // Close all other menus
-      const allMenus = this.container?.querySelectorAll('.editora-toolbar-dropdown-menu');
-      allMenus?.forEach(m => {
+      const allMenus = this.container?.querySelectorAll(
+        ".editora-toolbar-dropdown-menu",
+      );
+      allMenus?.forEach((m) => {
         if (m !== menu) {
-          (m as HTMLElement).style.display = 'none';
+          (m as HTMLElement).style.display = "none";
         }
       });
-      
+
       // Toggle this menu
-      menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+      menu.style.display = menu.style.display === "none" ? "block" : "none";
     });
-    
+
     // Close menu when clicking outside
-    document.addEventListener('click', (e) => {
+    document.addEventListener("click", (e) => {
       if (!container.contains(e.target as Node)) {
-        menu.style.display = 'none';
+        menu.style.display = "none";
       }
     });
-    
+
     container.appendChild(trigger);
     container.appendChild(menu);
-    
+
     return container;
   }
 
@@ -445,19 +554,28 @@ export class ToolbarRenderer {
    */
   private getDefaultToolbarString(): string {
     const items = this.getAvailableToolbarItems();
-    return items.map(item => item.command).join(' ');
+    console.log(
+      "[ToolbarRenderer][DEBUG] Generating default toolbar string from items:",
+      items,
+    );
+    return items.map((item) => item.command).join(" ");
   }
 
   /**
    * Update button state
    */
-  updateButtonState(command: string, state: { active?: boolean; disabled?: boolean }): void {
+  updateButtonState(
+    command: string,
+    state: { active?: boolean; disabled?: boolean },
+  ): void {
     if (!this.container) return;
-    
-    const button = this.container.querySelector(`[data-command="${command}"]`) as HTMLButtonElement;
+
+    const button = this.container.querySelector(
+      `[data-command="${command}"]`,
+    ) as HTMLButtonElement;
     if (button) {
       if (state.active !== undefined) {
-        button.classList.toggle('active', state.active);
+        button.classList.toggle("active", state.active);
       }
       if (state.disabled !== undefined) {
         button.disabled = state.disabled;
@@ -470,7 +588,7 @@ export class ToolbarRenderer {
    */
   destroy(): void {
     if (this.container) {
-      this.container.innerHTML = '';
+      this.container.innerHTML = "";
     }
     this.commandHandler = undefined;
   }

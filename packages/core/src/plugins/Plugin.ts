@@ -5,12 +5,19 @@ import React from 'react';
 export interface ToolbarItem {
   id?: string;
   label: string;
-  command: string;
+  command?: string;
   icon?: string;
-  type?: 'button' | 'dropdown' | 'input' | 'inline-menu' | 'separator';
+  type?:
+    | "button"
+    | "dropdown"
+    | "input"
+    | "inline-menu"
+    | "separator"
+    | "group";
   options?: Array<{ label: string; value: string }>;
   placeholder?: string;
   shortcut?: string;
+  items?: ToolbarItem[]; // For groups and dropdowns
 }
 
 export interface PluginContext {

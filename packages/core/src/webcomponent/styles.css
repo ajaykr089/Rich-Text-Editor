@@ -72,7 +72,34 @@
     align-items: center;
     white-space: nowrap;
 }
-
+.editora-toolbar-input.font-size{
+  width: 40px;
+  padding: 0.25rem;
+  text-align: center;
+  font-size: 14px;
+  background: #fff;
+  border: 1px solid var(--rte-color-border-light);
+  border-radius: var(--rte-radius-sm);
+}
+.editora-toolbar-group-items{
+    display: flex;
+    align-items: center;
+    border: 1px solid #ccc;
+    .editora-toolbar-button {
+      border: none;
+      border-radius: 0;
+        &:first-child {
+            border-right: 1px solid #ccc;
+            border-top-left-radius: 3px;
+            border-bottom-left-radius: 3px;
+        }
+        &:last-child {
+            border-left: 1px solid #ccc;
+            border-top-right-radius: 3px;
+            border-bottom-right-radius: 3px;
+        }   
+    }
+}
 .editora-theme-dark .editora-toolbar-button {
   color: #d4d4d4;
 }
