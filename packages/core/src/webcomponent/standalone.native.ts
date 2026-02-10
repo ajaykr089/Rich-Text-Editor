@@ -69,7 +69,6 @@ const globalPluginLoader = new PluginLoader();
  * Initialize web component with global plugin registry
  */
 export function initWebComponent() {
-  console.log('[Editora] Initializing web component with native plugins...');
 
   // Register native plugins (framework-agnostic, no React) ✅
   const pluginFactories = [
@@ -136,9 +135,6 @@ export function initWebComponent() {
     globalPluginLoader.register(plugin.name, () => plugin);
 
   });
-
-  console.log(`[Editora] ✅ ALL ${allPlugins.length} PLUGINS ARE NATIVE! Phase 2 Complete!`);
-  console.log('[Editora] Available plugins:', globalPluginLoader.getRegisteredPluginNames().join(', '));
   
   // Return the plugins array directly
   return allPlugins;
@@ -155,7 +151,6 @@ if (typeof window !== 'undefined') {
   // Register custom element
   if (!customElements.get('rich-text-editor')) {
     customElements.define('rich-text-editor', RichTextEditorElement);
-    console.log('[Editora] ✅ Web Component registered as <rich-text-editor>');
   }
   
   // Expose global API (TinyMCE-style)
@@ -174,8 +169,6 @@ if (typeof window !== 'undefined') {
       return null;
     }
   };
-  
-  console.log('[Editora] ✅ Global API exposed as window.Editora');
 }
 
 // Export for module usage (initWebComponent already exported above)

@@ -78,7 +78,6 @@ export class RichTextEditorElement extends HTMLElement {
   constructor() {
     super();
     this.pluginLoader = getGlobalRegistry();
-    console.log('[RichTextEditor] constructor - pluginLoader has plugins:', this.pluginLoader.getRegisteredPluginNames());
   }
 
   /**
@@ -160,7 +159,6 @@ export class RichTextEditorElement extends HTMLElement {
     plugins.forEach(plugin => {
       if (plugin.init && typeof plugin.init === 'function') {
         try {
-          console.log('[RichTextEditor] Calling init for plugin:', plugin.name);
           plugin.init();
         } catch (error) {
           console.error(`[RichTextEditor] Error initializing plugin ${plugin.name}:`, error);
@@ -215,8 +213,6 @@ export class RichTextEditorElement extends HTMLElement {
   private loadPlugins(): Plugin[] {
     const plugins: Plugin[] = [];
     
-    console.log('[RichTextEditor] loadPlugins - config.plugins:', this.config.plugins);
-    
     // Check if plugins are explicitly configured (non-empty array or string)
     const hasPluginConfig = this.config.plugins && (
       (typeof this.config.plugins === 'string' && this.config.plugins.length > 0) ||
@@ -242,13 +238,9 @@ export class RichTextEditorElement extends HTMLElement {
     } else {
       // No plugins specified - load all registered plugins
       const registeredNames = this.pluginLoader.getRegisteredPluginNames();
-      console.log('[RichTextEditor] Registered plugin names:', registeredNames);
       const loadedPlugins = this.pluginLoader.loadMultiple(registeredNames);
-      console.log('[RichTextEditor] loadMultiple returned:', loadedPlugins.length, loadedPlugins.map(p => p.name));
       plugins.push(...loadedPlugins);
     }
-    
-    console.log('[RichTextEditor] Loaded plugins:', plugins.map(p => p.name));
     return plugins;
   }
 
@@ -261,15 +253,11 @@ export class RichTextEditorElement extends HTMLElement {
     const statusBarSlot = this.querySelector('[slot="statusbar"]');
     const initialContent = this.getInitialContent();
     
-    console.log('[RichTextEditor] createUI - plugins:', plugins.length, plugins.map(p => p.name));
-    console.log('[RichTextEditor] createUI - config.toolbar:', this.config.toolbar);
-    
     // Clear existing content
     this.innerHTML = '';
     
     // Restore or create toolbar
     if (this.config.toolbar !== false && !toolbarSlot) {
-      console.log('[RichTextEditor] Creating default toolbar...');
       // Create default toolbar
       this.toolbarElement = document.createElement('div');
       this.toolbarElement.className = 'editora-toolbar-container';
@@ -319,8 +307,6 @@ export class RichTextEditorElement extends HTMLElement {
         }
         
         // Try to find the command in loaded plugins first (for native commands)
-        console.log(`[RichTextEditor] Looking for command "${command}" in ${plugins.length} plugins`);
-        console.log(`[RichTextEditor] Plugins:`, plugins.map(p => `${p.name}(hasCommands:${!!p.commands})`).join(', '));
         
         const plugin = plugins.find(p => p.commands && p.commands[command]);
         if (plugin && plugin.commands) {
@@ -329,7 +315,6 @@ export class RichTextEditorElement extends HTMLElement {
             // Call native command directly
             try {
               const result = commandFn(value);
-              console.log(`[RichTextEditor] Executed native command: ${command} from plugin ${plugin.name}, result:`, result);
               return result;
             } catch (error) {
               console.error(`[RichTextEditor] Error executing native command ${command}:`, error);
@@ -337,14 +322,11 @@ export class RichTextEditorElement extends HTMLElement {
             }
           }
         }
-        
-        console.warn(`[RichTextEditor] Command "${command}" not found in plugins, falling back to engine`);
         // Fallback to engine command (ProseMirror-style)
         return this.engine?.execCommand(command, value) || false;
       });
       
       this.toolbar.render(this.toolbarElement);
-      console.log('[RichTextEditor] Toolbar rendered, innerHTML:', this.toolbarElement.innerHTML.substring(0, 200));
     } else if (toolbarSlot) {
       // Use custom toolbar from slot
       this.appendChild(toolbarSlot);

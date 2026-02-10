@@ -51,11 +51,6 @@ export class ToolbarRenderer {
     const sections = toolbarString.split("|").map((s) => s.trim());
 
     const allToolbarItems = this.getAvailableToolbarItems();
-    console.log(
-      "[ToolbarRenderer] All toolbar items from plugins:",
-      allToolbarItems.length,
-      allToolbarItems.map((i) => i.command),
-    );
     // Index items by command and by label (for group types with no command)
     const itemMap = new Map<string, ToolbarItem>();
     allToolbarItems.forEach((item) => {
@@ -221,17 +216,6 @@ export class ToolbarRenderer {
       allPlugins = allRegisteredPlugins;
     }
     const items = allPlugins.flatMap((p) => p.toolbar || []);
-    // DEBUG: Print all plugin names and their toolbar items
-    allPlugins.forEach((p) => {
-      console.log(
-        `[ToolbarRenderer][DEBUG] Plugin: ${p.name}, toolbar:`,
-        p.toolbar,
-      );
-    });
-    console.log(
-      "[ToolbarRenderer][DEBUG] All available toolbar items:",
-      items.map((i) => `${i.command} (${i.label})`),
-    );
     return items;
   }
 
@@ -252,26 +236,10 @@ export class ToolbarRenderer {
     }
 
     const toolbarString = this.config.items || this.getDefaultToolbarString();
-    // DEBUG: Print the final toolbar string used for rendering
-    console.log(
-      "[ToolbarRenderer][DEBUG] Final toolbar string:",
-      toolbarString,
-    );
     const buttonGroups = this.parseToolbarString(toolbarString);
-    console.log(
-      "[ToolbarRenderer][DEBUG] Button groups:",
-      buttonGroups.length,
-      buttonGroups,
-    );
-
     buttonGroups.forEach((group, groupIndex) => {
       const groupEl = document.createElement("div");
       groupEl.className = "editora-toolbar-group";
-      console.log(
-        "[ToolbarRenderer][DEBUG] Rendering group:",
-        groupIndex,
-        group,
-      );
       group.forEach((button) => {
         this.appendToolbarButton(groupEl, button);
       });
@@ -337,7 +305,6 @@ export class ToolbarRenderer {
       const itemsContainer = document.createElement("div");
       itemsContainer.className = "editora-toolbar-group-items";
       button.items.forEach((child) => {
-        console.log("child", child);
         this.appendToolbarButton(itemsContainer, child);
       });
       el.appendChild(itemsContainer);
@@ -554,10 +521,6 @@ export class ToolbarRenderer {
    */
   private getDefaultToolbarString(): string {
     const items = this.getAvailableToolbarItems();
-    console.log(
-      "[ToolbarRenderer][DEBUG] Generating default toolbar string from items:",
-      items,
-    );
     return items.map((item) => item.command).join(" ");
   }
 
