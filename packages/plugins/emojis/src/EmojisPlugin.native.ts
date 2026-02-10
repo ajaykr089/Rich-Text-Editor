@@ -169,11 +169,16 @@ function switchEmojiTab(dialog: HTMLElement, category: EmojiCategory): void {
 
 function updateEmojiGrid(dialog: HTMLElement): void {
   const grid = dialog.querySelector('#emojis-grid');
+  console.log(
+    `Updating emoji grid for category: ${activeTab}, search: "${searchQuery}"`,
+    grid,
+  ); // Debug log
   if (grid) {
     grid.innerHTML = renderEmojiGrid(activeTab, searchQuery);
     
     // Re-attach click handlers for emoji items
     grid.querySelectorAll('.emojis-item').forEach((item) => {
+        console.log('Attaching click handler for emoji:', item.getAttribute('data-emoji')); // Debug log
       item.addEventListener('click', () => {
         const emoji = item.textContent?.trim() || '';
         if (emoji) {

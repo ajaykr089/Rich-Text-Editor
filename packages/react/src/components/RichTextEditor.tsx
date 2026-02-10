@@ -74,7 +74,6 @@ const EditorCore: React.FC<RichTextEditorProps> = (props) => {
       if (p.commands && typeof window !== 'undefined') {
         Object.entries(p.commands).forEach(([commandName, commandFn]) => {
           commandRegistry.set(commandName, commandFn);
-          console.log(`[Editora] Registered command: ${commandName} from ${p.name}`);
         });
       }
     });

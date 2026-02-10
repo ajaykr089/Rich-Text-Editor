@@ -147,13 +147,13 @@
   width: 24px;
   height: 24px;
   display: block;
-  fill: currentColor;
+  /* fill: currentColor; */
 }
 
-.editora-toolbar-button svg path,
+/* .editora-toolbar-button svg path,
 .editora-toolbar-icon svg path {
   fill: currentColor;
-}
+} */
 
 .editora-toolbar-separator {
   width: 1px;
