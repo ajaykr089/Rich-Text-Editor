@@ -10,23 +10,35 @@ import { Plugin } from '@editora/core';
  * - Button state tracking
  * - Smooth transitions
  * - Body scroll lock
+ * - Multi-instance support
  */
 
-// Track fullscreen state
-let isFullscreen = false;
-let editorElement: HTMLElement | null = null;
-let fullscreenButton: HTMLButtonElement | null = null;
+// Track fullscreen state per editor instance
+const fullscreenStates = new WeakMap<HTMLElement, {
+  isFullscreen: boolean;
+  fullscreenButton: HTMLButtonElement | null;
+}>();
 
 // CSS classes and styles
 const FULLSCREEN_CLASS = 'rte-fullscreen-active';
-const FULLSCREEN_BUTTON_SELECTOR = '[data-command="toggleFullscreen"]';
+
+/**
+ * Get or create fullscreen state for an editor element
+ */
+const getFullscreenState = (editorElement: HTMLElement) => {
+  if (!fullscreenStates.has(editorElement)) {
+    fullscreenStates.set(editorElement, {
+      isFullscreen: false,
+      fullscreenButton: null
+    });
+  }
+  return fullscreenStates.get(editorElement)!;
+};
 
 /**
  * Apply fullscreen styles to editor
  */
-const applyFullscreenStyles = () => {
-  if (!editorElement) return;
-
+const applyFullscreenStyles = (editorElement: HTMLElement, state: { fullscreenButton: HTMLButtonElement | null }) => {
   // Add fullscreen class
   editorElement.classList.add(FULLSCREEN_CLASS);
 
@@ -54,12 +66,12 @@ const applyFullscreenStyles = () => {
   document.body.classList.add('fullscreen-active');
 
   // Update button state
-  if (fullscreenButton) {
-    fullscreenButton.setAttribute('data-active', 'true');
-    fullscreenButton.style.backgroundColor = 'var(--rte-color-primary, #007bff)';
-    fullscreenButton.style.color = 'white';
+  if (state.fullscreenButton) {
+    state.fullscreenButton.setAttribute('data-active', 'true');
+    state.fullscreenButton.style.backgroundColor = 'var(--rte-color-primary, #007bff)';
+    state.fullscreenButton.style.color = 'white';
     
-    const svg = fullscreenButton.querySelector('svg');
+    const svg = state.fullscreenButton.querySelector('svg');
     if (svg) {
       svg.style.fill = 'white';
       svg.style.stroke = 'white';
@@ -70,9 +82,7 @@ const applyFullscreenStyles = () => {
 /**
  * Remove fullscreen styles from editor
  */
-const removeFullscreenStyles = () => {
-  if (!editorElement) return;
-
+const removeFullscreenStyles = (editorElement: HTMLElement, state: { fullscreenButton: HTMLButtonElement | null }) => {
   // Remove fullscreen class
   editorElement.classList.remove(FULLSCREEN_CLASS);
 
@@ -100,12 +110,12 @@ const removeFullscreenStyles = () => {
   document.body.classList.remove('fullscreen-active');
 
   // Update button state
-  if (fullscreenButton) {
-    fullscreenButton.setAttribute('data-active', 'false');
-    fullscreenButton.style.backgroundColor = '';
-    fullscreenButton.style.color = '';
+  if (state.fullscreenButton) {
+    state.fullscreenButton.setAttribute('data-active', 'false');
+    state.fullscreenButton.style.backgroundColor = '';
+    state.fullscreenButton.style.color = '';
     
-    const svg = fullscreenButton.querySelector('svg');
+    const svg = state.fullscreenButton.querySelector('svg');
     if (svg) {
       svg.style.fill = '';
       svg.style.stroke = '';
@@ -114,31 +124,42 @@ const removeFullscreenStyles = () => {
 };
 
 /**
- * Toggle fullscreen mode
+ * Toggle fullscreen mode for a specific editor
  */
-export const toggleFullscreen = (): boolean => {
+export const toggleFullscreen = (editorElement?: HTMLElement): boolean => {
   try {
-    // Find editor element if not already cached
+    // If no editor element provided, find the currently focused one
     if (!editorElement) {
-      editorElement = document.querySelector('[data-editora-editor]') as HTMLElement;
-      if (!editorElement) {
-        console.warn('Editor element not found');
-        return false;
+      const focusedElement = document.activeElement;
+      if (focusedElement && focusedElement.closest('[data-editora-editor]')) {
+        editorElement = focusedElement.closest('[data-editora-editor]') as HTMLElement;
       }
     }
 
-    // Find button if not already cached
-    if (!fullscreenButton) {
-      fullscreenButton = document.querySelector(FULLSCREEN_BUTTON_SELECTOR) as HTMLButtonElement;
+    // Fallback to any editor if none found
+    if (!editorElement) {
+      editorElement = document.querySelector('[data-editora-editor]') as HTMLElement;
+    }
+
+    if (!editorElement) {
+      console.warn('Editor element not found');
+      return false;
+    }
+
+    const state = getFullscreenState(editorElement);
+
+    // Find button within this editor's toolbar
+    if (!state.fullscreenButton) {
+      state.fullscreenButton = editorElement.querySelector('[data-command="toggleFullscreen"]') as HTMLButtonElement;
     }
 
     // Toggle state
-    isFullscreen = !isFullscreen;
+    state.isFullscreen = !state.isFullscreen;
 
-    if (isFullscreen) {
-      applyFullscreenStyles();
+    if (state.isFullscreen) {
+      applyFullscreenStyles(editorElement, state);
     } else {
-      removeFullscreenStyles();
+      removeFullscreenStyles(editorElement, state);
     }
 
     return true;
@@ -149,20 +170,35 @@ export const toggleFullscreen = (): boolean => {
 };
 
 /**
- * Exit fullscreen mode
+ * Exit fullscreen mode for a specific editor
  */
-export const exitFullscreen = (): void => {
-  if (isFullscreen) {
-    isFullscreen = false;
-    removeFullscreenStyles();
+export const exitFullscreen = (editorElement?: HTMLElement): void => {
+  if (!editorElement) {
+    // Find any fullscreen editor
+    document.querySelectorAll('[data-editora-editor]').forEach(el => {
+      const element = el as HTMLElement;
+      const state = getFullscreenState(element);
+      if (state.isFullscreen) {
+        state.isFullscreen = false;
+        removeFullscreenStyles(element, state);
+      }
+    });
+    return;
+  }
+
+  const state = getFullscreenState(editorElement);
+  if (state.isFullscreen) {
+    state.isFullscreen = false;
+    removeFullscreenStyles(editorElement, state);
   }
 };
 
 /**
- * Check if currently in fullscreen mode
+ * Check if a specific editor is in fullscreen mode
  */
-export const isFullscreenActive = (): boolean => {
-  return isFullscreen;
+export const isFullscreenActive = (editorElement: HTMLElement): boolean => {
+  const state = getFullscreenState(editorElement);
+  return state.isFullscreen;
 };
 
 /**
@@ -171,7 +207,7 @@ export const isFullscreenActive = (): boolean => {
 const setupFullscreenListeners = () => {
   // Handle Escape key to exit fullscreen
   const handleKeyDown = (e: KeyboardEvent) => {
-    if (e.key === 'Escape' && isFullscreen) {
+    if (e.key === 'Escape') {
       exitFullscreen();
     }
   };
@@ -216,9 +252,13 @@ export const FullscreenPlugin = (): Plugin => ({
   
   keymap: {
     'Escape': () => {
-      if (isFullscreen) {
-        exitFullscreen();
-        return true;
+      // Check if any editor is in fullscreen mode
+      const fullscreenEditors = document.querySelectorAll('[data-editora-editor]');
+      for (const el of fullscreenEditors) {
+        if (isFullscreenActive(el as HTMLElement)) {
+          exitFullscreen(el as HTMLElement);
+          return true;
+        }
       }
       return false;
     }

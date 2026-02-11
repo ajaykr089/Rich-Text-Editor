@@ -11,6 +11,7 @@ import type { Plugin } from '@editora/core';
  * - Advanced options: name, title, long description, border, scrollbar
  * - Auto-conversion of YouTube/Vimeo URLs to embed format
  * - Security validation (HTTPS only)
+ * - Multi-instance support
  * 
  * Commands:
  * - openEmbedIframeDialog: Opens the embed iframe dialog
@@ -32,22 +33,49 @@ const SIZE_OPTIONS = [
   { label: 'Responsive - 1x1', value: '1x1' },
 ];
 
-let dialogElement: HTMLElement | null = null;
-let activeTab: 'general' | 'advanced' = 'general';
+// Per-editor instance state
+const editorStates = new WeakMap<HTMLElement, {
+  dialogElement: HTMLElement | null;
+  activeTab: 'general' | 'advanced';
+  formData: {
+    src: string;
+    selectedSize: string;
+    width: string;
+    height: string;
+    constrainProportions: boolean;
+    name: string;
+    title: string;
+    longDescription: string;
+    descriptionUrl: string;
+    showBorder: boolean;
+    enableScrollbar: boolean;
+  };
+}>();
 
-// Form state
-let formData = {
-  src: '',
-  selectedSize: 'inline',
-  width: '100%',
-  height: '400px',
-  constrainProportions: true,
-  name: '',
-  title: '',
-  longDescription: '',
-  descriptionUrl: '',
-  showBorder: true,
-  enableScrollbar: true
+/**
+ * Get or create state for an editor element
+ */
+const getEditorState = (editorElement: HTMLElement) => {
+  if (!editorStates.has(editorElement)) {
+    editorStates.set(editorElement, {
+      dialogElement: null,
+      activeTab: 'general',
+      formData: {
+        src: '',
+        selectedSize: 'inline',
+        width: '100%',
+        height: '400px',
+        constrainProportions: true,
+        name: '',
+        title: '',
+        longDescription: '',
+        descriptionUrl: '',
+        showBorder: true,
+        enableScrollbar: true
+      }
+    });
+  }
+  return editorStates.get(editorElement)!;
 };
 
 export const EmbedIframePlugin = (): Plugin => {
@@ -65,8 +93,8 @@ export const EmbedIframePlugin = (): Plugin => {
     ],
 
     commands: {
-      openEmbedIframeDialog: () => {
-        createEmbedDialog();
+      openEmbedIframeDialog: (editorElement?: HTMLElement) => {
+        createEmbedDialog(editorElement);
         return true;
       }
     },
@@ -77,9 +105,29 @@ export const EmbedIframePlugin = (): Plugin => {
   };
 };
 
-function createEmbedDialog(): void {
+function createEmbedDialog(editorElement?: HTMLElement): void {
+  // If no editor element provided, find the currently focused one
+  if (!editorElement) {
+    const focusedElement = document.activeElement;
+    if (focusedElement && focusedElement.closest('[data-editora-editor]')) {
+      editorElement = focusedElement.closest('[data-editora-editor]') as HTMLElement;
+    }
+  }
+
+  // Fallback to any editor if none found
+  if (!editorElement) {
+    editorElement = document.querySelector('[data-editora-editor]') as HTMLElement;
+  }
+
+  if (!editorElement) {
+    console.warn('Editor element not found');
+    return;
+  }
+
+  const state = getEditorState(editorElement);
+
   // Reset form data
-  formData = {
+  state.formData = {
     src: '',
     selectedSize: 'inline',
     width: '100%',
@@ -93,7 +141,7 @@ function createEmbedDialog(): void {
     enableScrollbar: true
   };
   
-  activeTab = 'general';
+  state.activeTab = 'general';
 
   // Create dialog overlay
   const overlay = document.createElement('div');
@@ -183,10 +231,10 @@ function createEmbedDialog(): void {
 
   overlay.appendChild(dialog);
   document.body.appendChild(overlay);
-  dialogElement = overlay;
+  state.dialogElement = overlay;
 
   // Add event listeners
-  setupDialogEventListeners(dialog);
+  setupDialogEventListeners(dialog, editorElement);
   
   // Inject styles
   injectEmbedDialogStyles();
@@ -197,41 +245,44 @@ function createEmbedDialog(): void {
   }, 100);
 }
 
-function setupDialogEventListeners(dialog: HTMLElement): void {
+function setupDialogEventListeners(dialog: HTMLElement, editorElement: HTMLElement): void {
+  const state = getEditorState(editorElement);
+
   // Close button
-  dialog.querySelector('.rte-dialog-close')?.addEventListener('click', closeDialog);
+  dialog.querySelector('.rte-dialog-close')?.addEventListener('click', () => closeDialog(editorElement));
 
   // Tab switching
   dialog.querySelectorAll('.rte-tab-button').forEach((btn) => {
     btn.addEventListener('click', (e) => {
       const tab = (e.target as HTMLElement).getAttribute('data-tab') as 'general' | 'advanced';
-      if (tab) switchTab(dialog, tab);
+      if (tab) switchTab(dialog, tab, editorElement);
     });
   });
 
   // Size dropdown
   const sizeSelect = dialog.querySelector('#iframe-size') as HTMLSelectElement;
-  sizeSelect?.addEventListener('change', (e) => handleSizeChange(dialog, (e.target as HTMLSelectElement).value));
+  sizeSelect?.addEventListener('change', (e) => handleSizeChange(dialog, (e.target as HTMLSelectElement).value, editorElement));
 
   // Width/Height with proportions
   const widthInput = dialog.querySelector('#iframe-width') as HTMLInputElement;
   const heightInput = dialog.querySelector('#iframe-height') as HTMLInputElement;
   
-  widthInput?.addEventListener('input', (e) => handleWidthChange(dialog, (e.target as HTMLInputElement).value));
-  heightInput?.addEventListener('input', (e) => handleHeightChange(dialog, (e.target as HTMLInputElement).value));
+  widthInput?.addEventListener('input', (e) => handleWidthChange(dialog, (e.target as HTMLInputElement).value, editorElement));
+  heightInput?.addEventListener('input', (e) => handleHeightChange(dialog, (e.target as HTMLInputElement).value, editorElement));
 
   // Constrain proportions button
-  dialog.querySelector('#constrain-btn')?.addEventListener('click', () => toggleConstrainProportions(dialog));
+  dialog.querySelector('#constrain-btn')?.addEventListener('click', () => toggleConstrainProportions(dialog, editorElement));
 
   // Cancel button
-  dialog.querySelector('#cancel-btn')?.addEventListener('click', closeDialog);
+  dialog.querySelector('#cancel-btn')?.addEventListener('click', () => closeDialog(editorElement));
 
   // Save button
-  dialog.querySelector('#save-btn')?.addEventListener('click', () => handleSave(dialog));
+  dialog.querySelector('#save-btn')?.addEventListener('click', () => handleSave(dialog, editorElement));
 }
 
-function switchTab(dialog: HTMLElement, tab: 'general' | 'advanced'): void {
-  activeTab = tab;
+function switchTab(dialog: HTMLElement, tab: 'general' | 'advanced', editorElement: HTMLElement): void {
+  const state = getEditorState(editorElement);
+  state.activeTab = tab;
 
   // Update button states
   dialog.querySelectorAll('.rte-tab-button').forEach((btn) => {
@@ -244,8 +295,9 @@ function switchTab(dialog: HTMLElement, tab: 'general' | 'advanced'): void {
   });
 }
 
-function handleSizeChange(dialog: HTMLElement, sizeValue: string): void {
-  formData.selectedSize = sizeValue;
+function handleSizeChange(dialog: HTMLElement, sizeValue: string, editorElement: HTMLElement): void {
+  const state = getEditorState(editorElement);
+  state.formData.selectedSize = sizeValue;
 
   const dimensionsRow = dialog.querySelector('#dimensions-row') as HTMLElement;
   const widthInput = dialog.querySelector('#iframe-width') as HTMLInputElement;
@@ -255,55 +307,60 @@ function handleSizeChange(dialog: HTMLElement, sizeValue: string): void {
     dimensionsRow.style.display = 'flex';
     widthInput.value = '100%';
     heightInput.value = '400px';
-    formData.width = '100%';
-    formData.height = '400px';
+    state.formData.width = '100%';
+    state.formData.height = '400px';
   } else {
     dimensionsRow.style.display = 'none';
-    formData.width = '100%';
-    formData.height = 'auto';
+    state.formData.width = '100%';
+    state.formData.height = 'auto';
   }
 }
 
-function handleWidthChange(dialog: HTMLElement, newWidth: string): void {
-  formData.width = newWidth;
+function handleWidthChange(dialog: HTMLElement, newWidth: string, editorElement: HTMLElement): void {
+  const state = getEditorState(editorElement);
+  state.formData.width = newWidth;
 
-  if (formData.constrainProportions && formData.selectedSize === 'inline') {
+  if (state.formData.constrainProportions && state.formData.selectedSize === 'inline') {
     const widthValue = parseFloat(newWidth);
     if (!isNaN(widthValue)) {
       const heightValue = (widthValue * 9) / 16; // 16:9 aspect ratio
-      formData.height = `${heightValue}px`;
+      state.formData.height = `${heightValue}px`;
       const heightInput = dialog.querySelector('#iframe-height') as HTMLInputElement;
-      if (heightInput) heightInput.value = formData.height;
+      if (heightInput) heightInput.value = state.formData.height;
     }
   }
 }
 
-function handleHeightChange(dialog: HTMLElement, newHeight: string): void {
-  formData.height = newHeight;
+function handleHeightChange(dialog: HTMLElement, newHeight: string, editorElement: HTMLElement): void {
+  const state = getEditorState(editorElement);
+  state.formData.height = newHeight;
 
-  if (formData.constrainProportions && formData.selectedSize === 'inline') {
+  if (state.formData.constrainProportions && state.formData.selectedSize === 'inline') {
     const heightValue = parseFloat(newHeight);
     if (!isNaN(heightValue)) {
       const widthValue = (heightValue * 16) / 9; // 16:9 aspect ratio
-      formData.width = `${widthValue}px`;
+      state.formData.width = `${widthValue}px`;
       const widthInput = dialog.querySelector('#iframe-width') as HTMLInputElement;
-      if (widthInput) widthInput.value = formData.width;
+      if (widthInput) widthInput.value = state.formData.width;
     }
   }
 }
 
-function toggleConstrainProportions(dialog: HTMLElement): void {
-  formData.constrainProportions = !formData.constrainProportions;
+function toggleConstrainProportions(dialog: HTMLElement, editorElement: HTMLElement): void {
+  const state = getEditorState(editorElement);
+  state.formData.constrainProportions = !state.formData.constrainProportions;
   const btn = dialog.querySelector('#constrain-btn') as HTMLButtonElement;
   
   if (btn) {
-    btn.textContent = formData.constrainProportions ? '🔒' : '🔓';
-    btn.className = `rte-constrain-btn ${formData.constrainProportions ? 'locked' : 'unlocked'}`;
-    btn.title = formData.constrainProportions ? 'Unlock proportions' : 'Lock proportions';
+    btn.textContent = state.formData.constrainProportions ? '🔒' : '🔓';
+    btn.className = `rte-constrain-btn ${state.formData.constrainProportions ? 'locked' : 'unlocked'}`;
+    btn.title = state.formData.constrainProportions ? 'Unlock proportions' : 'Lock proportions';
   }
 }
 
-function handleSave(dialog: HTMLElement): void {
+function handleSave(dialog: HTMLElement, editorElement: HTMLElement): void {
+  const state = getEditorState(editorElement);
+  
   // Get values from form
   const src = (dialog.querySelector('#iframe-src') as HTMLInputElement)?.value.trim();
   
@@ -327,20 +384,20 @@ function handleSave(dialog: HTMLElement): void {
   const enableScrollbar = (dialog.querySelector('#iframe-scrollbar') as HTMLInputElement)?.checked ?? true;
 
   // Get final dimensions
-  let finalWidth = formData.width;
-  let finalHeight = formData.height;
+  let finalWidth = state.formData.width;
+  let finalHeight = state.formData.height;
   
-  if (formData.selectedSize !== 'inline') {
+  if (state.formData.selectedSize !== 'inline') {
     finalWidth = '100%';
     finalHeight = 'auto';
   }
 
   // Insert iframe
-  insertIframe({
+  insertIframe(editorElement, {
     src,
     width: finalWidth,
     height: finalHeight,
-    aspectRatio: formData.selectedSize,
+    aspectRatio: state.formData.selectedSize,
     name: name || undefined,
     title: title || undefined,
     longDescription: longDescription || undefined,
@@ -349,10 +406,10 @@ function handleSave(dialog: HTMLElement): void {
     enableScrollbar
   });
 
-  closeDialog();
+  closeDialog(editorElement);
 }
 
-function insertIframe(data: {
+function insertIframe(editorElement: HTMLElement, data: {
   src: string;
   width: string;
   height: string;
@@ -364,7 +421,7 @@ function insertIframe(data: {
   showBorder: boolean;
   enableScrollbar: boolean;
 }): void {
-  const contentEl = document.querySelector('[contenteditable="true"]') as HTMLElement;
+  const contentEl = editorElement.querySelector('[contenteditable="true"]') as HTMLElement;
   if (!contentEl) return;
 
   contentEl.focus();
@@ -414,10 +471,11 @@ function insertIframe(data: {
   }, 10);
 }
 
-function closeDialog(): void {
-  if (dialogElement) {
-    document.body.removeChild(dialogElement);
-    dialogElement = null;
+function closeDialog(editorElement: HTMLElement): void {
+  const state = getEditorState(editorElement);
+  if (state.dialogElement) {
+    document.body.removeChild(state.dialogElement);
+    state.dialogElement = null;
   }
 }
 

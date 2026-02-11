@@ -50,17 +50,13 @@ declare global {
 // ============================================
 
 export const insertTableCommand = () => {
-  console.log('[TablePlugin] insertTableCommand called');
   
   // Find editor container from current selection instead of activeElement
   const editorContainer = findEditorContainerFromSelection();
-  console.log('[TablePlugin] editorContainer found:', !!editorContainer, editorContainer);
   
   const contentEl = getContentElement(editorContainer);
-  console.log('[TablePlugin] contentEl found:', !!contentEl, contentEl);
   
   if (!contentEl) {
-    console.warn('[TablePlugin] Content element not found, cannot insert table');
     alert('Please place your cursor in the editor before inserting a table');
     return false;
   }

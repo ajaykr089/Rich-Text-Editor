@@ -80,8 +80,6 @@ export const ChecklistPlugin = (): Plugin => {
         
         // Set up the click handler
         document.addEventListener("click", handleChecklistClick);
-        
-        console.log('[ChecklistPlugin] Click handler initialized');
       }
     },
     

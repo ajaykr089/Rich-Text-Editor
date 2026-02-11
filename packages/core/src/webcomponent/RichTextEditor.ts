@@ -11,9 +11,25 @@ import { ConfigResolver, EditorConfigDefaults } from '../config/ConfigResolver';
 import { PluginLoader } from '../config/PluginLoader';
 import { Plugin } from '../plugins/Plugin';
 
+// Import styles
+import styles from './styles.css?inline';
+
 // Global plugin registry for the web component
 // Will be set by standalone.ts before custom element definition
 let globalPluginRegistry: PluginLoader;
+
+/**
+ * Inject styles into document head if not already present
+ */
+function injectStyles(): void {
+  const styleId = 'editora-webcomponent-styles';
+  if (!document.getElementById(styleId)) {
+    const styleElement = document.createElement('style');
+    styleElement.id = styleId;
+    styleElement.textContent = styles;
+    document.head.appendChild(styleElement);
+  }
+}
 
 /**
  * Get or create the global plugin registry
@@ -78,13 +94,30 @@ export class RichTextEditorElement extends HTMLElement {
   constructor() {
     super();
     this.pluginLoader = getGlobalRegistry();
+    
+    // Inject styles into document head
+    injectStyles();
+
+    // Capture initial content before any processing
+    if (!this.hasAttribute('data-initial-content')) {
+      const content = this.innerHTML.trim();
+      if (content) {
+        this.setAttribute('data-initial-content', content);
+      }
+    }
   }
 
   /**
    * Called when element is added to DOM
    */
   connectedCallback(): void {
-    this.initialize();
+    // Resolve configuration
+    this.config = this.resolveConfig();
+    
+    // Defer initialization to ensure DOM is fully ready
+    setTimeout(() => {
+      this.initialize();
+    }, 0);
   }
 
   /**
@@ -123,14 +156,18 @@ export class RichTextEditorElement extends HTMLElement {
    * Initialize the editor
    */
   private initialize(): void {
+    // Prevent re-initialization if already has toolbar
+    if (this.querySelector('.editora-toolbar')) {
+      return;
+    }
+    
     // Prevent re-initialization
     if (this.isInitialized) return;
     
     // Mark this element as an editor container for multi-instance support
     this.setAttribute('data-editora-editor', 'true');
     
-    // Resolve configuration
-    this.config = this.resolveConfig();
+    // Config is already resolved in connectedCallback
     
     // Apply dimensions
     if (this.config.height) {
@@ -166,15 +203,18 @@ export class RichTextEditorElement extends HTMLElement {
       }
     });
     
+    // Get initial content before clearing innerHTML
+    const initialContent = this.getAttribute('data-initial-content') || '';
+    
     // Create editor engine
     this.engine = new EditorEngine({
-      content: this.getInitialContent(),
+      content: initialContent,
       plugins,
       readonly: this.config.readonly,
     });
     
     // Create UI elements
-    this.createUI(plugins);
+    this.createUI(plugins, initialContent);
     
     // Setup event listeners
     this.setupEventListeners();
@@ -193,15 +233,28 @@ export class RichTextEditorElement extends HTMLElement {
    * Get initial content from slot or attribute
    */
   private getInitialContent(): string {
-    // Check for content in slot
-    const slotContent = this.innerHTML.trim();
-    if (slotContent) {
-      return slotContent;
-    }
-    
-    // Check for content attribute
+    // Check for content attribute first
     if (this.config.content) {
       return this.config.content;
+    }
+    
+    // Check for slot
+    const slot = this.querySelector('[slot]');
+    if (slot) {
+      return slot.innerHTML;
+    }
+    
+    // Check for direct child content
+    if (this.hasChildNodes()) {
+      const content = Array.from(this.childNodes).map(n => {
+        if (n.nodeType === Node.TEXT_NODE) {
+          return n.textContent;
+        } else if (n.nodeType === Node.ELEMENT_NODE) {
+          return (n as Element).outerHTML;
+        }
+        return '';
+      }).join('');
+      return content.trim();
     }
     
     return '';
@@ -247,11 +300,10 @@ export class RichTextEditorElement extends HTMLElement {
   /**
    * Create UI elements
    */
-  private createUI(plugins: Plugin[]): void {
+  private createUI(plugins: Plugin[], initialContent: string): void {
     // Preserve slot elements and initial content before clearing
     const toolbarSlot = this.querySelector('[slot="toolbar"]');
     const statusBarSlot = this.querySelector('[slot="statusbar"]');
-    const initialContent = this.getInitialContent();
     
     // Clear existing content
     this.innerHTML = '';
@@ -314,8 +366,14 @@ export class RichTextEditorElement extends HTMLElement {
           if (typeof commandFn === 'function') {
             // Call native command directly
             try {
-              const result = commandFn(value);
-              return result;
+              // Pass editor element for fullscreen command
+              if (command === 'toggleFullscreen') {
+                const result = commandFn(this);
+                return result;
+              } else {
+                const result = commandFn(value);
+                return result;
+              }
             } catch (error) {
               console.error(`[RichTextEditor] Error executing native command ${command}:`, error);
               return false;
@@ -372,8 +430,13 @@ export class RichTextEditorElement extends HTMLElement {
         this.contentElement.innerHTML = initialContent;
       }
     } else {
-      // Initialize with an empty paragraph for proper structure
-      this.contentElement.innerHTML = '<p><br></p>';
+      // Initialize with an empty paragraph for proper structure, unless we have a placeholder
+      if (this.config.placeholder) {
+        // Leave empty so placeholder shows
+        this.contentElement.innerHTML = '';
+      } else {
+        this.contentElement.innerHTML = '<p><br></p>';
+      }
     }
     
     this.appendChild(this.contentElement);

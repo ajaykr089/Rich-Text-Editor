@@ -148,10 +148,31 @@ if (typeof window !== 'undefined') {
   // Attach plugins to the element class
   (RichTextEditorElement as any).__globalPlugins = plugins;
   
+  // Capture initial content for existing elements before upgrading
+  const existingElements = document.querySelectorAll('rich-text-editor:not([data-initial-content])');
+  const contents: string[] = [];
+  existingElements.forEach((el) => {
+    const content = el.innerHTML.trim();
+    contents.push(content);
+    if (content) {
+      el.setAttribute('data-initial-content', content);
+    }
+  });
+  
   // Register custom element
   if (!customElements.get('rich-text-editor')) {
     customElements.define('rich-text-editor', RichTextEditorElement);
   }
+  
+  // After define, set content on new elements if they were replaced
+  const allElements = document.querySelectorAll('rich-text-editor');
+  const newElements = Array.from(allElements).filter(el => !el.hasAttribute('data-initial-content'));
+  newElements.forEach(el => {
+    const index = Array.from(allElements).indexOf(el);
+    if (contents[index]) {
+      el.setAttribute('data-initial-content', contents[index]);
+    }
+  });
   
   // Expose global API (TinyMCE-style)
   (window as any).Editora = {
