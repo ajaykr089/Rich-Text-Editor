@@ -98,10 +98,10 @@ Everything is a plugin - from basic formatting to advanced features. This ensure
 ```typescript
 import { EditoraEditor } from '@editora/react';
 import {
-  createBoldPlugin,
-  createItalicPlugin,
-  createHeadingPlugin,
-  createHistoryPlugin
+  BoldPlugin,
+  ItalicPlugin,
+  HeadingPlugin,
+  HistoryPlugin
 } from '@editora/plugins';
 
 function MyEditor() {
@@ -112,10 +112,10 @@ function MyEditor() {
       value={content}
       onChange={setContent}
       plugins={[
-        createBoldPlugin(),
-        createItalicPlugin(),
-        createHeadingPlugin(),
-        createHistoryPlugin()
+        BoldPlugin(),
+        ItalicPlugin(),
+        HeadingPlugin(),
+        HistoryPlugin()
       ]}
     />
   );
@@ -126,22 +126,22 @@ function MyEditor() {
 
 ```typescript
 import { EditoraEditor } from '@editora/react';
-import { createImagePlugin, createTablePlugin } from '@editora/plugins';
+import { MediaManagerPlugin, TablePlugin } from '@editora/plugins';
 import { createPerformanceMonitor } from '@editora/performance';
 
-const imagePlugin = createImagePlugin({
+const mediaPlugin = MediaManagerPlugin({
   uploadUrl: '/api/upload',
   maxSize: 5 * 1024 * 1024, // 5MB
   allowedTypes: ['image/jpeg', 'image/png']
 });
 
-const tablePlugin = createTablePlugin();
+const tablePlugin = TablePlugin();
 const monitor = createPerformanceMonitor();
 
 function AdvancedEditor() {
   return (
     <EditoraEditor
-      plugins={[imagePlugin, tablePlugin]}
+      plugins={[mediaPlugin, tablePlugin]}
       onInit={(editor) => {
         // Performance monitoring
         monitor.startOperation('editor-init');
@@ -151,6 +151,59 @@ function AdvancedEditor() {
   );
 }
 ```
+
+### Web Component Usage
+
+Editora provides a framework-agnostic web component that works with any JavaScript framework or vanilla HTML.
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Editora Web Component</title>
+  <script src="https://cdn.jsdelivr.net/npm/@editora/core/dist/webcomponent.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@editora/themes/dist/default.css">
+</head>
+<body>
+  <editora-editor
+    plugins="bold italic underline history"
+    toolbar-items="bold italic underline | undo redo"
+    height="300"
+  >
+    <p>Start editing your content here...</p>
+  </editora-editor>
+
+  <script>
+    // Access the editor programmatically
+    const editor = document.querySelector('editora-editor');
+    
+    // Get content
+    const content = editor.innerHTML;
+    
+    // Set content
+    editor.innerHTML = '<p>New content</p>';
+    
+    // Get API for advanced operations
+    const api = editor.getAPI();
+    if (api) {
+      console.log('Editor content:', api.getContent());
+    }
+  </script>
+</body>
+</html>
+```
+
+#### Web Component Attributes
+
+- `plugins`: Space-separated list of plugin names (e.g., "bold italic underline history")
+- `toolbar-items`: Space-separated toolbar configuration with `|` for groups
+- `height`: Editor height in pixels
+- `placeholder`: Placeholder text when editor is empty
+
+#### Available Plugins
+
+All 37+ native plugins are available: `bold`, `italic`, `underline`, `strikethrough`, `link`, `table`, `list`, `history`, `heading`, `blockquote`, `code`, `textColor`, `backgroundColor`, `fontSize`, `fontFamily`, `textAlignment`, `indent`, `mediaManager`, `anchor`, `embedIframe`, `math`, `specialCharacters`, `emojis`, `a11yChecker`, `comments`, `fullscreen`, and more.
 
 ### Theming
 
@@ -378,7 +431,7 @@ Inspired by modern editor architecture and best practices.
 
 ## 📞 Support
 
-- **Documentation**: [docs.rte-editor.com](https://docs.rte-editor.com)
+- **Documentation**: [docs.rte-editor.com](https://editora-free.netlify.app/)
 - **Issues**: [GitHub Issues](https://github.com/your-org/rich-text-editor/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/your-org/rich-text-editor/discussions)
 
