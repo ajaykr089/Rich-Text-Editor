@@ -74,7 +74,6 @@ function FullEditor() {
     createItalicPlugin(),
     createUnderlinePlugin(),
     createHeadingPlugin(),
-    createParagraphPlugin(),
     createListPlugin(),
     createLinkPlugin({
       onLinkClick: (url) => window.open(url, '_blank')

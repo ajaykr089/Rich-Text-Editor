@@ -1,4 +1,4 @@
-// Native plugins (28 total - no React dependencies)
+// Native plugins (27 total - no React dependencies)
 // ParagraphPlugin removed - paragraph option now in HeadingPlugin dropdown
 export { HeadingPlugin } from '../heading/src/index';
 export { BoldPlugin } from '../bold/src/index';

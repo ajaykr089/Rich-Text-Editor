@@ -45,7 +45,6 @@ type Story = StoryObj<typeof RichTextEditor>;
 
 // Common plugins for all media manager stories
 const commonPlugins = [
-  ParagraphPlugin(),
   HeadingPlugin(),
   BoldPlugin(),
   ItalicPlugin(),
@@ -398,7 +397,6 @@ import '@editora/themes/themes/default.css';
 
 export function MyEditor() {
   const plugins = [
-    ParagraphPlugin(),
     BoldPlugin(),
     ItalicPlugin(),
     MediaManagerPlugin(),

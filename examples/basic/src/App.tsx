@@ -6,7 +6,6 @@ import {
   createUnderlinePlugin,
   createStrikethroughPlugin,
   createHeadingPlugin,
-  createParagraphPlugin,
   createListPlugin,
   createLinkPlugin,
   createHistoryPlugin
@@ -24,7 +23,6 @@ function App() {
     createUnderlinePlugin(),
     createStrikethroughPlugin(),
     createHeadingPlugin(),
-    createParagraphPlugin(),
     createListPlugin(),
     createLinkPlugin(),
     createHistoryPlugin()
