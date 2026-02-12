@@ -16,6 +16,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Example projects
 - CI/CD workflows
 
+## [1.0.1] - 2026-02-12
+
+### Fixed
+- Corrected plugin import examples in README.md (changed `createBoldPlugin` to `BoldPlugin`)
+- Updated web component usage documentation with proper examples
+- Fixed package versions in example projects to match 1.0.1
+
+### Documentation
+- Added comprehensive web component usage section to main README
+- Updated examples README to reflect actual project structure
+- Updated version references in documentation website from 1.0.0 to 1.0.1
+
 ## [1.0.0] - 2026-02-02
 
 ### Added

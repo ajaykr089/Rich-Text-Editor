@@ -15,11 +15,11 @@ npm install @editora/react @editora/core @editora/plugins @editora/themes
 ```tsx
 import { EditoraEditor } from '@editora/react';
 import {
-  createBoldPlugin,
-  createItalicPlugin,
-  createHeadingPlugin,
-  createListPlugin,
-  createHistoryPlugin
+  BoldPlugin,
+  ItalicPlugin,
+  HeadingPlugin,
+  ListPlugin,
+  HistoryPlugin
 } from '@editora/plugins';
 import '@editora/themes/styles';
 ```
@@ -33,11 +33,11 @@ function MyEditor() {
   const [content, setContent] = useState('<p>Start writing...</p>');
 
   const plugins = [
-    createBoldPlugin(),
-    createItalicPlugin(),
-    createHeadingPlugin(),
-    createListPlugin(),
-    createHistoryPlugin()
+    BoldPlugin(),
+    ItalicPlugin(),
+    HeadingPlugin(),
+    ListPlugin(),
+    HistoryPlugin()
   ];
 
   return (

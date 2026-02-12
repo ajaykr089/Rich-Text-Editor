@@ -238,41 +238,31 @@ if (!validation.valid) {
 ```typescript
 import { Plugin } from '@editora/core';
 
-class MyCustomPlugin extends Plugin {
-  constructor() {
-    super({
-      name: 'my-plugin',
-      schema: {
-        marks: {
-          highlight: {
-            attrs: { color: { default: 'yellow' } },
-            parseDOM: [{ tag: 'mark' }],
-            toDOM: (mark) => ['mark', { style: `background: ${mark.attrs.color}` }, 0]
-          }
-        }
-      },
-      commands: {
-        toggleHighlight: (color?: string) => ({
-          run: (state, dispatch) => {
-            // Implementation
-            return true;
-          }
-        })
-      },
-      toolbar: {
-        items: [{
-          id: 'highlight',
-          icon: '🖍️',
-          label: 'Highlight',
-          command: 'toggleHighlight'
-        }]
-      },
-      keybindings: {
-        'Mod-Shift-H': 'toggleHighlight'
-      }
-    });
+const myCustomPlugin: Plugin = {
+  name: 'my-plugin',
+  nodes: {
+    highlight: {
+      attrs: { color: { default: 'yellow' } },
+      parseDOM: [{ tag: 'mark' }],
+      toDOM: (mark) => ['mark', { style: `background: ${mark.attrs.color}` }, 0]
+    }
+  },
+  commands: {
+    toggleHighlight: (state, dispatch) => {
+      // Implementation
+      return true;
+    }
+  },
+  toolbar: [{
+    id: 'highlight',
+    icon: '🖍️',
+    label: 'Highlight',
+    command: 'toggleHighlight'
+  }],
+  keybindings: {
+    'Mod-Shift-H': 'toggleHighlight'
   }
-}
+};
 ```
 
 ## 🎨 Customization

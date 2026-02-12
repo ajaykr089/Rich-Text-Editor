@@ -27,7 +27,7 @@ The React package provides ready-to-use React components for building rich text 
 
 ```tsx
 import { EditoraEditor } from '@editora/react';
-import { createBoldPlugin, createItalicPlugin } from '@editora/plugins';
+import { BoldPlugin, ItalicPlugin } from '@editora/plugins';
 import '@editora/themes/styles';
 
 function App() {
@@ -38,8 +38,8 @@ function App() {
       value={content}
       onChange={setContent}
       plugins={[
-        createBoldPlugin(),
-        createItalicPlugin()
+        BoldPlugin(),
+        ItalicPlugin()
       ]}
       placeholder="Type something..."
     />
@@ -52,17 +52,17 @@ function App() {
 ```tsx
 import { EditoraEditor } from '@editora/react';
 import {
-  createBoldPlugin,
-  createItalicPlugin,
-  createUnderlinePlugin,
-  createHeadingPlugin,
-  createParagraphPlugin,
-  createListPlugin,
-  createLinkPlugin,
-  createImagePlugin,
-  createTablePlugin,
-  createCodeSamplePlugin,
-  createHistoryPlugin
+  BoldPlugin,
+  ItalicPlugin,
+  UnderlinePlugin,
+  HeadingPlugin,
+  ParagraphPlugin,
+  ListPlugin,
+  LinkPlugin,
+  ImagePlugin,
+  TablePlugin,
+  CodeSamplePlugin,
+  HistoryPlugin
 } from '@editora/plugins';
 import '@editora/themes/styles';
 
@@ -70,12 +70,12 @@ function FullEditor() {
   const [content, setContent] = useState('');
 
   const plugins = [
-    createBoldPlugin(),
-    createItalicPlugin(),
-    createUnderlinePlugin(),
-    createHeadingPlugin(),
-    createListPlugin(),
-    createLinkPlugin({
+    BoldPlugin(),
+    ItalicPlugin(),
+    UnderlinePlugin(),
+    HeadingPlugin(),
+    ListPlugin(),
+    LinkPlugin({
       onLinkClick: (url) => window.open(url, '_blank')
     }),
     createImagePlugin({
@@ -300,9 +300,9 @@ import '@editora/themes/styles';
 ### Bold Plugin
 
 ```tsx
-import { createBoldPlugin } from '@editora/plugins';
+import { BoldPlugin } from '@editora/plugins';
 
-const boldPlugin = createBoldPlugin({
+const boldPlugin = BoldPlugin({
   keyboard: 'Mod-b',
   icon: <BoldIcon />
 });
