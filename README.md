@@ -96,7 +96,7 @@ Everything is a plugin - from basic formatting to advanced features. This ensure
 ### Basic Setup
 
 ```typescript
-import { RichTextEditor } from '@editora/react';
+import { EditoraEditor } from '@editora/react';
 import {
   createBoldPlugin,
   createItalicPlugin,
@@ -108,7 +108,7 @@ function MyEditor() {
   const [content, setContent] = useState('<p>Start writing...</p>');
 
   return (
-    <RichTextEditor
+    <EditoraEditor
       value={content}
       onChange={setContent}
       plugins={[
@@ -125,7 +125,7 @@ function MyEditor() {
 ### Advanced Configuration
 
 ```typescript
-import { RichTextEditor } from '@editora/react';
+import { EditoraEditor } from '@editora/react';
 import { createImagePlugin, createTablePlugin } from '@editora/plugins';
 import { createPerformanceMonitor } from '@editora/performance';
 
@@ -140,7 +140,7 @@ const monitor = createPerformanceMonitor();
 
 function AdvancedEditor() {
   return (
-    <RichTextEditor
+    <EditoraEditor
       plugins={[imagePlugin, tablePlugin]}
       onInit={(editor) => {
         // Performance monitoring
@@ -321,7 +321,7 @@ npm run test:coverage
 - **`Transaction`**: Atomic state changes
 
 ### React Components
-- **`RichTextEditor`**: Main editor component
+- **`EditoraEditor`**: Main editor component
 - **`Toolbar`**: Configurable button groups
 - **`EditorContent`**: ContentEditable area
 

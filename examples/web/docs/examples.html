@@ -80,7 +80,7 @@
 
                     <h2>React Example</h2>
                     <pre><code class="language-jsx">import React, { useState } from 'react';
-import RichTextEditor from '@editora/react';
+import EditoraEditor from '@editora/react';
 
 export default function Editor() {
   const [content, setContent] = useState('&lt;p&gt;Start typing...&lt;/p&gt;');
@@ -93,7 +93,7 @@ export default function Editor() {
   return (
     &lt;div&gt;
       &lt;h1&gt;My Editor&lt;/h1&gt;
-      &lt;RichTextEditor
+      &lt;EditoraEditor
         defaultContent={content}
         onChange={handleChange}
       /&gt;

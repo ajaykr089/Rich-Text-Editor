@@ -27,14 +27,14 @@ packages/core/src/
 │   ├── VanillaAdapter.ts
 │   └── index.ts
 └── webcomponent/      # Web Component
-    ├── RichTextEditor.ts
+    ├── EditoraEditor.ts
     ├── styles.css
     └── index.ts
 ```
 
 ### 2. Web Component Implementation ✅
 
-**File**: `packages/core/src/webcomponent/RichTextEditor.ts`
+**File**: `packages/core/src/webcomponent/EditoraEditor.ts`
 
 Features:
 - Custom element `<editora-editor>`
@@ -131,7 +131,7 @@ Features:
 
 Existing React usage continues to work:
 ```tsx
-<RichTextEditor plugins={[...]} /> // ✅ No changes needed
+<EditoraEditor plugins={[...]} /> // ✅ No changes needed
 ```
 
 ### 7. Adapters for Multiple Patterns ✅
@@ -364,7 +364,7 @@ Reactive attribute changes without reinitialization.
 - `packages/core/src/adapters/index.ts`
 
 ### Web Component Layer (3 files)
-- `packages/core/src/webcomponent/RichTextEditor.ts`
+- `packages/core/src/webcomponent/EditoraEditor.ts`
 - `packages/core/src/webcomponent/styles.css`
 - `packages/core/src/webcomponent/index.ts`
 
@@ -427,7 +427,7 @@ All existing usage patterns continue to work:
 
 ```tsx
 // Still works ✅
-<RichTextEditor plugins={[...]} />
+<EditoraEditor plugins={[...]} />
 ```
 
 ```javascript

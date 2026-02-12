@@ -24,7 +24,7 @@ Ensure 100% feature and styling parity between React and Web Component implement
 #### Identified Problems:
 1. ✅ **FIXED**: `BackgroundColorPlugin` - Auto-initialization race condition removed
 2. ✅ **FIXED**: `TablePlugin` - Now uses `findEditorContainerFromSelection()`
-3. ✅ **FIXED**: `RichTextEditor` - Added `data-editora-editor` attribute
+3. ✅ **FIXED**: `EditoraEditor` - Added `data-editora-editor` attribute
 4. ✅ **FIXED**: Content element has both `editora-content` and `rte-content` classes
 5. ✅ **FIXED**: Command handler ensures focus and selection before execution
 

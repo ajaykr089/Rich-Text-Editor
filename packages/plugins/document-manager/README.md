@@ -27,7 +27,7 @@ The Word export feature includes a **smart fallback mechanism** that ensures doc
 
 ```tsx
 import React from 'react';
-import { RichTextEditor } from '@editora/react';
+import { EditoraEditor } from '@editora/react';
 import {
   DocumentManagerPlugin,
   setDocumentManagerConfig,
@@ -68,7 +68,7 @@ const plugins = [
 
 function App() {
   return (
-    <RichTextEditor plugins={plugins} />
+    <EditoraEditor plugins={plugins} />
   );
 }
 ```
@@ -153,7 +153,7 @@ setDocumentManagerConfig({
 
 ```tsx
 import React from 'react';
-import { RichTextEditor } from '@editora/react';
+import { EditoraEditor } from '@editora/react';
 import {
   DocumentManagerPlugin,
   DocumentManagerProvider,
@@ -175,7 +175,7 @@ const plugins = [
 
 function App() {
   return (
-    <RichTextEditor plugins={plugins} />
+    <EditoraEditor plugins={plugins} />
   );
 }
 ```

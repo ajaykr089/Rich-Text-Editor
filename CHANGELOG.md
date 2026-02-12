@@ -29,7 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Multi-instance editor support
 
 #### React Package
-- `<RichTextEditor />` component
+- `<EditoraEditor />` component
 - `useEditor` hook for editor management
 - `useEditorState` hook for state tracking
 - `useEditorCommands` hook for commands
@@ -128,13 +128,13 @@ npm install @editora/react @editora/core @editora/plugins @editora/themes
 
 **Quick Start:**
 ```tsx
-import { RichTextEditor } from '@editora/react';
+import { EditoraEditor } from '@editora/react';
 import { createBoldPlugin, createItalicPlugin } from '@editora/plugins';
 import '@editora/themes/styles';
 
 function App() {
   return (
-    <RichTextEditor
+    <EditoraEditor
       plugins={[createBoldPlugin(), createItalicPlugin()]}
     />
   );

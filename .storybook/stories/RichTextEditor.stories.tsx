@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { useEffect, useRef, useState } from "react";
-import { RichTextEditor } from "@editora/react";
+import { EditoraEditor } from "@editora/react";
 import "@editora/themes/themes/default.css";
 
 // Import the Web Component build
@@ -130,7 +130,7 @@ const allNativePlugins = [
  */
 export const Basic: Story = {
   render: () => (
-    <RichTextEditor
+    <EditoraEditor
       plugins={allNativePlugins}
       defaultValue={`
         <h2>Welcome to Editora!</h2>
@@ -198,7 +198,7 @@ export const WebComponentAPI: Story = {
         </div>
 
         <div ref={editorRef}>
-          <RichTextEditor
+          <EditoraEditor
             plugins={allNativePlugins}
             defaultValue={`
               <h3>Web Component API Demo</h3>
@@ -241,7 +241,7 @@ export const AllPluginsShowcase: Story = {
         </div>
       </div>
 
-      <RichTextEditor
+      <EditoraEditor
         plugins={allNativePlugins}
         defaultValue={`
           <h1>🎨 All Plugin Features</h1>
@@ -311,7 +311,7 @@ export const CustomToolbar: Story = {
         <p style={{ margin: 0, fontSize: "14px" }}>Only essential formatting tools are shown in the toolbar.</p>
       </div>
 
-      <RichTextEditor
+      <EditoraEditor
         plugins={[
           BoldPlugin(),
           ItalicPlugin(),
@@ -351,7 +351,7 @@ export const ReadonlyMode: Story = {
           </button>
         </div>
 
-        <RichTextEditor
+        <EditoraEditor
           plugins={allNativePlugins}
           readonly={readonly}
           defaultValue={`
@@ -389,7 +389,7 @@ export const EventHandling: Story = {
 
     return (
       <div>
-        <RichTextEditor
+        <EditoraEditor
           plugins={allNativePlugins}
           onChange={handleChange}
           defaultValue={`
@@ -426,7 +426,7 @@ export const MathEquations: Story = {
         </p>
       </div>
 
-      <RichTextEditor
+      <EditoraEditor
         plugins={allNativePlugins}
         defaultValue={`
           <h2>Mathematical Equations</h2>
@@ -460,7 +460,7 @@ export const SpecialContent: Story = {
         </p>
       </div>
 
-      <RichTextEditor
+      <EditoraEditor
         plugins={allNativePlugins}
         defaultValue={`
           <h2>Special Characters & Emojis</h2>
@@ -499,7 +499,7 @@ export const Tables: Story = {
         </p>
       </div>
 
-      <RichTextEditor
+      <EditoraEditor
         plugins={allNativePlugins}
         defaultValue={`
           <h2>Tables</h2>
@@ -572,7 +572,7 @@ export const MultipleEditors: Story = {
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
           <div>
             <h4>Editor A</h4>
-            <RichTextEditor
+            <EditoraEditor
               plugins={allNativePlugins}
               onChange={setContentA}
               defaultValue="<h3>Editor A</h3><p>Type here...</p>"
@@ -580,7 +580,7 @@ export const MultipleEditors: Story = {
           </div>
           <div>
             <h4>Editor B</h4>
-            <RichTextEditor
+            <EditoraEditor
               plugins={allNativePlugins}
               value={contentB}
               onChange={setContentB}
@@ -625,7 +625,7 @@ export const ControlledEditor: Story = {
           </div>
         </div>
 
-        <RichTextEditor
+        <EditoraEditor
           plugins={allNativePlugins}
           value={value}
           onChange={setValue}
@@ -667,7 +667,7 @@ export const PerformanceLargeDocument: Story = {
           </p>
         </div>
 
-        <RichTextEditor
+        <EditoraEditor
           plugins={allNativePlugins}
           defaultValue={generateLargeContent()}
         />
@@ -692,7 +692,7 @@ export const FrameworkIndependence: Story = {
         <div style={{ marginTop: "15px", display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "10px", fontSize: "13px" }}>
           <div style={{ padding: "10px", background: "white", borderRadius: "4px" }}>
             <strong>React:</strong><br/>
-            <code style={{ fontSize: "11px" }}>&lt;RichTextEditor /&gt;</code>
+            <code style={{ fontSize: "11px" }}>&lt;EditoraEditor /&gt;</code>
           </div>
           <div style={{ padding: "10px", background: "white", borderRadius: "4px" }}>
             <strong>Vanilla JS:</strong><br/>
@@ -709,7 +709,7 @@ export const FrameworkIndependence: Story = {
         </div>
       </div>
 
-      <RichTextEditor
+      <EditoraEditor
         plugins={allNativePlugins}
         defaultValue={`
           <h2>🚀 Universal Editor</h2>

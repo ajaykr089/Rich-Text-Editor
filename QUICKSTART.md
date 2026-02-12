@@ -13,7 +13,7 @@ npm install @editora/react @editora/core @editora/plugins @editora/themes
 ### 1. Import Packages
 
 ```tsx
-import { RichTextEditor } from '@editora/react';
+import { EditoraEditor } from '@editora/react';
 import {
   createBoldPlugin,
   createItalicPlugin,
@@ -41,7 +41,7 @@ function MyEditor() {
   ];
 
   return (
-    <RichTextEditor
+    <EditoraEditor
       value={content}
       onChange={setContent}
       plugins={plugins}
@@ -114,7 +114,7 @@ function BlogPostForm() {
         onChange={(e) => setTitle(e.target.value)}
         placeholder="Post title"
       />
-      <RichTextEditor
+      <EditoraEditor
         value={content}
         onChange={setContent}
         plugins={plugins}

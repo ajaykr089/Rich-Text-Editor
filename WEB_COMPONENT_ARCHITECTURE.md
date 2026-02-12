@@ -134,7 +134,7 @@ const editor = new VanillaAdapter({
 
 Custom element implementation for HTML usage.
 
-#### RichTextEditorElement
+#### LegacyRichTextEditorElement
 - Extends HTMLElement
 - Observed attributes for reactivity
 - Slot support for customization
@@ -375,15 +375,15 @@ const editor = createEditor({
 ### Pattern 3: React (Backward Compatible)
 
 ```tsx
-import { RichTextEditor } from '@editora/react';
+import { EditoraEditor } from '@editora/react';
 
-<RichTextEditor plugins={[...]} />
+<EditoraEditor plugins={[...]} />
 ```
 
 ### Pattern 4: React (Web Component)
 
 ```tsx
-import { RichTextEditorElement } from '@editora/core/webcomponent';
+import { LegacyRichTextEditorElement } from '@editora/core/webcomponent';
 
 <editora-editor ref={editorRef} />
 ```

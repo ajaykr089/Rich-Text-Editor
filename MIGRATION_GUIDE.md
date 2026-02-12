@@ -23,11 +23,11 @@ The editor has been refactored into clear layers:
 Your existing React code continues to work without modifications:
 
 ```tsx
-import { RichTextEditor } from '@editora/react';
+import { EditoraEditor } from '@editora/react';
 
 function MyEditor() {
   return (
-    <RichTextEditor
+    <EditoraEditor
       plugins={[...]}
       toolbar="undo redo | bold italic"
       onChange={(html) => console.log(html)}
@@ -130,10 +130,10 @@ editor.destroy();
 
 ```tsx
 import React, { useRef, useEffect } from 'react';
-import { RichTextEditorElement } from '@editora/core/webcomponent';
+import { LegacyRichTextEditorElement } from '@editora/core/webcomponent';
 
 function EditorComponent() {
-  const editorRef = useRef<RichTextEditorElement>(null);
+  const editorRef = useRef<LegacyRichTextEditorElement>(null);
 
   useEffect(() => {
     const editor = editorRef.current;
@@ -297,7 +297,7 @@ editor.addEventListener('editor-destroy', () => {
 ### React Events (Old API)
 
 ```tsx
-<RichTextEditor
+<EditoraEditor
   onInit={(api) => console.log('Ready', api)}
   onChange={(html) => console.log('Changed', html)}
   onDestroy={() => console.log('Destroyed')}
@@ -402,7 +402,7 @@ dist/
 import { Editor, createEditor } from '@editora/core';
 
 // Web component
-import { RichTextEditorElement } from '@editora/core/webcomponent';
+import { LegacyRichTextEditorElement } from '@editora/core/webcomponent';
 
 // Adapters
 import { ReactAdapter, VanillaAdapter } from '@editora/core/adapters';

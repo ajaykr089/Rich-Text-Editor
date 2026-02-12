@@ -61,7 +61,7 @@ packages/core/src/
 │   └── index.ts
 │
 ├── webcomponent/            # 🌐 Web Component
-│   ├── RichTextEditor.ts    #    Custom element
+│   ├── EditoraEditor.ts    #    Custom element
 │   ├── styles.css           #    Component styles
 │   └── index.ts
 │
@@ -111,11 +111,11 @@ editor.execCommand('bold');
 
 ### Pattern 3: React (Existing - Still Works!)
 ```tsx
-import { RichTextEditor } from '@editora/react';
+import { EditoraEditor } from '@editora/react';
 
 function MyEditor() {
   return (
-    <RichTextEditor
+    <EditoraEditor
       plugins={[...]}
       toolbar="undo redo | bold italic"
       onChange={(html) => console.log(html)}
@@ -127,10 +127,10 @@ function MyEditor() {
 ### Pattern 4: React (Web Component)
 ```tsx
 import { useRef, useEffect } from 'react';
-import { RichTextEditorElement } from '@editora/core/webcomponent';
+import { LegacyRichTextEditorElement } from '@editora/core/webcomponent';
 
 function Editor() {
-  const editorRef = useRef<RichTextEditorElement>(null);
+  const editorRef = useRef<LegacyRichTextEditorElement>(null);
   
   useEffect(() => {
     const editor = editorRef.current;
@@ -465,9 +465,9 @@ const editor = createEditor({
 
 ### Option 3: React (Existing)
 ```tsx
-import { RichTextEditor } from '@editora/react';
+import { EditoraEditor } from '@editora/react';
 
-<RichTextEditor plugins={[...]} />
+<EditoraEditor plugins={[...]} />
 ```
 
 ## 📊 Comparison

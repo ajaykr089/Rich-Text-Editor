@@ -39,7 +39,7 @@
 - ✅ **BackgroundColorPlugin**: Removed auto-initialization race condition
 - ✅ All commands properly scoped to specific editor instance
 
-**Code Example** (RichTextEditor.ts, lines 277-301):
+**Code Example** (EditoraEditor.ts, lines 277-301):
 ```typescript
 this.toolbar.setCommandHandler((command, value) => {
   // Ensure editor has focus and valid selection
@@ -207,7 +207,7 @@ Update plugin development guide with:
 ## 📝 Files Modified
 
 ### Web Component Core:
-- `packages/core/src/webcomponent/RichTextEditor.ts` - Focus/selection management
+- `packages/core/src/webcomponent/EditoraEditor.ts` - Focus/selection management
 - `packages/core/src/ui/ToolbarRenderer.ts` - 46 command aliases
 
 ### Plugins Fixed:

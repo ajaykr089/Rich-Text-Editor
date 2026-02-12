@@ -175,9 +175,9 @@ const editor = createEditor({
 ## React (Backward Compatible)
 
 ```tsx
-import { RichTextEditor } from '@editora/react';
+import { EditoraEditor } from '@editora/react';
 
-<RichTextEditor
+<EditoraEditor
   plugins={[...]}
   toolbar="undo redo | bold italic"
   onChange={(html) => console.log(html)}
@@ -187,10 +187,10 @@ import { RichTextEditor } from '@editora/react';
 ## React (Web Component)
 
 ```tsx
-import { RichTextEditorElement } from '@editora/core/webcomponent';
+import { LegacyRichTextEditorElement } from '@editora/core/webcomponent';
 
 function Editor() {
-  const editorRef = useRef<RichTextEditorElement>(null);
+  const editorRef = useRef<LegacyRichTextEditorElement>(null);
   
   useEffect(() => {
     const editor = editorRef.current;

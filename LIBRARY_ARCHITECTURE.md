@@ -227,11 +227,11 @@ interface NodeSpec {
 
 **Main Components**:
 
-#### `<RichTextEditor />`
+#### `<EditoraEditor />`
 Main editor component with full configuration.
 
 ```typescript
-interface RichTextEditorProps {
+interface EditoraEditorProps {
   // Identity & styling
   id?: string
   className?: string
@@ -909,12 +909,12 @@ export const MyPlugin = (): Plugin => ({
 **Step 3: Use in Editor**
 
 ```typescript
-import { RichTextEditor } from '@editora/react'
+import { EditoraEditor } from '@editora/react'
 import { MyPlugin } from './MyPlugin'
 
 export default function Editor() {
   return (
-    <RichTextEditor
+    <EditoraEditor
       plugins={[MyPlugin()]}
     />
   )
@@ -995,7 +995,7 @@ Component re-renders
 ### Basic Setup
 
 ```typescript
-import { RichTextEditor } from '@editora/react'
+import { EditoraEditor } from '@editora/react'
 import {
   BoldPlugin,
   ItalicPlugin,
@@ -1007,7 +1007,7 @@ import '@editora/themes/themes/default.css'
 
 export default function Editor() {
   return (
-    <RichTextEditor
+    <EditoraEditor
       plugins={[
         BoldPlugin(),
         ItalicPlugin(),
@@ -1026,7 +1026,7 @@ export default function Editor() {
 
 ```typescript
 import { useState } from 'react'
-import { RichTextEditor, EditorAPI } from '@editora/react'
+import { EditoraEditor, EditorAPI } from '@editora/react'
 import { AllPlugins } from '@editora/plugins'
 
 export default function Editor() {
@@ -1035,7 +1035,7 @@ export default function Editor() {
 
   return (
     <div>
-      <RichTextEditor
+      <EditoraEditor
         value={content}
         onChange={setContent}
         onInit={setApi}
@@ -1069,7 +1069,7 @@ export default function Editor() {
 ```typescript
 export default function AdvancedEditor() {
   return (
-    <RichTextEditor
+    <EditoraEditor
       id="my-editor"
       className="custom-editor"
       value={content}
@@ -1131,13 +1131,13 @@ export default function AdvancedEditor() {
 ### Custom Plugin Integration
 
 ```typescript
-import { RichTextEditor } from '@editora/react'
+import { EditoraEditor } from '@editora/react'
 import { MyCustomPlugin } from './plugins/MyCustomPlugin'
 import { BoldPlugin, ItalicPlugin } from '@editora/plugins'
 
 export default function EditorWithCustom() {
   return (
-    <RichTextEditor
+    <EditoraEditor
       plugins={[
         BoldPlugin(),
         ItalicPlugin(),
@@ -1152,10 +1152,10 @@ export default function EditorWithCustom() {
 
 ## API Reference
 
-### RichTextEditor Props
+### EditoraEditor Props
 
 ```typescript
-interface RichTextEditorProps {
+interface EditoraEditorProps {
   // Identity
   id?: string
   className?: string
@@ -1318,31 +1318,31 @@ class Editor {
 
 **Top (Default)**:
 ```tsx
-<RichTextEditor toolbar={{ position: 'top' }} ... />
+<EditoraEditor toolbar={{ position: 'top' }} ... />
 ```
 
 **Bottom**:
 ```tsx
-<RichTextEditor toolbar={{ position: 'bottom' }} ... />
+<EditoraEditor toolbar={{ position: 'bottom' }} ... />
 ```
 
 **Sticky**:
 ```tsx
-<RichTextEditor toolbar={{ sticky: true }} ... />
+<EditoraEditor toolbar={{ sticky: true }} ... />
 ```
 
 Stays visible when scrolling.
 
 **Floating**:
 ```tsx
-<RichTextEditor toolbar={{ floating: true }} ... />
+<EditoraEditor toolbar={{ floating: true }} ... />
 ```
 
 Appears near selection.
 
 **Combination**:
 ```tsx
-<RichTextEditor 
+<EditoraEditor 
   toolbar={{ 
     position: 'bottom',
     sticky: true,
@@ -1371,19 +1371,19 @@ export default function MultiEditor() {
   return (
     <div>
       <h2>Editor 1</h2>
-      <RichTextEditor 
+      <EditoraEditor 
         id="editor-1"
         plugins={[...]} 
       />
       
       <h2>Editor 2</h2>
-      <RichTextEditor 
+      <EditoraEditor 
         id="editor-2"
         plugins={[...]} 
       />
       
       <h2>Editor 3</h2>
-      <RichTextEditor 
+      <EditoraEditor 
         id="editor-3"
         plugins={[...]} 
       />
@@ -1413,7 +1413,7 @@ const handleDestroy = () => {
 }
 
 return (
-  <RichTextEditor
+  <EditoraEditor
     onInit={handleInit}
     onChange={handleChange}
     onDestroy={handleDestroy}
@@ -1428,12 +1428,12 @@ Compatible with Next.js and other SSR frameworks:
 
 ```typescript
 // app/page.tsx (Next.js)
-import { RichTextEditor } from '@editora/react'
+import { EditoraEditor } from '@editora/react'
 import { BoldPlugin, ItalicPlugin } from '@editora/plugins'
 
 export default function Page() {
   return (
-    <RichTextEditor
+    <EditoraEditor
       plugins={[BoldPlugin(), ItalicPlugin()]}
       defaultValue="<p>Initial content</p>"
     />
