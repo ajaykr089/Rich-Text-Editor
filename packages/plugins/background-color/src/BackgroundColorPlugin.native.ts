@@ -27,12 +27,11 @@ let savedRange: Range | null = null;
 let selectedColor: string = '#ffff00'; // Default yellow highlight
 
 /**
- * Preset colors for background color
+ * Preset colors for background color - reduced set for smaller picker
  */
 const PRESET_COLORS = [
   '#000000', '#ffffff', '#808080', '#ff0000', '#00ff00', '#0000ff',
-  '#ffff00', '#ff00ff', '#00ffff', '#ffa500', '#800080', '#ffc0cb',
-  '#a52a2a', '#808000', '#000080', '#008000', '#008080', '#800000'
+  '#ffff00', '#ff00ff', '#00ffff', '#ffa500', '#800080', '#ffc0cb'
 ];
 
 /**
@@ -55,7 +54,7 @@ function injectStyles() {
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
       padding: 16px;
       z-index: 10000;
-      min-width: 280px;
+      width: 220px;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
       font-size: 14px;
       display: flex;
@@ -80,15 +79,15 @@ function injectStyles() {
       display: flex;
       align-items: center;
       gap: 12px;
-      padding: 8px;
+      padding: 3px;
       background: #f5f5f5;
       border-radius: 4px;
       border: 1px solid #e0e0e0;
     }
 
     .rte-bg-color-preview-swatch {
-      width: 40px;
-      height: 40px;
+      width: 24px;
+      height: 24px;
       border: 2px solid #ddd;
       border-radius: 4px;
       flex-shrink: 0;
@@ -118,30 +117,32 @@ function injectStyles() {
     .rte-bg-color-grid {
       display: grid;
       grid-template-columns: repeat(6, 1fr);
-      gap: 8px;
+      gap: 6px;
+      max-width: 180px;
     }
 
     .rte-bg-color-swatch {
-      width: 36px;
-      height: 36px;
-      border: 2px solid #ddd;
-      border-radius: 4px;
+      width: 100%;
+      aspect-ratio: 1;
+      border: 1px solid #e0e0e0;
+      border-radius: 3px;
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: all 0.15s ease;
       padding: 0;
       background: none;
       position: relative;
+      min-height: 20px;
     }
 
     .rte-bg-color-swatch:hover {
-      border-color: #999;
-      transform: scale(1.1);
+      border-color: #ccc;
+      transform: scale(1.05);
     }
 
     .rte-bg-color-swatch.selected {
-      border-color: #0066cc;
-      border-width: 3px;
-      transform: scale(1.05);
+      border-color: #1976d2;
+      border-width: 2px;
+      transform: scale(1.02);
     }
 
     .rte-bg-color-swatch.selected::after {
@@ -152,7 +153,7 @@ function injectStyles() {
       transform: translate(-50%, -50%);
       color: white;
       font-weight: bold;
-      font-size: 18px;
+      font-size: 12px;
       text-shadow: 0 0 2px rgba(0,0,0,0.5);
     }
 
@@ -164,8 +165,8 @@ function injectStyles() {
     }
 
     .rte-bg-color-input {
-      width: 60px;
-      height: 40px;
+      width: 50px;
+      height: 26px;
       border: 2px solid #ddd;
       border-radius: 4px;
       cursor: pointer;
@@ -179,10 +180,11 @@ function injectStyles() {
 
     .rte-bg-color-text-input {
       flex: 1;
-      height: 40px;
+      height: 24px;
       border: 2px solid #ddd;
       border-radius: 4px;
       padding: 0 12px;
+      width: 60px;
       font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
       font-size: 14px;
       transition: border-color 0.2s ease;
@@ -351,7 +353,6 @@ function createColorPicker(): HTMLDivElement {
   picker.appendChild(previewSection);
   picker.appendChild(presetSection);
   picker.appendChild(customSection);
-  picker.appendChild(actions);
 
   return picker;
 }
@@ -362,7 +363,7 @@ function createColorPicker(): HTMLDivElement {
 function attachColorPickerListeners() {
   if (!colorPickerElement) return;
 
-  // Preset color swatches
+  // Preset color swatches - apply immediately on click
   const grid = colorPickerElement.querySelector('#rte-bg-color-grid');
   if (grid) {
     grid.addEventListener('click', (e) => {
@@ -371,16 +372,24 @@ function attachColorPickerListeners() {
         const color = target.dataset.color;
         if (color) {
           selectedColor = color;
-          updateColorPreview();
-          updateSelectedSwatch();
+          applyBackgroundColor(color);
+          closeColorPicker();
         }
       }
     });
   }
 
-  // Native color input
+  // Native color input - apply on change
   const colorInput = colorPickerElement.querySelector('#rte-bg-color-input') as HTMLInputElement;
   if (colorInput) {
+    colorInput.addEventListener('change', (e) => {
+      const color = (e.target as HTMLInputElement).value.toUpperCase();
+      selectedColor = color;
+      applyBackgroundColor(color);
+      closeColorPicker();
+    });
+
+    // Update preview on input (but don't apply yet)
     colorInput.addEventListener('input', (e) => {
       const color = (e.target as HTMLInputElement).value.toUpperCase();
       selectedColor = color;
@@ -389,9 +398,26 @@ function attachColorPickerListeners() {
     });
   }
 
-  // Hex text input
+  // Hex text input - apply on valid change
   const textInput = colorPickerElement.querySelector('#rte-bg-color-text-input') as HTMLInputElement;
   if (textInput) {
+    textInput.addEventListener('change', (e) => {
+      let value = (e.target as HTMLInputElement).value.trim();
+      
+      // Auto-prepend # if missing
+      if (value && !value.startsWith('#')) {
+        value = '#' + value;
+      }
+      
+      // Validate and apply hex color format
+      if (/^#[0-9A-F]{6}$/i.test(value)) {
+        selectedColor = value.toUpperCase();
+        applyBackgroundColor(selectedColor);
+        closeColorPicker();
+      }
+    });
+
+    // Update preview on input (but don't apply yet)
     textInput.addEventListener('input', (e) => {
       let value = (e.target as HTMLInputElement).value.trim();
       
@@ -401,29 +427,12 @@ function attachColorPickerListeners() {
         textInput.value = value;
       }
       
-      // Validate hex color format
+      // Validate hex color format for preview
       if (/^#[0-9A-F]{6}$/i.test(value)) {
         selectedColor = value.toUpperCase();
         updateColorPreview();
         updateSelectedSwatch();
       }
-    });
-  }
-
-  // Apply button
-  const applyBtn = colorPickerElement.querySelector('#rte-bg-color-apply');
-  if (applyBtn) {
-    applyBtn.addEventListener('click', () => {
-      applyBackgroundColor(selectedColor);
-      closeColorPicker();
-    });
-  }
-
-  // Cancel button
-  const cancelBtn = colorPickerElement.querySelector('#rte-bg-color-cancel');
-  if (cancelBtn) {
-    cancelBtn.addEventListener('click', () => {
-      closeColorPicker();
     });
   }
 
@@ -566,18 +575,56 @@ function applyBackgroundColor(color: string): boolean {
     }
 
     const range = selection.getRangeAt(0);
-    
+
     // Check if range is valid and has content
     if (range.collapsed) {
       console.warn('[BackgroundColor] Range is collapsed');
       return false;
     }
 
+    // Check if the selection is entirely within existing background color spans
+    const startElement = range.startContainer.nodeType === Node.TEXT_NODE ? range.startContainer.parentElement : range.startContainer as Element;
+    const endElement = range.endContainer.nodeType === Node.TEXT_NODE ? range.endContainer.parentElement : range.endContainer as Element;
+
+    // Find the outermost background color span that contains the entire selection
+    let targetSpan: Element | null = null;
+    let currentElement: Element | null = startElement;
+
+    while (currentElement && currentElement !== document.body) {
+      if (currentElement.classList.contains('rte-bg-color')) {
+        // Check if this span contains the entire selection
+        const spanRange = document.createRange();
+        spanRange.selectNodeContents(currentElement);
+        
+        // Check if the selection range is within this span's range
+        if (spanRange.compareBoundaryPoints(Range.START_TO_START, range) <= 0 &&
+            spanRange.compareBoundaryPoints(Range.END_TO_END, range) >= 0) {
+          targetSpan = currentElement;
+          break;
+        }
+      }
+      currentElement = currentElement.parentElement;
+    }
+
+    // If we found a target span that contains the entire selection, just update its background color
+    if (targetSpan) {
+      targetSpan.style.backgroundColor = color;
+
+      // Trigger input event to notify editor
+      const editorContent = targetSpan.closest('[contenteditable="true"]') || document.querySelector('[contenteditable="true"]');
+      if (editorContent) {
+        editorContent.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+
+      console.log('[BackgroundColor] Updated existing span with color:', color);
+      return true;
+    }
+
+    // No existing span contains the entire selection, create a new one
     const span = document.createElement('span');
     span.style.backgroundColor = color;
     span.className = 'rte-bg-color';
 
-    // Extract and wrap contents
     const contents = range.extractContents();
     span.appendChild(contents);
     range.insertNode(span);
@@ -601,6 +648,8 @@ function applyBackgroundColor(color: string): boolean {
     return false;
   }
 }
+
+
 
 /**
  * Close and cleanup the color picker

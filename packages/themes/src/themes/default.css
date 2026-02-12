@@ -398,8 +398,8 @@
 }
 
 .rte-color-swatch {
-  width: 32px;
-  height: 32px;
+  width: 24px;
+  height: 24px;
   border: 2px solid #ddd;
   border-radius: 4px;
   cursor: pointer;

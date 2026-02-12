@@ -22,12 +22,11 @@ let savedRange: Range | null = null;
 let selectedColor: string = '#000000';
 
 // ============================================================================
-// Preset Colors (matching React version)
+// Preset Colors (matching React version) - Reduced set for smaller picker
 // ============================================================================
 const PRESET_COLORS = [
   '#000000', '#ffffff', '#808080', '#ff0000', '#00ff00', '#0000ff',
-  '#ffff00', '#ff00ff', '#00ffff', '#ffa500', '#800080', '#ffc0cb',
-  '#a52a2a', '#808000', '#000080', '#008000', '#008080', '#800000'
+  '#ffff00', '#ff00ff', '#00ffff', '#ffa500', '#800080', '#ffc0cb'
 ];
 
 // ============================================================================
@@ -54,30 +53,58 @@ function applyTextColor(color: string): boolean {
     }
 
     const range = selection.getRangeAt(0);
+
+    // Check if the selection is entirely within existing color spans
+    const startElement = range.startContainer.nodeType === Node.TEXT_NODE ? range.startContainer.parentElement : range.startContainer as Element;
+    const endElement = range.endContainer.nodeType === Node.TEXT_NODE ? range.endContainer.parentElement : range.endContainer as Element;
+
+    // Find the outermost color span that contains the entire selection
+    let targetSpan: Element | null = null;
+    let currentElement: Element | null = startElement;
+
+    while (currentElement && currentElement !== document.body) {
+      if (currentElement.classList.contains('rte-text-color')) {
+        // Check if this span contains the entire selection
+        const spanRange = document.createRange();
+        spanRange.selectNodeContents(currentElement);
+        
+        // Check if the selection range is within this span's range
+        if (spanRange.compareBoundaryPoints(Range.START_TO_START, range) <= 0 &&
+            spanRange.compareBoundaryPoints(Range.END_TO_END, range) >= 0) {
+          targetSpan = currentElement;
+          break;
+        }
+      }
+      currentElement = currentElement.parentElement;
+    }
+
+    // If we found a target span that contains the entire selection, just update its color
+    if (targetSpan) {
+      targetSpan.style.color = color;
+      return true;
+    }
+
+    // No existing span contains the entire selection, create a new one
     const span = document.createElement('span');
     span.style.color = color;
     span.className = 'rte-text-color';
-    
+
     const contents = range.extractContents();
     span.appendChild(contents);
     range.insertNode(span);
-    
+
     // Move cursor after the colored text
     range.setStartAfter(span);
     range.collapse(true);
     selection.removeAllRanges();
     selection.addRange(range);
-    
+
     return true;
   } catch (error) {
     console.error('Failed to set text color:', error);
     return false;
   }
 }
-
-/**
- * Get current text color from selection
- */
 function getCurrentTextColor(): string {
   const selection = window.getSelection();
   if (!selection || selection.rangeCount === 0) return '#000000';
@@ -154,7 +181,7 @@ function createColorPicker(button: HTMLElement): void {
 
       <!-- Preset Colors -->
       <div class="rte-color-section">
-        <label class="rte-color-section-label">Preset Colors</label>
+        <label class="rte-color-section-label">Colors</label>
         <div class="rte-color-palette">
           ${PRESET_COLORS.map(color => `
             <button
@@ -170,7 +197,7 @@ function createColorPicker(button: HTMLElement): void {
 
       <!-- Custom Color -->
       <div class="rte-color-section">
-        <label class="rte-color-section-label">Custom Color</label>
+        <label class="rte-color-section-label">Custom</label>
         <div class="rte-custom-color-inputs">
           <input
             type="color"
@@ -188,11 +215,6 @@ function createColorPicker(button: HTMLElement): void {
           />
         </div>
       </div>
-    </div>
-
-    <div class="rte-color-picker-footer">
-      <button class="rte-btn-secondary rte-color-cancel">Cancel</button>
-      <button class="rte-btn-primary rte-color-apply">Apply</button>
     </div>
   `;
 
@@ -220,33 +242,40 @@ function attachColorPickerListeners(): void {
   const closeBtn = colorPickerElement.querySelector('.rte-color-picker-close');
   closeBtn?.addEventListener('click', () => closeColorPicker());
 
-  // Cancel button
-  const cancelBtn = colorPickerElement.querySelector('.rte-color-cancel');
-  cancelBtn?.addEventListener('click', () => closeColorPicker());
-
-  // Apply button
-  const applyBtn = colorPickerElement.querySelector('.rte-color-apply');
-  applyBtn?.addEventListener('click', () => {
-    applyTextColor(selectedColor);
-    closeColorPicker();
-  });
-
-  // Color swatches
+  // Color swatches - single click applies immediately
   const swatches = colorPickerElement.querySelectorAll('.rte-color-swatch');
   swatches.forEach(swatch => {
     swatch.addEventListener('click', () => {
       const color = swatch.getAttribute('data-color');
       if (color) {
         selectedColor = color;
-        updateColorPreview(color);
-        updateSelectedSwatch(color);
-        updateCustomInputs(color);
+        applyTextColor(color);
+        closeColorPicker();
       }
     });
   });
 
-  // Native color input
+  // Native color input - apply on change
   const nativeInput = colorPickerElement.querySelector('.rte-color-input-native') as HTMLInputElement;
+  nativeInput?.addEventListener('change', (e) => {
+    const color = (e.target as HTMLInputElement).value;
+    selectedColor = color;
+    applyTextColor(color);
+    closeColorPicker();
+  });
+
+  // Text color input - apply on valid input
+  const textInput = colorPickerElement.querySelector('.rte-color-input-text') as HTMLInputElement;
+  textInput?.addEventListener('change', (e) => {
+    const color = (e.target as HTMLInputElement).value;
+    if (/^#[0-9A-Fa-f]{6}$/.test(color)) {
+      selectedColor = color;
+      applyTextColor(color);
+      closeColorPicker();
+    }
+  });
+
+  // Update preview on input (but don't apply yet)
   nativeInput?.addEventListener('input', (e) => {
     const color = (e.target as HTMLInputElement).value;
     selectedColor = color;
@@ -255,8 +284,6 @@ function attachColorPickerListeners(): void {
     updateTextInput(color);
   });
 
-  // Text color input
-  const textInput = colorPickerElement.querySelector('.rte-color-input-text') as HTMLInputElement;
   textInput?.addEventListener('input', (e) => {
     const color = (e.target as HTMLInputElement).value;
     if (/^#[0-9A-Fa-f]{6}$/.test(color)) {
@@ -265,18 +292,6 @@ function attachColorPickerListeners(): void {
       updateSelectedSwatch(color);
       updateNativeInput(color);
     }
-  });
-
-  // Double-click on swatch to apply immediately
-  swatches.forEach(swatch => {
-    swatch.addEventListener('dblclick', () => {
-      const color = swatch.getAttribute('data-color');
-      if (color) {
-        selectedColor = color;
-        applyTextColor(color);
-        closeColorPicker();
-      }
-    });
   });
 }
 
@@ -393,7 +408,7 @@ function initTextColorPlugin(): void {
         background: white;
         border-radius: 8px;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        width: 280px;
+        width: 220px;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       }
 
@@ -431,22 +446,23 @@ function initTextColorPlugin(): void {
       }
 
       .rte-color-picker-body {
-        padding: 16px;
+        padding: 8px;
       }
 
       .rte-color-preview-section {
         display: flex;
         align-items: center;
         gap: 12px;
-        margin-bottom: 16px;
-        padding: 12px;
+        margin-bottom: 8px;
+        padding: 6px;
         background-color: #f8f9fa;
         border-radius: 6px;
+        border: 1px solid #e0e0e0;
       }
 
       .rte-color-preview-box {
-        width: 40px;
-        height: 40px;
+        width: 24px;
+        height: 24px;
         border-radius: 4px;
         flex-shrink: 0;
       }
@@ -478,28 +494,31 @@ function initTextColorPlugin(): void {
 
       .rte-color-palette {
         display: grid;
-        grid-template-columns: repeat(6, 1fr);
-        gap: 8px;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 6px;
+        max-width: 180px;
       }
 
       .rte-color-swatch {
         width: 100%;
         aspect-ratio: 1;
-        border: 2px solid transparent;
-        border-radius: 4px;
+        border: 1px solid #e0e0e0;
+        border-radius: 3px;
         cursor: pointer;
-        transition: all 0.2s;
+        transition: all 0.15s ease;
         padding: 0;
+        min-height: 20px;
       }
 
       .rte-color-swatch:hover {
-        transform: scale(1.1);
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        transform: scale(1.05);
+        border-color: #ccc;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
       }
 
       .rte-color-swatch.selected {
         border-color: #1976d2;
-        box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.2);
+        box-shadow: 0 0 0 1px rgba(25, 118, 210, 0.3);
       }
 
       .rte-custom-color-inputs {
@@ -509,7 +528,7 @@ function initTextColorPlugin(): void {
 
       .rte-color-input-native {
         width: 50px;
-        height: 36px;
+        height: 26px;
         border: 1px solid #ddd;
         border-radius: 4px;
         cursor: pointer;
@@ -518,7 +537,8 @@ function initTextColorPlugin(): void {
 
       .rte-color-input-text {
         flex: 1;
-        height: 36px;
+        height: 26px;
+        width: 50px;
         border: 1px solid #ddd;
         border-radius: 4px;
         padding: 0 12px;
