@@ -24,7 +24,7 @@ export interface MediaConfig {
  * Media upload plugin
  * Non-functional scaffold - demonstrates enterprise media handling
  */
-export function createMediaPlugin(config: MediaConfig = {}): Plugin {
+export function MediaPlugin(config: MediaConfig = {}): Plugin {
   const {
     uploadUrl = '',
     libraryUrl = '',

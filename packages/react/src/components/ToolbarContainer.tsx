@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Editor, ToolbarEngine, ToolbarState, ToolbarItemConfig, ToolbarItem } from '@editora/core';
-import './ToolbarContainer.css';
 
 export interface ToolbarContainerProps {
   editor: Editor;

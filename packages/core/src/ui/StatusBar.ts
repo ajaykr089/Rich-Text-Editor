@@ -12,6 +12,18 @@ export interface StatusInfo {
   charCount?: number;
   lineCount?: number;
   language?: string;
+  cursorPosition?: {
+    line: number;
+    column: number;
+  };
+  selectionInfo?: {
+    startLine: number;
+    startColumn: number;
+    endLine: number;
+    endColumn: number;
+    selectedChars: number;
+    selectedWords: number;
+  };
   custom?: Record<string, string>;
 }
 
@@ -54,46 +66,98 @@ export class StatusBar {
    */
   private render(): void {
     if (!this.container) return;
-    
+
     this.container.innerHTML = '';
-    
-    const items: string[] = [];
-    
-    if (this.statusInfo.wordCount !== undefined) {
-      items.push(`Words: ${this.statusInfo.wordCount}`);
+
+    // Create left section
+    const leftSection = document.createElement('div');
+    leftSection.className = 'editora-statusbar-left';
+
+    // Create right section
+    const rightSection = document.createElement('div');
+    rightSection.className = 'editora-statusbar-right';
+
+    // Left section: Cursor position and selection info
+    const leftItems: string[] = [];
+
+    if (this.statusInfo.selectionInfo) {
+      const sel = this.statusInfo.selectionInfo;
+      if (sel.startLine === sel.endLine && sel.startColumn === sel.endColumn) {
+        // Cursor position only
+        leftItems.push(`Ln ${sel.startLine}, Col ${sel.startColumn}`);
+      } else {
+        // Selection info
+        if (sel.startLine === sel.endLine) {
+          leftItems.push(`Ln ${sel.startLine}, Col ${sel.startColumn}-${sel.endColumn}`);
+        } else {
+          leftItems.push(`Ln ${sel.startLine}:${sel.startColumn} - ${sel.endLine}:${sel.endColumn}`);
+        }
+        leftItems.push(`${sel.selectedChars} chars selected`);
+      }
+    } else if (this.statusInfo.cursorPosition) {
+      const pos = this.statusInfo.cursorPosition;
+      leftItems.push(`Ln ${pos.line}, Col ${pos.column}`);
     }
-    
-    if (this.statusInfo.charCount !== undefined) {
-      items.push(`Characters: ${this.statusInfo.charCount}`);
-    }
-    
-    if (this.statusInfo.lineCount !== undefined) {
-      items.push(`Lines: ${this.statusInfo.lineCount}`);
-    }
-    
+
     if (this.statusInfo.language) {
-      items.push(`Language: ${this.statusInfo.language}`);
+      leftItems.push(this.statusInfo.language);
     }
-    
+
+    // Right section: Word count and character count
+    const rightItems: string[] = [];
+
+    if (this.statusInfo.wordCount !== undefined) {
+      rightItems.push(`${this.statusInfo.wordCount} words`);
+    }
+
+    if (this.statusInfo.charCount !== undefined) {
+      rightItems.push(`${this.statusInfo.charCount} chars`);
+    }
+
+    if (this.statusInfo.lineCount !== undefined) {
+      rightItems.push(`${this.statusInfo.lineCount} lines`);
+    }
+
+    // Add custom items to right section
     if (this.statusInfo.custom) {
       Object.entries(this.statusInfo.custom).forEach(([key, value]) => {
-        items.push(`${key}: ${value}`);
+        rightItems.push(`${key}: ${value}`);
       });
     }
-    
-    items.forEach((item, index) => {
+
+    // Render left section
+    leftItems.forEach((item, index) => {
       const span = document.createElement('span');
       span.className = 'editora-statusbar-item';
       span.textContent = item;
-      this.container!.appendChild(span);
-      
-      if (index < items.length - 1) {
+      leftSection.appendChild(span);
+
+      if (index < leftItems.length - 1) {
         const separator = document.createElement('span');
         separator.className = 'editora-statusbar-separator';
         separator.textContent = '|';
-        this.container!.appendChild(separator);
+        leftSection.appendChild(separator);
       }
     });
+
+    // Render right section
+    rightItems.forEach((item, index) => {
+      const span = document.createElement('span');
+      span.className = 'editora-statusbar-item';
+      span.textContent = item;
+      rightSection.appendChild(span);
+
+      if (index < rightItems.length - 1) {
+        const separator = document.createElement('span');
+        separator.className = 'editora-statusbar-separator';
+        separator.textContent = '|';
+        rightSection.appendChild(separator);
+      }
+    });
+
+    // Add sections to container
+    this.container.appendChild(leftSection);
+    this.container.appendChild(rightSection);
   }
 
   /**

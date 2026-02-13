@@ -6,55 +6,10 @@
  * Lightweight, fast, and works in any JavaScript environment
  */
 
+// Import all styles for web components
+import './index.css';
+
 import { PluginLoader } from '../config/PluginLoader';
-
-// Import native plugins (framework-agnostic - NO REACT)
-import { BoldPlugin } from "../../../plugins/bold/src/BoldPlugin.native";
-import { ItalicPlugin } from "../../../plugins/italic/src/ItalicPlugin.native";
-import { UnderlinePlugin } from "../../../plugins/underline/src/UnderlinePlugin.native";
-import { StrikethroughPlugin } from "../../../plugins/strikethrough/src/StrikethroughPlugin.native";
-import { LinkPlugin } from "../../../plugins/link/src/LinkPlugin.native";
-import { TablePlugin } from "../../../plugins/table/src/TablePlugin.native";
-import { ListPlugin } from "../../../plugins/list/src/ListPlugin.native";
-import { HistoryPlugin } from "../../../plugins/history/src/HistoryPlugin.native";
-import { ClearFormattingPlugin } from "../../../plugins/clear-formatting/src/ClearFormattingPlugin.native";
-import { HeadingPlugin } from "../../../plugins/heading/src/HeadingPlugin.native";
-import { BlockquotePlugin } from "../../../plugins/blockquote/src/BlockquotePlugin.native";
-import { CodePlugin } from "../../../plugins/code/src/CodePlugin.native";
-import { CodeSamplePlugin } from "../../../plugins/code-sample/src/CodeSamplePlugin.native";
-import { IndentPlugin } from "../../../plugins/indent/src/IndentPlugin.native";
-import { TextAlignmentPlugin } from "../../../plugins/text-alignment/src/TextAlignmentPlugin.native";
-import { TextColorPlugin } from "../../../plugins/text-color/src/TextColorPlugin.native";
-import { BackgroundColorPlugin } from "../../../plugins/background-color/src/BackgroundColorPlugin.native";
-import { FontSizePlugin } from "../../../plugins/font-size/src/FontSizePlugin.native";
-import { FontFamilyPlugin } from "../../../plugins/font-family/src/FontFamilyPlugin.native";
-import { LineHeightPlugin } from "../../../plugins/line-height/src/LineHeightPlugin.native";
-import { FootnotePlugin } from "../../../plugins/footnote/src/FootnotePlugin.native";
-// ParagraphPlugin removed - paragraph option is in HeadingPlugin dropdown
-import { DirectionPlugin } from "../../../plugins/direction/src/DirectionPlugin.native";
-import { CapitalizationPlugin } from "../../../plugins/capitalization/src/CapitalizationPlugin.native";
-import { ChecklistPlugin } from "../../../plugins/checklist/src/ChecklistPlugin.native";
-import { AnchorPlugin } from "../../../plugins/anchor/src/AnchorPlugin.native";
-import { EmbedIframePlugin } from "../../../plugins/embed-iframe/src/EmbedIframePlugin.native";
-import { MathPlugin } from "../../../plugins/math/src/MathPlugin.native";
-import { MediaManagerPlugin } from "../../../plugins/media-manager/src/MediaManagerPlugin.native";
-import { MergeTagPlugin } from "../../../plugins/merge-tag/src/MergeTagPlugin.native";
-import { PageBreakPlugin } from "../../../plugins/page-break/src/PageBreakPlugin.native";
-import { PrintPlugin } from "../../../plugins/print/src/PrintPlugin.native";
-import { PreviewPlugin } from "../../../plugins/preview/src/PreviewPlugin.native";
-import { SpecialCharactersPlugin } from "../../../plugins/special-characters/src/SpecialCharactersPlugin.native";
-import { SpellCheckPlugin } from "../../../plugins/spell-check/src/SpellCheckPlugin.native";
-import { EmojisPlugin } from "../../../plugins/emojis/src/EmojisPlugin.native";
-import { A11yCheckerPlugin } from "../../../plugins/a11y-checker/src/A11yCheckerPlugin.native";
-import { CommentsPlugin } from "../../../plugins/comments/src/CommentsPlugin.native";
-import { DocumentManagerPlugin } from "../../../plugins/document-manager/src/DocumentManagerPlugin.native";
-import { FullscreenPlugin } from "../../../plugins/fullscreen/src/FullscreenPlugin.native";
-import { TemplatePlugin } from "../../../plugins/template/src/TemplatePlugin.native";
-
-/**
- * All plugins are now native! No more legacy plugins needed.
- * Phase 2: 100% COMPLETE!
- */
 
 // Import RichTextEditor FIRST
 import { RichTextEditorElement } from './RichTextEditor';
@@ -66,130 +21,116 @@ const globalPluginLoader = new PluginLoader();
 (RichTextEditorElement as any).__globalPluginLoader = globalPluginLoader;
 
 /**
- * Initialize web component with global plugin registry
+ * Lazy-loaded plugin registry for optimal bundle size
  */
-export function initWebComponent() {
-
-  // Register native plugins (framework-agnostic, no React) ✅
-  const pluginFactories = [
-    { name: 'BoldPlugin', factory: BoldPlugin },
-    { name: 'ItalicPlugin', factory: ItalicPlugin },
-    { name: 'UnderlinePlugin', factory: UnderlinePlugin },
-    { name: 'StrikethroughPlugin', factory: StrikethroughPlugin },
-    { name: 'ClearFormattingPlugin', factory: ClearFormattingPlugin },
-    // ParagraphPlugin removed - paragraph option is in HeadingPlugin dropdown
-    { name: 'HeadingPlugin', factory: HeadingPlugin },
-    { name: 'BlockquotePlugin', factory: BlockquotePlugin },
-    { name: 'CodePlugin', factory: CodePlugin },
-    { name: 'codeSample', factory: CodeSamplePlugin },
-    { name: 'ListPlugin', factory: ListPlugin },
-    { name: 'ChecklistPlugin', factory: ChecklistPlugin },
-    { name: 'TextAlignmentPlugin', factory: TextAlignmentPlugin },
-    { name: 'IndentPlugin', factory: IndentPlugin },
-    { name: 'DirectionPlugin', factory: DirectionPlugin },
-    { name: 'TextColorPlugin', factory: TextColorPlugin },
-    { name: 'BackgroundColorPlugin', factory: BackgroundColorPlugin },
-    { name: 'FontSizePlugin', factory: FontSizePlugin },
-    { name: 'FontFamilyPlugin', factory: FontFamilyPlugin },
-    { name: 'LineHeightPlugin', factory: LineHeightPlugin },
-    { name: 'CapitalizationPlugin', factory: CapitalizationPlugin },
-    { name: 'LinkPlugin', factory: LinkPlugin },
-    { name: 'TablePlugin', factory: TablePlugin },
-    { name: 'AnchorPlugin', factory: AnchorPlugin },
-    { name: 'EmbedIframePlugin', factory: EmbedIframePlugin },
-    { name: 'MathPlugin', factory: MathPlugin },
-    { name: 'MediaManagerPlugin', factory: MediaManagerPlugin },
-    { name: 'MergeTagPlugin', factory: MergeTagPlugin },
-    { name: 'PageBreakPlugin', factory: PageBreakPlugin },
-    { name: 'PrintPlugin', factory: PrintPlugin },
-    { name: 'PreviewPlugin', factory: PreviewPlugin },
-    { name: 'SpecialCharactersPlugin', factory: SpecialCharactersPlugin },
-    { name: 'SpellCheckPlugin', factory: SpellCheckPlugin },
-    { name: 'EmojisPlugin', factory: EmojisPlugin },
-    { name: 'A11yCheckerPlugin', factory: A11yCheckerPlugin },
-    { name: 'CommentsPlugin', factory: CommentsPlugin },
-    { name: 'DocumentManagerPlugin', factory: DocumentManagerPlugin },
-    { name: 'FullscreenPlugin', factory: FullscreenPlugin },
-    { name: 'TemplatePlugin', factory: TemplatePlugin },
-    { name: 'HistoryPlugin', factory: HistoryPlugin },
-    { name: 'FootnotePlugin', factory: FootnotePlugin },
-  ];
-
-  const nativePlugins: any[] = [];
-
-  // Initialize each plugin with error handling
-  pluginFactories.forEach(({ name, factory }) => {
-    try {
-      const plugin = factory();
-      nativePlugins.push(plugin);
-    } catch (error) {
-      console.error(`[Editora] Failed to load ${name}:`, error);
-    }
-  });
-
-  // All plugins are now native! ✅✅✅
-  const allPlugins = nativePlugins;
-
-  // Register plugins globally
-  allPlugins.forEach(plugin => {
-    globalPluginLoader.register(plugin.name, () => plugin);
-
-  });
+const pluginRegistry: Record<string, () => Promise<any>> = {
+  // Core editing plugins (always loaded)
+  'bold': () => import("../../../plugins/bold/src/BoldPlugin.native").then(m => m.BoldPlugin()),
+  'italic': () => import("../../../plugins/italic/src/ItalicPlugin.native").then(m => m.ItalicPlugin()),
+  'underline': () => import("../../../plugins/underline/src/UnderlinePlugin.native").then(m => m.UnderlinePlugin()),
+  'strikethrough': () => import("../../../plugins/strikethrough/src/StrikethroughPlugin.native").then(m => m.StrikethroughPlugin()),
+  'clearFormatting': () => import("../../../plugins/clear-formatting/src/ClearFormattingPlugin.native").then(m => m.ClearFormattingPlugin()),
+  'heading': () => import("../../../plugins/heading/src/HeadingPlugin.native").then(m => m.HeadingPlugin()),
+  'blockquote': () => import("../../../plugins/blockquote/src/BlockquotePlugin.native").then(m => m.BlockquotePlugin()),
+  'code': () => import("../../../plugins/code/src/CodePlugin.native").then(m => m.CodePlugin()),
+  'codeSample': () => import("../../../plugins/code-sample/src/CodeSamplePlugin.native").then(m => m.CodeSamplePlugin()),
+  'list': () => import("../../../plugins/list/src/ListPlugin.native").then(m => m.ListPlugin()),
+  'checklist': () => import("../../../plugins/checklist/src/ChecklistPlugin.native").then(m => m.ChecklistPlugin()),
+  'textAlignment': () => import("../../../plugins/text-alignment/src/TextAlignmentPlugin.native").then(m => m.TextAlignmentPlugin()),
+  'indent': () => import("../../../plugins/indent/src/IndentPlugin.native").then(m => m.IndentPlugin()),
+  'direction': () => import("../../../plugins/direction/src/DirectionPlugin.native").then(m => m.DirectionPlugin()),
+  'textColor': () => import("../../../plugins/text-color/src/TextColorPlugin.native").then(m => m.TextColorPlugin()),
+  'backgroundColor': () => import("../../../plugins/background-color/src/BackgroundColorPlugin.native").then(m => m.BackgroundColorPlugin()),
+  'fontSize': () => import("../../../plugins/font-size/src/FontSizePlugin.native").then(m => m.FontSizePlugin()),
+  'fontFamily': () => import("../../../plugins/font-family/src/FontFamilyPlugin.native").then(m => m.FontFamilyPlugin()),
+  'lineHeight': () => import("../../../plugins/line-height/src/LineHeightPlugin.native").then(m => m.LineHeightPlugin()),
+  'capitalization': () => import("../../../plugins/capitalization/src/CapitalizationPlugin.native").then(m => m.CapitalizationPlugin()),
+  'history': () => import("../../../plugins/history/src/HistoryPlugin.native").then(m => m.HistoryPlugin()),
   
-  // Return the plugins array directly
-  return allPlugins;
+  // Advanced plugins (lazy loaded)
+  'link': () => import("../../../plugins/link/src/LinkPlugin.native").then(m => m.LinkPlugin()),
+  'table': () => import("../../../plugins/table/src/TablePlugin.native").then(m => m.TablePlugin()),
+  'anchor': () => import("../../../plugins/anchor/src/AnchorPlugin.native").then(m => m.AnchorPlugin()),
+  'embedIframe': () => import("../../../plugins/embed-iframe/src/EmbedIframePlugin.native").then(m => m.EmbedIframePlugin()),
+  'math': () => import("../../../plugins/math/src/MathPlugin.native").then(m => m.MathPlugin()),
+  'image': () => import("../../../plugins/media-manager/src/MediaManagerPlugin.native").then(m => m.MediaManagerPlugin()),
+  'mergeTag': () => import("../../../plugins/merge-tag/src/MergeTagPlugin.native").then(m => m.MergeTagPlugin()),
+  'pageBreak': () => import("../../../plugins/page-break/src/PageBreakPlugin.native").then(m => m.PageBreakPlugin()),
+  'print': () => import("../../../plugins/print/src/PrintPlugin.native").then(m => m.PrintPlugin()),
+  'preview': () => import("../../../plugins/preview/src/PreviewPlugin.native").then(m => m.PreviewPlugin()),
+  'specialCharacters': () => import("../../../plugins/special-characters/src/SpecialCharactersPlugin.native").then(m => m.SpecialCharactersPlugin()),
+  'spellCheck': () => import("../../../plugins/spell-check/src/SpellCheckPlugin.native").then(m => m.SpellCheckPlugin()),
+  'emojis': () => import("../../../plugins/emojis/src/EmojisPlugin.native").then(m => m.EmojisPlugin()),
+  'a11yChecker': () => import("../../../plugins/a11y-checker/src/A11yCheckerPlugin.native").then(m => m.A11yCheckerPlugin()),
+  'comments': () => import("../../../plugins/comments/src/CommentsPlugin.native").then(m => m.CommentsPlugin()),
+  'document-manager': () => import("../../../plugins/document-manager/src/DocumentManagerPlugin.native").then(m => m.DocumentManagerPlugin()),
+  'fullscreen': () => import("../../../plugins/fullscreen/src/FullscreenPlugin.native").then(m => m.FullscreenPlugin()),
+  'template': () => import("../../../plugins/template/src/TemplatePlugin.native").then(m => m.TemplatePlugin()),
+  'footnote': () => import("../../../plugins/footnote/src/FootnotePlugin.native").then(m => m.FootnotePlugin()),
+};
+
+/**
+ * Initialize web component with lazy plugin loading
+ */
+export async function initWebComponent() {
+  // Register lazy-loaded plugins
+  Object.entries(pluginRegistry).forEach(([name, loader]) => {
+    globalPluginLoader.register(name, loader);
+  });
+
+  return globalPluginLoader;
 }
 
 // Auto-initialize when script loads
 if (typeof window !== 'undefined') {
-  // Initialize plugins first
-  const plugins = initWebComponent();
-  
-  // Attach plugins to the element class
-  (RichTextEditorElement as any).__globalPlugins = plugins;
-  
-  // Capture initial content for existing elements before upgrading
-  const existingElements = document.querySelectorAll('editora-editor:not([data-initial-content])');
-  const contents: string[] = [];
-  existingElements.forEach((el) => {
-    const content = el.innerHTML.trim();
-    contents.push(content);
-    if (content) {
-      el.setAttribute('data-initial-content', content);
+  // Initialize plugins first (async)
+  initWebComponent().then(pluginLoader => {
+    // Attach plugin loader to the element class
+    (RichTextEditorElement as any).__globalPluginLoader = pluginLoader;
+    
+    // Register custom element AFTER plugins are loaded
+    if (!customElements.get('editora-editor')) {
+      customElements.define('editora-editor', RichTextEditorElement);
     }
-  });
-  
-  // Register custom element
-  if (!customElements.get('editora-editor')) {
-    customElements.define('editora-editor', RichTextEditorElement);
-  }
-  
-  // After define, set content on new elements if they were replaced
-  const allElements = document.querySelectorAll('editora-editor');
-  const newElements = Array.from(allElements).filter(el => !el.hasAttribute('data-initial-content'));
-  newElements.forEach(el => {
-    const index = Array.from(allElements).indexOf(el);
-    if (contents[index]) {
-      el.setAttribute('data-initial-content', contents[index]);
-    }
-  });
-  
-  // Expose global API (TinyMCE-style)
-  (window as any).Editora = {
-    version: '1.0.0',
-    plugins: globalPluginLoader.getRegisteredPluginNames(),
-    WebComponent: RichTextEditorElement,
-    init: (selector: string, config?: any) => {
-      const element = document.querySelector(selector);
-      if (element instanceof RichTextEditorElement) {
-        if (config) {
-          element.setConfig(config);
-        }
-        return element.getAPI();
+    
+    // Capture initial content for existing elements before upgrading
+    const existingElements = document.querySelectorAll('editora-editor:not([data-initial-content])');
+    const contents: string[] = [];
+    existingElements.forEach((el) => {
+      const content = el.innerHTML.trim();
+      contents.push(content);
+      if (content) {
+        el.setAttribute('data-initial-content', content);
       }
-      return null;
-    }
-  };
+    });
+    
+    // After define, set content on new elements if they were replaced
+    const allElements = document.querySelectorAll('editora-editor');
+    const newElements = Array.from(allElements).filter(el => !el.hasAttribute('data-initial-content'));
+    newElements.forEach(el => {
+      const index = Array.from(allElements).indexOf(el);
+      if (contents[index]) {
+        el.setAttribute('data-initial-content', contents[index]);
+      }
+    });
+    
+    // Expose global API (TinyMCE-style)
+    (window as any).Editora = {
+      version: '1.0.0',
+      plugins: globalPluginLoader.getRegisteredPluginNames(),
+      WebComponent: RichTextEditorElement,
+      init: async (selector: string, config?: any) => {
+        const element = document.querySelector(selector);
+        if (element instanceof RichTextEditorElement) {
+          if (config) {
+            await element.setConfig(config);
+          }
+          return element.getAPI();
+        }
+        return null;
+      }
+    };
+  });
 }
 
 // Export for module usage (initWebComponent already exported above)

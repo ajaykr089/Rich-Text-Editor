@@ -75,6 +75,12 @@ export interface RichTextEditorProps {
     sticky?: boolean;
   };
 
+  // Status bar
+  statusbar?: {
+    enabled?: boolean;
+    position?: 'top' | 'bottom';
+  };
+
   // Menubar
   menubar?: {
     enabled: boolean;

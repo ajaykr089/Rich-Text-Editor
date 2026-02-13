@@ -1,11 +1,13 @@
 import React, { useMemo, useEffect, useRef } from 'react';
 import { Editor, PluginManager, Plugin } from '@editora/core';
+import { StatusBar } from '@editora/core';
 import { Toolbar } from './Toolbar';
 import { EditorContent } from './EditorContent';
 import { FloatingToolbar } from './FloatingToolbar';
 import { DynamicProviderWrapper } from './DynamicProviderWrapper';
 import { RichTextEditorProps, EditorAPI } from '../types';
 import { mergeConfig } from '../utils/mergeConfig';
+import { getCursorPosition, countLines, calculateTextStats, getSelectionInfo } from '@editora/core';
 
 // Plugin Providers - These are now handled by DynamicProviderWrapper
 // Each plugin can define its own provider through the context property
@@ -14,6 +16,7 @@ import { mergeConfig } from '../utils/mergeConfig';
 // Global command registry
 const commandRegistry = new Map<string, (params?: any) => void>();
 
+// Initialize global command functions
 if (typeof window !== 'undefined') {
   (window as any).registerEditorCommand = (command: string, handler: (params?: any) => void) => {
     commandRegistry.set(command, handler);
@@ -59,6 +62,8 @@ const EditorCore: React.FC<RichTextEditorProps> = (props) => {
   const onInitRef = useRef(props.onInit);
   const onDestroyRef = useRef(props.onDestroy);
   const editorContainerRef = useRef<HTMLDivElement>(null);
+  const statusBarRef = useRef<StatusBar | null>(null);
+  const statusBarElementRef = useRef<HTMLDivElement>(null);
   
   // Keep callback refs up to date
   useEffect(() => {
@@ -147,6 +152,79 @@ const EditorCore: React.FC<RichTextEditorProps> = (props) => {
     };
   }, []); // Empty deps - only run once on mount
 
+  // Status bar setup, updates, and event handling
+  useEffect(() => {
+    if (config.statusbar.enabled && statusBarElementRef.current && editorContainerRef.current) {
+      // Create status bar if it doesn't exist
+      if (!statusBarRef.current) {
+        statusBarRef.current = new StatusBar({
+          enabled: true,
+          position: config.statusbar.position
+        });
+        statusBarRef.current.create(statusBarElementRef.current);
+      }
+
+      // Set up status bar updates
+      const contentEl = editorContainerRef.current.querySelector('.rte-content') as HTMLElement;
+      if (contentEl) {
+        const updateStatusBar = () => {
+          const text = contentEl.textContent || '';
+          const { words, chars } = calculateTextStats(text);
+          const lines = countLines(contentEl);
+
+          const selection = window.getSelection();
+          let cursorPosition, selectionInfo;
+
+          if (selection && selection.rangeCount > 0) {
+            const range = selection.getRangeAt(0);
+            cursorPosition = getCursorPosition(contentEl, range);
+
+            if (!range.collapsed) {
+              selectionInfo = getSelectionInfo(range, cursorPosition);
+              cursorPosition = undefined; // Don't show cursor position when text is selected
+            }
+          }
+
+          statusBarRef.current?.update({
+            wordCount: words,
+            charCount: chars,
+            lineCount: lines,
+            cursorPosition,
+            selectionInfo
+          });
+        };
+
+        // Add event listeners for real-time updates
+        contentEl.addEventListener('input', updateStatusBar);
+        contentEl.addEventListener('selectionchange', updateStatusBar);
+        document.addEventListener('selectionchange', updateStatusBar);
+
+        // Initial update
+        updateStatusBar();
+
+        // Store cleanup function
+        return () => {
+          contentEl.removeEventListener('input', updateStatusBar);
+          contentEl.removeEventListener('selectionchange', updateStatusBar);
+          document.removeEventListener('selectionchange', updateStatusBar);
+        };
+      }
+    } else {
+      // Destroy status bar if disabled
+      if (statusBarRef.current) {
+        statusBarRef.current.destroy();
+        statusBarRef.current = null;
+      }
+    }
+
+    return () => {
+      if (statusBarRef.current) {
+        statusBarRef.current.destroy();
+        statusBarRef.current = null;
+      }
+    };
+  }, [config.statusbar.enabled, config.statusbar.position]);
+
   const floatingToolbarEnabled = config.toolbar.floating ?? false;
   const toolbarPosition = (config.toolbar as any).position || 'top';
   const stickyToolbar = config.toolbar.sticky ?? false;
@@ -196,6 +274,13 @@ const EditorCore: React.FC<RichTextEditorProps> = (props) => {
           editor={editor}
           isEnabled={floatingToolbarEnabled}
         />
+        {config.statusbar.enabled && (
+          <div 
+            ref={statusBarElementRef}
+            className="editora-statusbar-container"
+            style={{ order: config.statusbar.position === 'top' ? -1 : 1 }}
+          />
+        )}
       </div>
     </DynamicProviderWrapper>
   );

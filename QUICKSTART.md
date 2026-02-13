@@ -61,25 +61,42 @@ That's it! You now have a working rich text editor.
 
 ```tsx
 import {
-  createLinkPlugin,
-  createImagePlugin,
-  createTablePlugin,
-  createCodeSamplePlugin
+  LinkPlugin,
+  ImagePlugin,
+  TablePlugin,
+  CodeSamplePlugin
 } from '@editora/plugins';
 
 const advancedPlugins = [
   ...plugins, // Previous plugins
-  createLinkPlugin(),
-  createImagePlugin({
+  LinkPlugin(),
+  ImagePlugin({
     upload: async (file) => {
       // Upload logic
       return '/path/to/uploaded/image.jpg';
     }
   }),
-  createTablePlugin(),
-  createCodeSamplePlugin()
+  TablePlugin(),
+  CodeSamplePlugin()
 ];
 ```
+
+### Enable Status Bar
+
+```tsx
+function EditorWithStatusBar() {
+  return (
+    <EditoraEditor
+      value={content}
+      onChange={setContent}
+      plugins={plugins}
+      statusbar={true} // Enable status bar
+    />
+  );
+}
+```
+
+The status bar shows real-time cursor position, word count, and character count.
 
 ### Customize Theme
 
