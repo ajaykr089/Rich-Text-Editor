@@ -182,7 +182,7 @@
 &lt;/rich-text-editor&gt;</code>
     </div>
     
-    <editora-editor id="editor1" height="400">
+    <editora-editor id="editor1" height="400" statusbar="true">
       <p><strong>Welcome to Editora!</strong></p>
       <p>This is a <em>framework-agnostic</em> rich text editor with <mark style="background: yellow;">29 native plugins</mark>.</p>
       <p>Try these features:</p>
@@ -224,6 +224,7 @@
       height="300"
       placeholder="Type something here..."
       toolbar="undo redo | bold italic underline strikethrough | link image | alignleft aligncenter alignright"
+      statusbar="true"
     >
     </editora-editor>
     
@@ -250,7 +251,7 @@ const editor = Editora.init('#editor3', {
 });</code>
     </div>
     
-    <editora-editor id="editor3" height="250">
+    <editora-editor id="editor3" height="250" statusbar="true">
       <p>Content controlled via JavaScript API</p>
     </editora-editor>
     
@@ -271,13 +272,13 @@ const editor = Editora.init('#editor3', {
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
       <div>
         <h4>Editor A</h4>
-        <editora-editor id="editorA" height="200">
+        <editora-editor id="editorA" height="200" statusbar="true">
           <p>Editor A content</p>
         </editora-editor>
       </div>
       <div>
         <h4>Editor B</h4>
-        <editora-editor id="editorB" height="200">
+        <editora-editor id="editorB" height="200" statusbar="true">
           <p>Editor B content</p>
         </editora-editor>
       </div>

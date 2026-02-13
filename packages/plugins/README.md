@@ -70,17 +70,17 @@ This package provides a complete set of plugins for building feature-rich text e
 
 ```typescript
 import {
-  createBoldPlugin,
-  createItalicPlugin,
-  createUnderlinePlugin,
-  createStrikethroughPlugin
+  BoldPlugin,
+  ItalicPlugin,
+  UnderlinePlugin,
+  StrikethroughPlugin
 } from '@editora/plugins';
 
 const plugins = [
-  createBoldPlugin(),
-  createItalicPlugin(),
-  createUnderlinePlugin(),
-  createStrikethroughPlugin()
+  BoldPlugin(),
+  ItalicPlugin(),
+  UnderlinePlugin(),
+  StrikethroughPlugin()
 ];
 ```
 
@@ -89,41 +89,70 @@ const plugins = [
 ```typescript
 import {
   // Text formatting
-  createBoldPlugin,
-  createItalicPlugin,
-  createUnderlinePlugin,
-  createFontFamilyPlugin,
-  createFontSizePlugin,
-  createTextColorPlugin,
-  createBackgroundColorPlugin,
-  
+  BoldPlugin,
+  ItalicPlugin,
+  UnderlinePlugin,
+  FontFamilyPlugin,
+  FontSizePlugin,
+  TextColorPlugin,
+  BackgroundColorPlugin,
+
   // Block elements
-  createHeadingPlugin,
-  createParagraphPlugin,
-  createBlockquotePlugin,
-  createCodeSamplePlugin,
-  
+  HeadingPlugin,
+  BlockquotePlugin,
+  CodeSamplePlugin,
+
   // Lists
-  createListPlugin,
-  createChecklistPlugin,
-  createIndentPlugin,
-  createTextAlignmentPlugin,
-  
+  ListPlugin,
+  ChecklistPlugin,
+  IndentPlugin,
+  TextAlignmentPlugin,
+
   // Media
-  createImagePlugin,
-  createLinkPlugin,
-  createTablePlugin,
-  
+  LinkPlugin,
+  TablePlugin,
+  MediaManagerPlugin,
+
   // Advanced
-  createMathPlugin,
-  createCommentsPlugin,
-  createHistoryPlugin,
-  createFullscreenPlugin,
-  createDocumentManagerPlugin
+  MathPlugin,
+  CommentsPlugin,
+  HistoryPlugin,
+  FullscreenPlugin,
+  DocumentManagerPlugin
 } from '@editora/plugins';
 
 const plugins = [
-  // ... initialize all plugins
+  // Text formatting
+  BoldPlugin(),
+  ItalicPlugin(),
+  UnderlinePlugin(),
+  FontFamilyPlugin(),
+  FontSizePlugin(),
+  TextColorPlugin(),
+  BackgroundColorPlugin(),
+
+  // Block elements
+  HeadingPlugin(),
+  BlockquotePlugin(),
+  CodeSamplePlugin(),
+
+  // Lists
+  ListPlugin(),
+  ChecklistPlugin(),
+  IndentPlugin(),
+  TextAlignmentPlugin(),
+
+  // Media
+  LinkPlugin(),
+  TablePlugin(),
+  MediaManagerPlugin(),
+
+  // Advanced
+  MathPlugin(),
+  CommentsPlugin(),
+  HistoryPlugin(),
+  FullscreenPlugin(),
+  DocumentManagerPlugin()
 ];
 ```
 
@@ -133,7 +162,7 @@ const plugins = [
 
 #### Bold Plugin
 ```typescript
-createBoldPlugin(options?: {
+BoldPlugin(options?: {
   keyboard?: string; // Default: 'Mod-b'
   icon?: ReactNode;
   className?: string;
@@ -142,7 +171,7 @@ createBoldPlugin(options?: {
 
 #### Font Family Plugin
 ```typescript
-createFontFamilyPlugin(options?: {
+FontFamilyPlugin(options?: {
   fonts?: Array<{
     name: string;
     value: string;
@@ -152,7 +181,7 @@ createFontFamilyPlugin(options?: {
 })
 
 // Example
-const fontFamilyPlugin = createFontFamilyPlugin({
+const fontFamilyPlugin = FontFamilyPlugin({
   fonts: [
     { name: 'Arial', value: 'Arial, sans-serif' },
     { name: 'Times New Roman', value: 'Times New Roman, serif' },
@@ -163,7 +192,7 @@ const fontFamilyPlugin = createFontFamilyPlugin({
 
 #### Font Size Plugin
 ```typescript
-createFontSizePlugin(options?: {
+FontSizePlugin(options?: {
   sizes?: string[]; // Default: ['8pt', '10pt', '12pt', '14pt', '18pt', '24pt', '36pt']
   defaultSize?: string;
 })
@@ -171,7 +200,7 @@ createFontSizePlugin(options?: {
 
 #### Text Color Plugin
 ```typescript
-createTextColorPlugin(options?: {
+TextColorPlugin(options?: {
   colors?: string[];
   customColors?: boolean;
   recentColors?: boolean;
@@ -182,14 +211,14 @@ createTextColorPlugin(options?: {
 
 #### Heading Plugin
 ```typescript
-createHeadingPlugin(options?: {
+HeadingPlugin(options?: {
   levels?: number[]; // Default: [1, 2, 3, 4, 5, 6]
   defaultLevel?: number;
   keyboard?: Record<number, string>;
 })
 
 // Example
-const headingPlugin = createHeadingPlugin({
+const headingPlugin = HeadingPlugin({
   levels: [1, 2, 3],
   keyboard: {
     1: 'Mod-Alt-1',
@@ -201,7 +230,7 @@ const headingPlugin = createHeadingPlugin({
 
 #### Code Sample Plugin
 ```typescript
-createCodeSamplePlugin(options?: {
+CodeSamplePlugin(options?: {
   languages?: Array<{
     name: string;
     value: string;
@@ -212,7 +241,7 @@ createCodeSamplePlugin(options?: {
 })
 
 // Example
-const codeSamplePlugin = createCodeSamplePlugin({
+const codeSamplePlugin = CodeSamplePlugin({
   languages: [
     { name: 'JavaScript', value: 'javascript' },
     { name: 'TypeScript', value: 'typescript' },
@@ -229,7 +258,7 @@ const codeSamplePlugin = createCodeSamplePlugin({
 
 #### List Plugin
 ```typescript
-createListPlugin(options?: {
+ListPlugin(options?: {
   bulletList?: boolean;
   orderedList?: boolean;
   keyboard?: {
@@ -241,7 +270,7 @@ createListPlugin(options?: {
 
 #### Checklist Plugin
 ```typescript
-createChecklistPlugin(options?: {
+ChecklistPlugin(options?: {
   nested?: boolean;
   keyboard?: string;
 })
@@ -251,7 +280,7 @@ createChecklistPlugin(options?: {
 
 #### Image Plugin
 ```typescript
-createImagePlugin(options: {
+ImagePlugin(options: {
   upload: (file: File) => Promise<string>;
   validate?: (file: File) => boolean;
   maxSize?: number; // bytes
@@ -263,7 +292,7 @@ createImagePlugin(options: {
 })
 
 // Example
-const imagePlugin = createImagePlugin({
+const imagePlugin = ImagePlugin({
   upload: async (file) => {
     const formData = new FormData();
     formData.append('image', file);
@@ -284,7 +313,7 @@ const imagePlugin = createImagePlugin({
 
 #### Link Plugin
 ```typescript
-createLinkPlugin(options?: {
+LinkPlugin(options?: {
   openOnClick?: boolean;
   validate?: (url: string) => boolean;
   onLinkClick?: (url: string) => void;
@@ -293,7 +322,7 @@ createLinkPlugin(options?: {
 })
 
 // Example
-const linkPlugin = createLinkPlugin({
+const linkPlugin = LinkPlugin({
   openOnClick: false,
   validate: (url) => {
     return url.startsWith('http://') || url.startsWith('https://');
@@ -309,7 +338,7 @@ const linkPlugin = createLinkPlugin({
 
 #### Table Plugin
 ```typescript
-createTablePlugin(options?: {
+TablePlugin(options?: {
   allowResize?: boolean;
   defaultRows?: number;
   defaultCols?: number;
@@ -320,7 +349,7 @@ createTablePlugin(options?: {
 })
 
 // Example
-const tablePlugin = createTablePlugin({
+const tablePlugin = TablePlugin({
   allowResize: true,
   defaultRows: 3,
   defaultCols: 3,
@@ -333,7 +362,7 @@ const tablePlugin = createTablePlugin({
 
 #### Math Plugin
 ```typescript
-createMathPlugin(options?: {
+MathPlugin(options?: {
   engine?: 'katex' | 'mathjax';
   inline?: boolean;
   display?: boolean;
@@ -341,7 +370,7 @@ createMathPlugin(options?: {
 })
 
 // Example
-const mathPlugin = createMathPlugin({
+const mathPlugin = MathPlugin({
   engine: 'katex',
   inline: true,
   display: true,
@@ -354,7 +383,7 @@ const mathPlugin = createMathPlugin({
 
 #### Comments Plugin
 ```typescript
-createCommentsPlugin(options?: {
+CommentsPlugin(options?: {
   onCommentAdd?: (comment: Comment) => void;
   onCommentEdit?: (comment: Comment) => void;
   onCommentDelete?: (commentId: string) => void;
@@ -365,7 +394,7 @@ createCommentsPlugin(options?: {
 
 #### Document Manager Plugin
 ```typescript
-createDocumentManagerPlugin(options?: {
+DocumentManagerPlugin(options?: {
   export?: {
     word?: boolean;
     pdf?: boolean;
@@ -381,7 +410,7 @@ createDocumentManagerPlugin(options?: {
 })
 
 // Example
-const documentManagerPlugin = createDocumentManagerPlugin({
+const documentManagerPlugin = DocumentManagerPlugin({
   export: {
     word: true,
     pdf: true,
@@ -393,7 +422,7 @@ const documentManagerPlugin = createDocumentManagerPlugin({
 
 #### Spell Check Plugin
 ```typescript
-createSpellCheckPlugin(options?: {
+SpellCheckPlugin(options?: {
   language?: string; // Default: 'en-US'
   customDictionary?: string[];
   ignoreUppercase?: boolean;
@@ -403,7 +432,7 @@ createSpellCheckPlugin(options?: {
 
 #### Accessibility Checker Plugin
 ```typescript
-createA11yCheckerPlugin(options?: {
+A11yCheckerPlugin(options?: {
   rules?: string[];
   autoCheck?: boolean;
   severity?: 'error' | 'warning' | 'info';
@@ -414,7 +443,7 @@ createA11yCheckerPlugin(options?: {
 
 #### History Plugin
 ```typescript
-createHistoryPlugin(options?: {
+HistoryPlugin(options?: {
   depth?: number; // Default: 100
   keyboard?: {
     undo?: string; // Default: 'Mod-z'
@@ -425,7 +454,7 @@ createHistoryPlugin(options?: {
 
 #### Fullscreen Plugin
 ```typescript
-createFullscreenPlugin(options?: {
+FullscreenPlugin(options?: {
   keyboard?: string; // Default: 'F11'
   onEnter?: () => void;
   onExit?: () => void;
@@ -438,29 +467,29 @@ createFullscreenPlugin(options?: {
 
 ```typescript
 import {
-  createBoldPlugin,
-  createItalicPlugin,
-  createHeadingPlugin,
-  createParagraphPlugin,
-  createLinkPlugin,
-  createImagePlugin,
-  createListPlugin,
-  createBlockquotePlugin,
-  createHistoryPlugin
+  BoldPlugin,
+  ItalicPlugin,
+  HeadingPlugin,
+  ParagraphPlugin,
+  LinkPlugin,
+  ImagePlugin,
+  ListPlugin,
+  BlockquotePlugin,
+  HistoryPlugin
 } from '@editora/plugins';
 
 const blogPlugins = [
-  createBoldPlugin(),
-  createItalicPlugin(),
-  createHeadingPlugin({ levels: [1, 2, 3] }),
-  createLinkPlugin({ targetBlank: true }),
-  createImagePlugin({ 
+  BoldPlugin(),
+  ItalicPlugin(),
+  HeadingPlugin({ levels: [1, 2, 3] }),
+  LinkPlugin({ targetBlank: true }),
+  ImagePlugin({ 
     upload: uploadImage,
     maxSize: 2 * 1024 * 1024 
   }),
-  createListPlugin(),
-  createBlockquotePlugin(),
-  createHistoryPlugin()
+  ListPlugin(),
+  BlockquotePlugin(),
+  HistoryPlugin()
 ];
 ```
 
@@ -468,23 +497,23 @@ const blogPlugins = [
 
 ```typescript
 import {
-  createBoldPlugin,
-  createItalicPlugin,
-  createCodePlugin,
-  createCodeSamplePlugin,
-  createHeadingPlugin,
-  createTablePlugin,
-  createLinkPlugin,
-  createAnchorPlugin,
-  createMathPlugin,
-  createHistoryPlugin
+  BoldPlugin,
+  ItalicPlugin,
+  CodePlugin,
+  CodeSamplePlugin,
+  HeadingPlugin,
+  TablePlugin,
+  LinkPlugin,
+  AnchorPlugin,
+  MathPlugin,
+  HistoryPlugin
 } from '@editora/plugins';
 
 const docsPlugins = [
-  createBoldPlugin(),
-  createItalicPlugin(),
-  createCodePlugin(),
-  createCodeSamplePlugin({
+  BoldPlugin(),
+  ItalicPlugin(),
+  CodePlugin(),
+  CodeSamplePlugin({
     languages: [
       { name: 'JavaScript', value: 'javascript' },
       { name: 'TypeScript', value: 'typescript' },
@@ -492,12 +521,12 @@ const docsPlugins = [
     ],
     lineNumbers: true
   }),
-  createHeadingPlugin(),
-  createTablePlugin({ headerRow: true }),
-  createLinkPlugin(),
-  createAnchorPlugin(),
-  createMathPlugin({ engine: 'katex' }),
-  createHistoryPlugin()
+  HeadingPlugin(),
+  TablePlugin({ headerRow: true }),
+  LinkPlugin(),
+  AnchorPlugin(),
+  MathPlugin({ engine: 'katex' }),
+  HistoryPlugin()
 ];
 ```
 
@@ -505,17 +534,17 @@ const docsPlugins = [
 
 ```typescript
 import {
-  createBoldPlugin,
-  createItalicPlugin,
-  createCommentsPlugin,
-  createHistoryPlugin,
-  createMergeTagPlugin
+  BoldPlugin,
+  ItalicPlugin,
+  CommentsPlugin,
+  HistoryPlugin,
+  MergeTagPlugin
 } from '@editora/plugins';
 
 const collaborativePlugins = [
-  createBoldPlugin(),
-  createItalicPlugin(),
-  createCommentsPlugin({
+  BoldPlugin(),
+  ItalicPlugin(),
+  CommentsPlugin({
     onCommentAdd: async (comment) => {
       await saveComment(comment);
     },
@@ -523,14 +552,14 @@ const collaborativePlugins = [
       await resolveComment(commentId);
     }
   }),
-  createMergeTagPlugin({
+  MergeTagPlugin({
     tags: [
       { label: 'First Name', value: '{{firstName}}' },
       { label: 'Last Name', value: '{{lastName}}' },
       { label: 'Email', value: '{{email}}' }
     ]
   }),
-  createHistoryPlugin()
+  HistoryPlugin()
 ];
 ```
 

@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Editor } from '@editora/core';
-import "./FloatingToolbar.css";
 
 interface FloatingToolbarProps {
   editor: Editor;

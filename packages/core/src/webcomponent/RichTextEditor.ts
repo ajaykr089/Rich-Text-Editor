@@ -7,6 +7,7 @@ import { EditorEngine } from '../core/EditorEngine';
 import { ToolbarRenderer } from '../ui/ToolbarRenderer';
 import { FloatingToolbar } from '../ui/FloatingToolbar';
 import { StatusBar } from '../ui/StatusBar';
+import { getCursorPosition, countLines, calculateTextStats, getSelectionInfo } from '../utils/statusBarUtils';
 import { ConfigResolver, EditorConfigDefaults } from '../config/ConfigResolver';
 import { PluginLoader } from '../config/PluginLoader';
 import { Plugin } from '../plugins/Plugin';
@@ -88,6 +89,7 @@ export class RichTextEditorElement extends HTMLElement {
       'autofocus',
       'language',
       'spellcheck',
+      'statusbar',
     ];
   }
 
@@ -484,13 +486,7 @@ export class RichTextEditorElement extends HTMLElement {
       }));
       
       // Update status bar
-      if (this.statusBar) {
-        const text = this.contentElement!.textContent || '';
-        const wordCount = text.trim().split(/\s+/).filter(Boolean).length;
-        const charCount = text.length;
-        
-        this.statusBar.update({ wordCount, charCount });
-      }
+      this.updateStatusBar();
     });
     
     // Focus/blur
@@ -502,12 +498,13 @@ export class RichTextEditorElement extends HTMLElement {
       this.dispatchEvent(new Event('editor-blur', { bubbles: true }));
     });
     
-    // Selection change for floating toolbar
-    if (this.floatingToolbar) {
-      document.addEventListener('selectionchange', () => {
-        this.updateFloatingToolbar();
-      });
-    }
+    // Selection change for floating toolbar and status bar
+    const updateSelectionInfo = () => {
+      this.updateFloatingToolbar();
+      this.updateStatusBar();
+    };
+
+    document.addEventListener('selectionchange', updateSelectionInfo);
   }
 
   /**
@@ -530,6 +527,41 @@ export class RichTextEditorElement extends HTMLElement {
     
     const rect = range.getBoundingClientRect();
     this.floatingToolbar.show(rect.left, rect.top - 40);
+  }
+
+  /**
+   * Update status bar with selection and cursor information
+   */
+  /**
+   * Update status bar with current content and cursor information
+   */
+  private updateStatusBar(): void {
+    if (!this.statusBar || !this.contentElement) return;
+
+    const text = this.contentElement.textContent || '';
+    const { words, chars } = calculateTextStats(text);
+    const lineCount = countLines(this.contentElement);
+
+    const selection = window.getSelection();
+    let cursorPosition, selectionInfo;
+
+    if (selection && selection.rangeCount > 0) {
+      const range = selection.getRangeAt(0);
+      cursorPosition = getCursorPosition(this.contentElement, range);
+
+      if (!range.collapsed) {
+        selectionInfo = getSelectionInfo(range, cursorPosition);
+        cursorPosition = undefined; // Don't show cursor position when text is selected
+      }
+    }
+
+    this.statusBar.update({
+      wordCount: words,
+      charCount: chars,
+      lineCount,
+      cursorPosition,
+      selectionInfo
+    });
   }
 
   /**

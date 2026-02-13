@@ -11,8 +11,6 @@
   <link rel="stylesheet" href="packages/plugins/dist/plugins.css">
   <!-- Core Styles -->
   <link rel="stylesheet" href="packages/core/dist/core.css">
-  <!-- Theme Styles (includes checklist, tables, etc.) -->
-  <link rel="stylesheet" href="packages/themes/src/themes/default.css">
   
   <style>
     body {
@@ -100,6 +98,7 @@
       height="300"
       plugins="bold italic underline history"
       toolbar-items="undo redo | bold italic underline"
+      statusbar="true"
     >
       <p><strong>Expected:</strong> Toolbar should show: Undo, Redo | Bold, Italic, Underline</p>
     </editora-editor>
@@ -113,6 +112,7 @@
       Using <code>toolbar-items</code> with multiple groups and all 39 native plugins
     </div>
     <editora-editor
+      statusbar="true"
       height="400"
       plugins="bold italic underline strikethrough link table list history clearFormatting heading blockquote code codeSample indent textAlignment textColor backgroundColor fontSize fontFamily lineHeight direction capitalization checklist anchor embedIframe math specialCharacters emojis a11yChecker comments document-manager footnote fullscreen mediaManager mergeTag pageBreak preview print spellCheck template"
       toolbar-items="undo redo | bold italic underline strikethrough | textColor backgroundColor | fontSize fontFamily lineHeight | heading paragraph | textAlignment direction | bullist numlist checklist | indent outdent | link insertImage insertVideo table anchor | code blockquote codeBlock | math specialCharacters emojis | capitalization | embedIframe | importWord exportWord exportPdf | fullscreen preview print | a11yChecker spellCheck | comments footnote insertMergeTag pageBreak template | clearFormatting"
@@ -144,6 +144,7 @@
     <editora-editor
       height="300"
       plugins="bold italic underline link"
+      statusbar="true"
     >
       <p><strong>Expected:</strong> Toolbar should auto-generate from the 4 specified plugins</p>
     </editora-editor>
@@ -162,6 +163,7 @@
       height="150"
       plugins="bold italic"
       toolbar-items="bold italic"
+      statusbar="true"
     >
       <p>This editor can be toggled readonly.</p>
     </editora-editor>
@@ -181,6 +183,7 @@
       plugins="bold italic"
       toolbar-items="bold italic"
       placeholder="Type something here..."
+      statusbar="true"
     ></editora-editor>
   </div>
 
@@ -196,6 +199,7 @@
       plugins="bold italic"
       toolbar-items="bold italic"
       theme="default"
+      statusbar="true"
     >
       <p>Click the button to toggle theme.</p>
     </editora-editor>
@@ -213,6 +217,7 @@
       height="120"
       plugins="bold italic"
       toolbar-items="bold italic"
+      statusbar="true"
     >
       <p>Focus and blur this editor to see events.</p>
     </editora-editor>
@@ -229,6 +234,7 @@
       height="200"
       plugins="bold italic underline"
       toolbar-items="bold italic underline"
+      statusbar="true"
     >
       <p>Edit this text. Changes will be shown below.</p>
     </editora-editor>

@@ -25,6 +25,7 @@ The **best free rich text editor** with enterprise-grade features. A comprehensi
 - ✅ **Tables**: Full table editing with resize and merge
 - ✅ **Code Blocks**: Syntax highlighting for 30+ languages
 - ✅ **History**: Undo/redo with configurable depth
+- ✅ **Status Bar**: Real-time cursor position, word/character counts, and selection info
 
 ### Enterprise Features (All Free)
 - ✅ **Security**: XSS protection, HTML sanitization, content validation
@@ -120,6 +121,44 @@ function MyEditor() {
     />
   );
 }
+```
+
+### Status Bar Configuration
+
+Editora includes a comprehensive status bar that displays real-time editing information.
+
+```typescript
+function EditorWithStatusBar() {
+  return (
+    <EditoraEditor
+      statusbar={true}
+      plugins={[
+        BoldPlugin(),
+        ItalicPlugin(),
+        HeadingPlugin(),
+        HistoryPlugin()
+      ]}
+    />
+  );
+}
+```
+
+#### Status Bar Features
+- **Left Section**: Cursor position (Ln X, Col Y) and selection information
+- **Right Section**: Word count, character count, and line count
+- **Real-time Updates**: Information updates as you type and move the cursor
+- **Selection Tracking**: Shows selected character and word counts when text is selected
+
+#### Web Component Status Bar
+
+```html
+<editora-editor
+  statusbar="true"
+  plugins="bold italic underline history"
+  toolbar-items="bold italic underline | undo redo"
+>
+  <p>Start editing to see status bar updates...</p>
+</editora-editor>
 ```
 
 ### Advanced Configuration

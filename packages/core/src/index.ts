@@ -14,7 +14,7 @@ export { KeyboardShortcutManager } from './KeyboardShortcuts';
 export type { KeyboardShortcut, KeyboardShortcutConfig } from './KeyboardShortcuts';
 
 // Enterprise plugins
-export { createSpellcheckPlugin, createMediaPlugin } from './plugins/enterprise';
+export { SpellcheckPlugin, MediaPlugin } from './plugins/enterprise';
 export type { SpellcheckConfig, MediaConfig } from './plugins/enterprise';
 
 // New architecture exports
@@ -23,6 +23,9 @@ export * from './core';
 
 // UI layer
 export * from './ui';
+
+// Utils
+export * from './utils/statusBarUtils';
 
 // Config layer
 export * from './config';
