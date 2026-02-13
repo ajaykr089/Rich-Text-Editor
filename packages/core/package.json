@@ -58,7 +58,7 @@
     },
     "./webcomponent": {
       "types": "./dist/webcomponent/index.d.ts",
-      "import": "./dist/webcomponent.esm.js",
+      "import": "./dist/webcomponent.js",
       "require": "./dist/webcomponent.cjs.js",
       "browser": "./dist/webcomponent.min.js"
     },

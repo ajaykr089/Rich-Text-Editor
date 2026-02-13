@@ -12,25 +12,40 @@ export default defineConfig({
     lib: {
       entry: 'src/webcomponent/standalone.native.ts',
       name: 'Editora',
-      formats: ['umd', 'iife'],
+      formats: ['es', 'umd'],
       fileName: (format) => {
-        if (format === 'umd') return 'webcomponent.umd.js';
-        if (format === 'iife') return 'webcomponent.min.js';
+        if (format === 'es') return 'webcomponent.js';
+        if (format === 'umd') return 'webcomponent.min.js';
         return `webcomponent.${format}.js`;
       }
     },
     rollupOptions: {
       external: [],
-      output: {
-        globals: {},
-        inlineDynamicImports: true,
-        assetFileNames: (assetInfo) => {
-          if (assetInfo.name?.endsWith('.css')) {
-            return 'webcomponent.min.css';
-          }
-          return assetInfo.name || '[name].[ext]';
+      output: [
+        {
+          format: 'es',
+          inlineDynamicImports: false,
+          globals: {},
+          assetFileNames: (assetInfo) => {
+            if (assetInfo.name?.endsWith('.css')) {
+              return 'webcomponent.min.css';
+            }
+            return assetInfo.name || '[name].[ext]';
+          },
         },
-      }
+        {
+          format: 'umd',
+          name: 'Editora',
+          inlineDynamicImports: true,
+          globals: {},
+          assetFileNames: (assetInfo) => {
+            if (assetInfo.name?.endsWith('.css')) {
+              return 'webcomponent.min.css';
+            }
+            return assetInfo.name || '[name].[ext]';
+          },
+        }
+      ]
     },
     sourcemap: true,
     minify: 'esbuild',

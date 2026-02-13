@@ -202,20 +202,8 @@ export class ToolbarRenderer {
    * Get all available toolbar items from plugins
    */
   private getAvailableToolbarItems(): ToolbarItem[] {
-    let allPlugins = this.plugins;
-    // If we have a plugin loader, get ALL registered plugins for toolbar items
-    if (this.pluginLoader) {
-      const registeredNames = this.pluginLoader.getRegisteredPluginNames();
-      const allRegisteredPlugins = registeredNames
-        .map((name: string) => {
-          // Try to get from already loaded first
-          const loaded = this.pluginLoader.load(name);
-          return loaded;
-        })
-        .filter((p: Plugin | null): p is Plugin => p !== null);
-      allPlugins = allRegisteredPlugins;
-    }
-    const items = allPlugins.flatMap((p) => p.toolbar || []);
+    // Use the plugins that were passed to the constructor - they should be loaded
+    const items = this.plugins.flatMap((p) => p.toolbar || []);
     return items;
   }
 

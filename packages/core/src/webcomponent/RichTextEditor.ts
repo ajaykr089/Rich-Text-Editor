@@ -95,7 +95,6 @@ export class RichTextEditorElement extends HTMLElement {
 
   constructor() {
     super();
-    this.pluginLoader = getGlobalRegistry();
     
     // Inject styles into document head
     injectStyles();
@@ -116,10 +115,38 @@ export class RichTextEditorElement extends HTMLElement {
     // Resolve configuration
     this.config = this.resolveConfig();
     
-    // Defer initialization to ensure DOM is fully ready
-    setTimeout(() => {
-      this.initialize();
-    }, 0);
+    // Wait for plugin loader to be available, then initialize
+    this.waitForPluginLoader().then(() => {
+      // Defer initialization to ensure DOM is fully ready
+      setTimeout(async () => {
+        await this.initialize();
+      }, 0);
+    });
+  }
+
+  /**
+   * Wait for the global plugin loader to be available
+   */
+  private async waitForPluginLoader(): Promise<void> {
+    // If already available, return immediately
+    if ((RichTextEditorElement as any).__globalPluginLoader) {
+      this.pluginLoader = (RichTextEditorElement as any).__globalPluginLoader;
+      return;
+    }
+    
+    // Wait for it to become available
+    return new Promise((resolve) => {
+      const checkLoader = () => {
+        if ((RichTextEditorElement as any).__globalPluginLoader) {
+          this.pluginLoader = (RichTextEditorElement as any).__globalPluginLoader;
+          resolve();
+        } else {
+          // Check again in next tick
+          setTimeout(checkLoader, 0);
+        }
+      };
+      checkLoader();
+    });
   }
 
   /**
@@ -143,21 +170,22 @@ export class RichTextEditorElement extends HTMLElement {
   /**
    * Set configuration via JavaScript API
    */
-  setConfig(config: EditorConfigDefaults): void {
+  async setConfig(config: EditorConfigDefaults): Promise<void> {
     this.jsConfig = config;
     this.config = this.resolveConfig();
     
     // Reinitialize if already connected
     if (this.isConnected) {
       this.destroy();
-      this.initialize();
+      await this.waitForPluginLoader();
+      await this.initialize();
     }
   }
 
   /**
    * Initialize the editor
    */
-  private initialize(): void {
+  private async initialize(): Promise<void> {
     // Prevent re-initialization if already has toolbar
     if (this.querySelector('.editora-toolbar')) {
       return;
@@ -192,7 +220,7 @@ export class RichTextEditorElement extends HTMLElement {
     }
     
     // Load plugins
-    const plugins = this.loadPlugins();
+    const plugins = await this.loadPlugins();
     
     // Initialize plugins (call init hooks)
     plugins.forEach(plugin => {
@@ -266,7 +294,12 @@ export class RichTextEditorElement extends HTMLElement {
   /**
    * Load plugins based on configuration
    */
-  private loadPlugins(): Plugin[] {
+  private async loadPlugins(): Promise<Plugin[]> {
+    // Ensure plugin loader is available
+    if (!this.pluginLoader) {
+      await this.waitForPluginLoader();
+    }
+    
     const plugins: Plugin[] = [];
     
     // Check if plugins are explicitly configured (non-empty array or string)
@@ -278,23 +311,23 @@ export class RichTextEditorElement extends HTMLElement {
     if (hasPluginConfig) {
       if (typeof this.config.plugins === 'string') {
         // Parse plugin string
-        const loadedPlugins = this.pluginLoader.parsePluginString(this.config.plugins);
+        const loadedPlugins = await this.pluginLoader.parsePluginString(this.config.plugins);
         plugins.push(...loadedPlugins);
       } else if (Array.isArray(this.config.plugins)) {
         // Already plugin instances or names
-        this.config.plugins.forEach(p => {
+        for (const p of this.config.plugins) {
           if (typeof p === 'string') {
-            const plugin = this.pluginLoader.load(p);
+            const plugin = await this.pluginLoader.load(p);
             if (plugin) plugins.push(plugin);
           } else {
             plugins.push(p as Plugin);
           }
-        });
+        }
       }
     } else {
       // No plugins specified - load all registered plugins
       const registeredNames = this.pluginLoader.getRegisteredPluginNames();
-      const loadedPlugins = this.pluginLoader.loadMultiple(registeredNames);
+      const loadedPlugins = await this.pluginLoader.loadMultiple(registeredNames);
       plugins.push(...loadedPlugins);
     }
     return plugins;
@@ -603,7 +636,11 @@ export class RichTextEditorElement extends HTMLElement {
         // These require re-initialization
         if (this.isConnected) {
           this.destroy();
-          this.initialize();
+          this.waitForPluginLoader().then(() => {
+            this.initialize().catch(error => {
+              console.error('[RichTextEditor] Error during attribute change re-initialization:', error);
+            });
+          });
         }
         break;
     }
