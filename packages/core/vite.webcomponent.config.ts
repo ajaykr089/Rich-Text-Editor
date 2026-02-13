@@ -12,19 +12,40 @@ export default defineConfig({
     lib: {
       entry: 'src/webcomponent/standalone.native.ts',
       name: 'Editora',
-      formats: ['umd', 'iife'],
+      formats: ['es', 'umd'],
       fileName: (format) => {
-        if (format === 'umd') return 'webcomponent.umd.js';
-        if (format === 'iife') return 'webcomponent.min.js';
+        if (format === 'es') return 'webcomponent.js';
+        if (format === 'umd') return 'webcomponent.min.js';
         return `webcomponent.${format}.js`;
       }
     },
     rollupOptions: {
       external: [],
-      output: {
-        globals: {},
-        inlineDynamicImports: true,
-      }
+      output: [
+        {
+          format: 'es',
+          inlineDynamicImports: false,
+          globals: {},
+          assetFileNames: (assetInfo) => {
+            if (assetInfo.name?.endsWith('.css')) {
+              return 'webcomponent.min.css';
+            }
+            return assetInfo.name || '[name].[ext]';
+          },
+        },
+        {
+          format: 'umd',
+          name: 'Editora',
+          inlineDynamicImports: true,  // Inline for UMD to work as regular script
+          globals: {},
+          assetFileNames: (assetInfo) => {
+            if (assetInfo.name?.endsWith('.css')) {
+              return 'webcomponent.min.css';
+            }
+            return assetInfo.name || '[name].[ext]';
+          },
+        }
+      ]
     },
     sourcemap: true,
     minify: 'esbuild',
@@ -32,7 +53,10 @@ export default defineConfig({
     commonjsOptions: {
       include: [/node_modules/, /packages/],
       transformMixedEsModules: true,
-    }
+    },
+    // Enable CSS extraction
+    cssCodeSplit: false,
+    cssMinify: true,
   },
   resolve: {
     alias: {

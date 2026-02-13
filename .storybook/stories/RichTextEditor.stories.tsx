@@ -132,8 +132,9 @@ export const Basic: Story = {
   render: () => (
     <EditoraEditor
       plugins={allNativePlugins}
+      statusbar={{ enabled: true , position: "bottom" }}
       defaultValue={`
-        <h2>Welcome to Editora!</h2>
+        <h2>Welcome to Editora!!</h2>
         <p>This is a <strong>framework-agnostic</strong> rich text editor with <mark style="background: #ffeb3b;">37 native plugins</mark>.</p>
         <p>✨ <strong>Key Features:</strong></p>
         <ul>
@@ -200,6 +201,7 @@ export const WebComponentAPI: Story = {
         <div ref={editorRef}>
           <EditoraEditor
             plugins={allNativePlugins}
+            statusbar={{ enabled: true }}
             defaultValue={`
               <h3>Web Component API Demo</h3>
               <p>This editor can be controlled via the global <code>window.Editora</code> object.</p>
@@ -243,6 +245,7 @@ export const AllPluginsShowcase: Story = {
 
       <EditoraEditor
         plugins={allNativePlugins}
+        statusbar={{ enabled: true }}
         defaultValue={`
           <h1>🎨 All Plugin Features</h1>
           
@@ -320,6 +323,7 @@ export const CustomToolbar: Story = {
           LinkPlugin(),
           HistoryPlugin(),
         ]}
+        statusbar={{ enabled: true }}
         toolbar={{
           items: "undo redo | bold italic underline strikethrough | link",
           sticky: true,
@@ -353,6 +357,7 @@ export const ReadonlyMode: Story = {
 
         <EditoraEditor
           plugins={allNativePlugins}
+          statusbar={{ enabled: true }}
           readonly={readonly}
           defaultValue={`
             <h2>Readonly Content</h2>
@@ -391,6 +396,7 @@ export const EventHandling: Story = {
       <div>
         <EditoraEditor
           plugins={allNativePlugins}
+          statusbar={{ enabled: true }}
           onChange={handleChange}
           defaultValue={`
             <h2>Try typing here!</h2>
@@ -428,6 +434,7 @@ export const MathEquations: Story = {
 
       <EditoraEditor
         plugins={allNativePlugins}
+        statusbar={{ enabled: true }}
         defaultValue={`
           <h2>Mathematical Equations</h2>
           <p>Inline equation: <span data-math-inline="true" data-latex="E = mc^2" class="math-inline">$E = mc^2$</span></p>
@@ -462,6 +469,7 @@ export const SpecialContent: Story = {
 
       <EditoraEditor
         plugins={allNativePlugins}
+        statusbar={{ enabled: true }}
         defaultValue={`
           <h2>Special Characters & Emojis</h2>
           
@@ -501,6 +509,7 @@ export const Tables: Story = {
 
       <EditoraEditor
         plugins={allNativePlugins}
+        statusbar={{ enabled: true }}
         defaultValue={`
           <h2>Tables</h2>
           <p>Below is an example table:</p>
@@ -574,6 +583,7 @@ export const MultipleEditors: Story = {
             <h4>Editor A</h4>
             <EditoraEditor
               plugins={allNativePlugins}
+              statusbar={{ enabled: true }}
               onChange={setContentA}
               defaultValue="<h3>Editor A</h3><p>Type here...</p>"
             />
@@ -582,6 +592,7 @@ export const MultipleEditors: Story = {
             <h4>Editor B</h4>
             <EditoraEditor
               plugins={allNativePlugins}
+              statusbar={{ enabled: true }}
               value={contentB}
               onChange={setContentB}
               defaultValue="<h3>Editor B</h3><p>Type here...</p>"
@@ -627,6 +638,7 @@ export const ControlledEditor: Story = {
 
         <EditoraEditor
           plugins={allNativePlugins}
+          statusbar={{ enabled: true }}
           value={value}
           onChange={setValue}
         />
@@ -669,6 +681,7 @@ export const PerformanceLargeDocument: Story = {
 
         <EditoraEditor
           plugins={allNativePlugins}
+          statusbar={{ enabled: true }}
           defaultValue={generateLargeContent()}
         />
       </div>
@@ -711,6 +724,7 @@ export const FrameworkIndependence: Story = {
 
       <EditoraEditor
         plugins={allNativePlugins}
+        statusbar={{ enabled: true }}
         defaultValue={`
           <h2>🚀 Universal Editor</h2>
           <p><strong>Zero framework dependencies!</strong></p>

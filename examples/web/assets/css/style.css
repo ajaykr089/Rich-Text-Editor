@@ -305,7 +305,7 @@ nav {
 
 .btn-outline {
     background: transparent;
-    color: var(--primary);
+    color: var(--white);
     border: 2px solid var(--primary);
 }
 

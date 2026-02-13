@@ -21,7 +21,7 @@ export interface SpellcheckConfig {
  * Spellcheck plugin
  * Non-functional scaffold - demonstrates enterprise plugin structure
  */
-export function createSpellcheckPlugin(config: SpellcheckConfig = {}): Plugin {
+export function SpellcheckPlugin(config: SpellcheckConfig = {}): Plugin {
   const {
     enabled = false,
     provider = 'browser',

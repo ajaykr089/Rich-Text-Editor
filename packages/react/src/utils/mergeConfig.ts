@@ -15,6 +15,10 @@ const DEFAULT_CONFIG: Omit<EditorConfig, 'id' | 'className' | 'value' | 'default
     floating: false,
     sticky: false,
   },
+  statusbar: {
+    enabled: false,
+    position: 'bottom',
+  },
   menubar: {
     enabled: false,
     items: [],
@@ -113,6 +117,7 @@ export function mergeConfig(props: RichTextEditorProps): EditorConfig {
   // Start with defaults
   const config = deepMerge(DEFAULT_CONFIG, {
     toolbar: props.toolbar,
+    statusbar: props.statusbar,
     menubar: props.menubar,
     contextMenu: props.contextMenu,
     media: props.media,

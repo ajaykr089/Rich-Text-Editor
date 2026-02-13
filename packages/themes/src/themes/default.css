@@ -146,27 +146,25 @@
 /* Expanded row for hidden items - Slides down inline */
 .rte-toolbar-expanded-row {
   display: flex;
-  gap: 4px;
-  padding: 8px;
-  background: #f5f5f5;
-  border: 1px solid #ddd;
-  border-top: none;
-  max-height: 0;
-  overflow: hidden;
-  opacity: 0;
-  visibility: hidden;
   transform: scaleY(0);
   transform-origin: top;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  flex-wrap: wrap;
-  align-items: center;
+  max-height: 0;
+  padding: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: transform 0.25s ease, opacity 0.2s ease, max-height 0.25s ease;
 }
 
 .rte-toolbar-expanded-row.show {
-  max-height: 200px;
-  opacity: 1;
-  visibility: visible;
   transform: scaleY(1);
+  max-height: 200px;
+  padding: 8px;
+  padding-top:1px;
+  opacity: 1;
+  background: #f5f5f5;
+  border: 1px solid #ddd;
+  border-top: none;
+  gap: 4px;
 }
 
 .rte-content {
@@ -538,4 +536,68 @@
 .rte-content li[data-type="checklist-item"][data-checked="true"] p {
   text-decoration: line-through;
   color: #666;
+}
+
+/* Status bar container */
+.editora-statusbar-container {
+  display: flex;
+  flex-direction: column;
+}
+.rte-editor {
+  .editora-statusbar-bottom{
+    top: -32px;
+  }
+}
+.editora-statusbar-bottom{
+  position: relative;
+  border-left: 1px solid rgb(221, 221, 221);
+  border-right: 1px solid rgb(221, 221, 221);
+}
+/* Status bar */
+.editora-statusbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 12px;
+  background: #f5f5f5;
+  border-top: 1px solid #ddd;
+  font-size: 12px;
+  color: #666;
+}
+
+.editora-theme-dark .editora-statusbar {
+  background: #252526;
+  border-top-color: #3c3c3c;
+  color: #9a9a9a;
+}
+
+.editora-statusbar-top {
+  border-top: none;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.editora-statusbar-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.editora-statusbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.editora-statusbar-item {
+  white-space: nowrap;
+  padding: 2px 4px;
+}
+
+.editora-statusbar-separator {
+  color: #ddd;
+}
+
+.editora-theme-dark .editora-statusbar-separator {
+  color: #3c3c3c;
 }

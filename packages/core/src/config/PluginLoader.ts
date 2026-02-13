@@ -12,19 +12,19 @@ export interface PluginLoadConfig {
 
 export class PluginLoader {
   private loadedPlugins: Map<string, Plugin> = new Map();
-  private pluginRegistry: Map<string, () => Plugin> = new Map();
+  private pluginRegistry: Map<string, () => Plugin | Promise<Plugin>> = new Map();
 
   /**
-   * Register a plugin factory
+   * Register a plugin factory (sync or async)
    */
-  register(name: string, factory: () => Plugin): void {
+  register(name: string, factory: () => Plugin | Promise<Plugin>): void {
     this.pluginRegistry.set(name, factory);
   }
 
   /**
-   * Load a plugin by name
+   * Load a plugin by name (async)
    */
-  load(name: string, config?: PluginLoadConfig): Plugin | null {
+  async load(name: string, config?: PluginLoadConfig): Promise<Plugin | null> {
     // Check if already loaded
     if (this.loadedPlugins.has(name)) {
       return this.loadedPlugins.get(name)!;
@@ -37,8 +37,8 @@ export class PluginLoader {
       return null;
     }
     
-    // Create plugin instance
-    const plugin = factory();
+    // Create plugin instance (may be async)
+    const plugin = await factory();
     
     // Apply config if provided
     if (config) {
@@ -52,16 +52,17 @@ export class PluginLoader {
   /**
    * Load multiple plugins
    */
-  loadMultiple(names: string[], config?: PluginLoadConfig): Plugin[] {
-    return names
-      .map(name => this.load(name, config))
-      .filter((p): p is Plugin => p !== null);
+  async loadMultiple(names: string[], config?: PluginLoadConfig): Promise<Plugin[]> {
+    const plugins = await Promise.all(
+      names.map(name => this.load(name, config))
+    );
+    return plugins.filter((p): p is Plugin => p !== null);
   }
 
   /**
    * Parse plugin string "lists link image media"
    */
-  parsePluginString(pluginString: string, config?: PluginLoadConfig): Plugin[] {
+  async parsePluginString(pluginString: string, config?: PluginLoadConfig): Promise<Plugin[]> {
     const names = pluginString.split(/\s+/).filter(Boolean);
     return this.loadMultiple(names, config);
   }
@@ -89,10 +90,10 @@ export class PluginLoader {
   }
 
   /**
-   * Get all loaded plugin names
+   * Get all loaded plugins
    */
-  getLoadedPluginNames(): string[] {
-    return Array.from(this.loadedPlugins.keys());
+  getLoadedPlugins(): Plugin[] {
+    return Array.from(this.loadedPlugins.values());
   }
 
   /**

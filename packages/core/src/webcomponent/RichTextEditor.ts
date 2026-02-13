@@ -7,6 +7,7 @@ import { EditorEngine } from '../core/EditorEngine';
 import { ToolbarRenderer } from '../ui/ToolbarRenderer';
 import { FloatingToolbar } from '../ui/FloatingToolbar';
 import { StatusBar } from '../ui/StatusBar';
+import { getCursorPosition, countLines, calculateTextStats, getSelectionInfo } from '../utils/statusBarUtils';
 import { ConfigResolver, EditorConfigDefaults } from '../config/ConfigResolver';
 import { PluginLoader } from '../config/PluginLoader';
 import { Plugin } from '../plugins/Plugin';
@@ -88,12 +89,12 @@ export class RichTextEditorElement extends HTMLElement {
       'autofocus',
       'language',
       'spellcheck',
+      'statusbar',
     ];
   }
 
   constructor() {
     super();
-    this.pluginLoader = getGlobalRegistry();
     
     // Inject styles into document head
     injectStyles();
@@ -114,10 +115,38 @@ export class RichTextEditorElement extends HTMLElement {
     // Resolve configuration
     this.config = this.resolveConfig();
     
-    // Defer initialization to ensure DOM is fully ready
-    setTimeout(() => {
-      this.initialize();
-    }, 0);
+    // Wait for plugin loader to be available, then initialize
+    this.waitForPluginLoader().then(() => {
+      // Defer initialization to ensure DOM is fully ready
+      setTimeout(async () => {
+        await this.initialize();
+      }, 0);
+    });
+  }
+
+  /**
+   * Wait for the global plugin loader to be available
+   */
+  private async waitForPluginLoader(): Promise<void> {
+    // If already available, return immediately
+    if ((RichTextEditorElement as any).__globalPluginLoader) {
+      this.pluginLoader = (RichTextEditorElement as any).__globalPluginLoader;
+      return;
+    }
+    
+    // Wait for it to become available
+    return new Promise((resolve) => {
+      const checkLoader = () => {
+        if ((RichTextEditorElement as any).__globalPluginLoader) {
+          this.pluginLoader = (RichTextEditorElement as any).__globalPluginLoader;
+          resolve();
+        } else {
+          // Check again in next tick
+          setTimeout(checkLoader, 0);
+        }
+      };
+      checkLoader();
+    });
   }
 
   /**
@@ -141,21 +170,22 @@ export class RichTextEditorElement extends HTMLElement {
   /**
    * Set configuration via JavaScript API
    */
-  setConfig(config: EditorConfigDefaults): void {
+  async setConfig(config: EditorConfigDefaults): Promise<void> {
     this.jsConfig = config;
     this.config = this.resolveConfig();
     
     // Reinitialize if already connected
     if (this.isConnected) {
       this.destroy();
-      this.initialize();
+      await this.waitForPluginLoader();
+      await this.initialize();
     }
   }
 
   /**
    * Initialize the editor
    */
-  private initialize(): void {
+  private async initialize(): Promise<void> {
     // Prevent re-initialization if already has toolbar
     if (this.querySelector('.editora-toolbar')) {
       return;
@@ -190,13 +220,14 @@ export class RichTextEditorElement extends HTMLElement {
     }
     
     // Load plugins
-    const plugins = this.loadPlugins();
+    const plugins = await this.loadPlugins();
     
     // Initialize plugins (call init hooks)
     plugins.forEach(plugin => {
       if (plugin.init && typeof plugin.init === 'function') {
         try {
-          plugin.init();
+          // Pass the web component element as context for plugins that need it
+          plugin.init({ editorElement: this });
         } catch (error) {
           console.error(`[RichTextEditor] Error initializing plugin ${plugin.name}:`, error);
         }
@@ -263,7 +294,12 @@ export class RichTextEditorElement extends HTMLElement {
   /**
    * Load plugins based on configuration
    */
-  private loadPlugins(): Plugin[] {
+  private async loadPlugins(): Promise<Plugin[]> {
+    // Ensure plugin loader is available
+    if (!this.pluginLoader) {
+      await this.waitForPluginLoader();
+    }
+    
     const plugins: Plugin[] = [];
     
     // Check if plugins are explicitly configured (non-empty array or string)
@@ -275,23 +311,23 @@ export class RichTextEditorElement extends HTMLElement {
     if (hasPluginConfig) {
       if (typeof this.config.plugins === 'string') {
         // Parse plugin string
-        const loadedPlugins = this.pluginLoader.parsePluginString(this.config.plugins);
+        const loadedPlugins = await this.pluginLoader.parsePluginString(this.config.plugins);
         plugins.push(...loadedPlugins);
       } else if (Array.isArray(this.config.plugins)) {
         // Already plugin instances or names
-        this.config.plugins.forEach(p => {
+        for (const p of this.config.plugins) {
           if (typeof p === 'string') {
-            const plugin = this.pluginLoader.load(p);
+            const plugin = await this.pluginLoader.load(p);
             if (plugin) plugins.push(plugin);
           } else {
             plugins.push(p as Plugin);
           }
-        });
+        }
       }
     } else {
       // No plugins specified - load all registered plugins
       const registeredNames = this.pluginLoader.getRegisteredPluginNames();
-      const loadedPlugins = this.pluginLoader.loadMultiple(registeredNames);
+      const loadedPlugins = await this.pluginLoader.loadMultiple(registeredNames);
       plugins.push(...loadedPlugins);
     }
     return plugins;
@@ -484,13 +520,7 @@ export class RichTextEditorElement extends HTMLElement {
       }));
       
       // Update status bar
-      if (this.statusBar) {
-        const text = this.contentElement!.textContent || '';
-        const wordCount = text.trim().split(/\s+/).filter(Boolean).length;
-        const charCount = text.length;
-        
-        this.statusBar.update({ wordCount, charCount });
-      }
+      this.updateStatusBar();
     });
     
     // Focus/blur
@@ -502,12 +532,13 @@ export class RichTextEditorElement extends HTMLElement {
       this.dispatchEvent(new Event('editor-blur', { bubbles: true }));
     });
     
-    // Selection change for floating toolbar
-    if (this.floatingToolbar) {
-      document.addEventListener('selectionchange', () => {
-        this.updateFloatingToolbar();
-      });
-    }
+    // Selection change for floating toolbar and status bar
+    const updateSelectionInfo = () => {
+      this.updateFloatingToolbar();
+      this.updateStatusBar();
+    };
+
+    document.addEventListener('selectionchange', updateSelectionInfo);
   }
 
   /**
@@ -530,6 +561,41 @@ export class RichTextEditorElement extends HTMLElement {
     
     const rect = range.getBoundingClientRect();
     this.floatingToolbar.show(rect.left, rect.top - 40);
+  }
+
+  /**
+   * Update status bar with selection and cursor information
+   */
+  /**
+   * Update status bar with current content and cursor information
+   */
+  private updateStatusBar(): void {
+    if (!this.statusBar || !this.contentElement) return;
+
+    const text = this.contentElement.textContent || '';
+    const { words, chars } = calculateTextStats(text);
+    const lineCount = countLines(this.contentElement);
+
+    const selection = window.getSelection();
+    let cursorPosition, selectionInfo;
+
+    if (selection && selection.rangeCount > 0) {
+      const range = selection.getRangeAt(0);
+      cursorPosition = getCursorPosition(this.contentElement, range);
+
+      if (!range.collapsed) {
+        selectionInfo = getSelectionInfo(range, cursorPosition);
+        cursorPosition = undefined; // Don't show cursor position when text is selected
+      }
+    }
+
+    this.statusBar.update({
+      wordCount: words,
+      charCount: chars,
+      lineCount,
+      cursorPosition,
+      selectionInfo
+    });
   }
 
   /**
@@ -570,7 +636,11 @@ export class RichTextEditorElement extends HTMLElement {
         // These require re-initialization
         if (this.isConnected) {
           this.destroy();
-          this.initialize();
+          this.waitForPluginLoader().then(() => {
+            this.initialize().catch(error => {
+              console.error('[RichTextEditor] Error during attribute change re-initialization:', error);
+            });
+          });
         }
         break;
     }
