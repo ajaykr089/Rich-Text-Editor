@@ -84,6 +84,59 @@ A modern, framework-agnostic toast notification library designed for enterprise 
 npm install @editora/toast
 ```
 
+## 🌐 CDN Usage
+
+You can also use Editora Toast directly from a CDN without installing it via npm. Include the following scripts in your HTML:
+### Examples
+``` https://editora-free.netlify.app/toast-demo.html ```
+### Basic CDN Setup
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My App</title>
+  
+  <!-- Include the CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@editora/toast@latest/dist/toast.css">
+</head>
+<body>
+  <!-- Your content here -->
+  
+  <!-- Include the JavaScript -->
+  <script src="https://cdn.jsdelivr.net/npm/@editora/toast@latest/dist/index.umd.js"></script>
+  
+  <script>
+    // Now you can use the toast functions
+    toast.success('Hello from CDN!');
+    toast.error('Something went wrong!');
+    toast.info('This is an info message');
+    toast.warning('This is a warning');
+    
+    // Advanced usage
+    const notification = toast.show({
+      message: 'File uploaded successfully!',
+      level: 'success',
+      icon: '✓',
+      actions: [
+        { label: 'View', onClick: () => console.log('View clicked') },
+        { label: 'Dismiss', onClick: () => notification.dismiss() }
+      ]
+    });
+  </script>
+</body>
+</html>
+```
+
+### CDN URLs
+
+- **JavaScript**: `https://cdn.jsdelivr.net/npm/@editora/toast@latest/dist/index.umd.js`
+- **CSS**: `https://cdn.jsdelivr.net/npm/@editora/toast@latest/dist/toast.css`
+
+> **Note**: Replace `@latest` with a specific version number (e.g., `@2.0.0`) for production use to avoid unexpected updates.
+
 ## 🚀 Quick Start
 
 ### Basic Usage (Backward Compatible)
@@ -841,4 +894,4 @@ toast.configure({
 });
 ```
 
-For more detailed migration information, see the [migration guide](../MIGRATION_GUIDE.md).
+For more detailed migration information, see the [migration guide](./MIGRATION_GUIDE.md).
