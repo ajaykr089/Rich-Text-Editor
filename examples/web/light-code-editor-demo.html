@@ -10,9 +10,8 @@
     <meta property="og:description" content="Light-weight syntax-highlighted code editor component for the web. Fast, extensible, and plugin-friendly — use via npm or CDN.">
     <meta property="og:type" content="website">
     <link rel="stylesheet" href="assets/css/style.css">
-    <!-- Styles: optional package / CDN stylesheet for editor UI -->
-    <!-- CDN example (copy the version): -->
-    <!-- <link rel="stylesheet" href="https://unpkg.com/@editora/light-code-editor@1.0.2/dist/light-code-editor.css"> -->
+    <!-- Styles: load published package stylesheet from CDN -->
+    <link rel="stylesheet" href="https://unpkg.com/@editora/light-code-editor@1.0.3/dist/light-code-editor.css">
     <style>
         .editor-demo {
             max-width: 980px;
@@ -67,7 +66,7 @@ editor.use(new SyntaxHighlightingExtension());</code></pre>
 
             <h3 style="margin-top:18px">CDN / UMD</h3>
             <p>Load the UMD bundle and instantiate from the global API (UMD names vary by build):</p>
-            <pre class="sample"><code>&lt;script src="/packages/light-code-editor/dist/index.umd.js"&gt;&lt;/script&gt;
+            <pre class="sample"><code>&lt;script src="https://unpkg.com/@editora/light-code-editor@1.0.3/dist/index.umd.js"&gt;&lt;/script&gt;
 &lt;script&gt;
   // Example: window.LightCodeEditor or global exports may be available
   // const editor = new window.LightCodeEditor(...)
@@ -165,6 +164,9 @@ editor.use(ext);</code></pre>
 
     <!-- Include main site JS to add copy buttons on pre/code blocks -->
     <script src="assets/js/main.js"></script>
+
+    <!-- Load published UMD bundle from CDN (provides global `LightCodeEditor`) -->
+    <script src="https://unpkg.com/@editora/light-code-editor@1.0.3/dist/index.umd.js"></script>
 
     <script>
         // Playground behavior: prefer the bundled editor API when available (UMD -> window.LightCodeEditor).
