@@ -1,7 +1,7 @@
 {
   "name": "@editora/light-code-editor",
   "version": "1.0.2",
-  "description": "Lightweight, extensible code editor library inspired by CodeMirror",
+  "description": "Lightweight, extensible code editor for the web — syntax highlighting, line numbers, code folding, and a plugin-friendly API. Ideal for embedding in docs, demos, and web apps.",
   "authors": [
     "Ajay Kumar <ajaykr089@gmail.com>"
   ],
@@ -25,11 +25,29 @@
   },
   "keywords": [
     "code-editor",
-    "codemirror",
-    "lightweight",
-    "extensible",
-    "typescript"
+    "lightweight-editor",
+    "syntax-highlighting",
+    "javascript-editor",
+    "typescript-editor",
+    "web-editor",
+    "code-playground",
+    "line-numbers",
+    "code-folding",
+    "plugin-friendly"
   ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ajaykr089/Editora.git",
+    "directory": "packages/light-code-editor"
+  },
+  "homepage": "https://github.com/ajaykr089/Editora#readme",
+  "bugs": {
+    "url": "https://github.com/ajaykr089/Editora/issues"
+  },
+  "style": "dist/light-code-editor.css",
+  "publishConfig": {
+    "access": "public"
+  },
   "author": "Ajay Kumar <ajaykr089@gmail.com>",
   "license": "MIT",
   "devDependencies": {
