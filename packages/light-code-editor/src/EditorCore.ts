@@ -30,6 +30,12 @@ export class EditorCore implements EditorAPI {
   private folds: FoldRange[] = [];
   private currentTheme = 'default';
   private isDestroyed = false;
+  private undoStack: Array<string | { text: string; cursorOffset?: number; anchorOffset?: number; focusOffset?: number }> = [];
+  private redoStack: Array<string | { text: string; cursorOffset?: number; anchorOffset?: number; focusOffset?: number }> = [];
+  private suppressHistory = false;
+  // When true, callers are about to set the cursor programmatically after a render
+  // and we should not auto-restore the caret from a saved offset (avoids clobbering).
+  private expectingProgrammaticCursor: boolean = false;
 
   // Public accessors for extensions
   public getTextModel(): TextModel {
@@ -62,8 +68,6 @@ export class EditorCore implements EditorAPI {
 
     // Initialize view
     this.view = new View(container);
-    this.view.setText(this.textModel.getText());
-    this.view.setReadOnly(this.config.readOnly || false);
 
     // Setup event handlers
     this.setupEventHandlers();
@@ -75,6 +79,27 @@ export class EditorCore implements EditorAPI {
 
     // Apply initial theme
     this.setTheme(this.config.theme!);
+
+    // Apply read-only state
+    this.view.setReadOnly(this.config.readOnly || false);
+
+    // Render initial text (use highlighting if available)
+    this.renderTextWithHighlight(this.textModel.getText());
+
+    // Register built-in commands
+    this.registerBuiltInCommands();
+  }
+
+  // Register built-in editor commands like undo/redo/insertTab
+  private registerBuiltInCommands(): void {
+    this.registerCommand('undo', () => this.undo());
+    this.registerCommand('redo', () => this.redo());
+    this.registerCommand('insertTab', () => this.insertTab());
+    // Provide a default 'save' command so consumers can call it even if not wired.
+    // Default 'save' command: emit a 'save' event so consumers can listen via `on('save', ...)`.
+    this.registerCommand('save', () => {
+      this.emit('save');
+    });
   }
 
   // Get keymap extension if available
@@ -92,9 +117,34 @@ export class EditorCore implements EditorAPI {
       const oldText = this.textModel.getText();
 
       if (newText !== oldText) {
+        if (!this.suppressHistory) {
+          // capture cursor and selection offsets so undo can restore caret/selection
+          const cursorPos = this.getCursor().position;
+          const cursorOffset = this.textModel.positionToOffset(cursorPos);
+          const sel = this.getSelection();
+          let anchorOffset: number | undefined;
+          let focusOffset: number | undefined;
+          if (sel) {
+            anchorOffset = this.textModel.positionToOffset(sel.start);
+            focusOffset = this.textModel.positionToOffset(sel.end);
+          }
+          this.undoStack.push({ text: oldText, cursorOffset, anchorOffset, focusOffset });
+          // limit stack
+          if (this.undoStack.length > 100) this.undoStack.shift();
+          this.redoStack.length = 0;
+        }
+
         this.textModel.setText(newText);
-        this.emit('change', [{ range: this.getFullRange(), text: newText, oldText }]);
+        // Debounce re-render to avoid frequent DOM replacements during fast typing.
+        if (this.highlightTimeout) clearTimeout(this.highlightTimeout);
+        this.highlightTimeout = setTimeout(() => {
+          // When typing, don't force selection restore; keep caret where the browser placed it.
+          this.renderTextWithHighlight(this.textModel.getText(), false);
+          this.highlightTimeout = null;
+        }, 300);
+
         this.updateLineNumbers();
+        this.emit('change', [{ range: this.getFullRange(), text: newText, oldText }]);
       }
     });
 
@@ -112,6 +162,99 @@ export class EditorCore implements EditorAPI {
     // Handle keyboard events
     contentElement.addEventListener('keydown', (e) => {
       this.emit('keydown', e);
+
+      // Handle Tab key directly to ensure consistent insertion
+      if (e.key === 'Tab') {
+        if (!this.config.readOnly) {
+          this.insertTab();
+        }
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
+
+      // Handle Enter: insert newline into the editable DOM, then update model.
+      if (e.key === 'Enter') {
+        if (!this.config.readOnly) {
+          const selection = window.getSelection();
+          if (selection && selection.rangeCount > 0) {
+            // Capture pre-change state for history (before DOM mutation)
+            const preCursorPos = this.getCursor().position;
+            const preCursorOffset = this.textModel.positionToOffset(preCursorPos);
+            const preSel = this.getSelection();
+            let preAnchorOffset: number | undefined;
+            let preFocusOffset: number | undefined;
+            if (preSel) {
+              preAnchorOffset = this.textModel.positionToOffset(preSel.start);
+              preFocusOffset = this.textModel.positionToOffset(preSel.end);
+            }
+            if (!this.suppressHistory) {
+              this.undoStack.push({ text: this.textModel.getText(), cursorOffset: preCursorOffset, anchorOffset: preAnchorOffset, focusOffset: preFocusOffset });
+              if (this.undoStack.length > 100) this.undoStack.shift();
+              this.redoStack.length = 0;
+            }
+
+            // Perform DOM insertion of newline
+            const range = selection.getRangeAt(0);
+            range.deleteContents();
+            const nl = document.createTextNode('\n');
+            range.insertNode(nl);
+            // Move caret after inserted newline
+            range.setStartAfter(nl);
+            range.collapse(true);
+            selection.removeAllRanges();
+            selection.addRange(range);
+
+            // Capture post-change cursor/selection to restore after rendering
+            const postCursorPos = this.getCursor().position;
+            const postCursorOffset = this.textModel.positionToOffset(postCursorPos);
+            const postSel = this.getSelection();
+            let postAnchorOffset: number | undefined;
+            let postFocusOffset: number | undefined;
+            if (postSel) {
+              postAnchorOffset = this.textModel.positionToOffset(postSel.start);
+              postFocusOffset = this.textModel.positionToOffset(postSel.end);
+            }
+
+            // Update model from DOM
+            const newText = this.view.getText();
+            this.textModel.setText(newText);
+
+            // Debounce highlight rendering and restore caret/selection after render
+            if (this.highlightTimeout) clearTimeout(this.highlightTimeout);
+            this.highlightTimeout = setTimeout(() => {
+              this.renderTextWithHighlight(this.textModel.getText(), false);
+              // restore caret/selection on next frame after render
+              requestAnimationFrame(() => {
+                try {
+                  if (postSel && (postAnchorOffset !== undefined || postFocusOffset !== undefined)) {
+                    const a = postAnchorOffset !== undefined ? postAnchorOffset : postCursorOffset;
+                    const f = postFocusOffset !== undefined ? postFocusOffset : postCursorOffset;
+                    const start = Math.min(a!, f!);
+                    const end = Math.max(a!, f!);
+                    const startPos = this.textModel.offsetToPosition(start);
+                    const endPos = this.textModel.offsetToPosition(end);
+                    this.setSelection({ start: startPos, end: endPos });
+                  } else {
+                    const pos = this.textModel.offsetToPosition(postCursorOffset);
+                    this.setCursor(pos);
+                  }
+                } catch (e) {
+                  // ignore
+                }
+              });
+
+              this.highlightTimeout = null;
+            }, 300);
+
+            this.updateLineNumbers();
+            this.emit('change', [{ range: this.getFullRange(), text: this.getValue(), oldText: '' }]);
+          }
+        }
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
 
       // Let extensions handle the event
       for (const extension of this.extensions.values()) {
@@ -178,10 +321,13 @@ export class EditorCore implements EditorAPI {
   }
 
   setValue(value: string): void {
+    const old = this.textModel.getText();
     this.textModel.setText(value);
-    this.view.setText(value);
+    // When setting programmatically, avoid automatic selection restore so callers
+    // can manage caret/selection themselves (e.g., undo/redo).
+    this.renderTextWithHighlight(value, false);
     this.updateLineNumbers();
-    this.emit('change', [{ range: this.getFullRange(), text: value, oldText: this.getValue() }]);
+    this.emit('change', [{ range: this.getFullRange(), text: value, oldText: old }]);
   }
 
   getState(): EditorState {
@@ -229,6 +375,18 @@ export class EditorCore implements EditorAPI {
       'editor-gutter-border': theme === 'dark' ? '#3e3e42' : '#e1e5e9'
     };
     this.view.applyTheme(themeVars);
+    // Notify syntax highlighting extension (if present)
+    const sh = this.extensions.get('syntax-highlighting') as any;
+    if (sh && typeof sh.setTheme === 'function') {
+      try {
+        sh.setTheme(theme === 'dark' ? 'dark' : 'light');
+        // Re-render current text with new theme colors
+        this.renderTextWithHighlight(this.textModel.getText());
+      } catch (e) {
+        // silently ignore extension errors
+        console.warn('Error applying theme to syntax-highlighting extension', e);
+      }
+    }
   }
 
   setReadOnly(readOnly: boolean): void {
@@ -244,6 +402,13 @@ export class EditorCore implements EditorAPI {
 
     this.extensions.set(extension.name, extension);
     extension.setup(this);
+    // If syntax-highlighting added, re-render current content using it
+    if (extension.name === 'syntax-highlighting') {
+      const ext: any = extension as any;
+      if (typeof ext.highlightHTML === 'function') {
+        this.renderTextWithHighlight(this.textModel.getText());
+      }
+    }
   }
 
   removeExtension(name: string): void {
@@ -319,8 +484,25 @@ export class EditorCore implements EditorAPI {
   }
 
   replace(range: Range, text: string): void {
+    const old = this.getValue();
+    if (!this.suppressHistory) {
+      const cursorPos = this.getCursor().position;
+      const cursorOffset = this.textModel.positionToOffset(cursorPos);
+      const sel = this.getSelection();
+      let anchorOffset: number | undefined;
+      let focusOffset: number | undefined;
+      if (sel) {
+        anchorOffset = this.textModel.positionToOffset(sel.start);
+        focusOffset = this.textModel.positionToOffset(sel.end);
+      }
+      this.undoStack.push({ text: old, cursorOffset, anchorOffset, focusOffset });
+      if (this.undoStack.length > 100) this.undoStack.shift();
+      this.redoStack.length = 0;
+    }
+
     const change = this.textModel.replaceRange(range, text);
-    this.view.setText(this.getValue());
+    // Programmatic replace should not let the renderer override caret
+    this.renderTextWithHighlight(this.getValue(), false);
     this.emit('change', [change]);
   }
 
@@ -369,6 +551,76 @@ export class EditorCore implements EditorAPI {
     this.view.blur();
   }
 
+  // Render text using syntax highlighting extension if available
+  // If `restoreSelection` is true (default), the method captures current selection/caret
+  // and restores it after updating the DOM. Callers that will explicitly set the caret
+  // should pass `false` to avoid stomping programmatic cursor changes.
+  private renderTextWithHighlight(text: string, restoreSelection: boolean = true): void {
+    const sh = this.extensions.get('syntax-highlighting') as any;
+    if (sh && typeof sh.highlightHTML === 'function') {
+      try {
+        // Decide whether we should auto-preserve caret even when callers request
+        // `restoreSelection = false`. We want to preserve the caret for user-driven
+        // background highlight updates (debounced input), but avoid clobbering
+        // when a caller is about to set the cursor programmatically (e.g. insertTab).
+        const shouldAutoPreserve = !restoreSelection && !this.expectingProgrammaticCursor;
+
+        let sel: Range | undefined;
+        let cursorOffset: number | undefined;
+        let anchorOffset: number | undefined;
+        let focusOffset: number | undefined;
+
+        if (restoreSelection || shouldAutoPreserve) {
+          sel = this.getSelection();
+          const cursor = this.getCursor().position;
+          cursorOffset = this.textModel.positionToOffset(cursor);
+          if (sel) {
+            anchorOffset = this.textModel.positionToOffset(sel.start);
+            focusOffset = this.textModel.positionToOffset(sel.end);
+          }
+        }
+
+        const html = sh.highlightHTML(text);
+        // Render highlights into the overlay to avoid replacing the editable DOM
+        if (typeof (this.view as any).setHighlightHTML === 'function') {
+          (this.view as any).setHighlightHTML(html);
+        } else {
+          // Fallback: set innerHTML on content area (legacy)
+          this.view.setHTML(html);
+        }
+
+        // Restore selection/caret on next animation frame after DOM updates settle.
+        if (restoreSelection || shouldAutoPreserve) {
+          requestAnimationFrame(() => {
+            try {
+              if (sel && (anchorOffset !== undefined || focusOffset !== undefined)) {
+                const a = anchorOffset !== undefined ? anchorOffset : cursorOffset!;
+                const f = focusOffset !== undefined ? focusOffset : cursorOffset!;
+                const start = Math.min(a, f);
+                const end = Math.max(a, f);
+                const startPos = this.textModel.offsetToPosition(start);
+                const endPos = this.textModel.offsetToPosition(end);
+                this.view.setSelectionRange({ start: startPos, end: endPos });
+              } else if (cursorOffset !== undefined) {
+                const pos = this.textModel.offsetToPosition(cursorOffset);
+                this.view.setCursorPosition(pos);
+              }
+            } catch (e) {
+              // ignore any conversion errors; don't break rendering
+            }
+          });
+        }
+
+        return;
+      } catch (e) {
+        console.warn('Syntax highlighting failed, falling back to plain text', e);
+      }
+    }
+
+    // Fallback to plain text
+    this.view.setText(text);
+  }
+
   destroy(): void {
     if (this.isDestroyed) return;
 
@@ -388,6 +640,160 @@ export class EditorCore implements EditorAPI {
     // Clear references
     this.commands.clear();
     this.eventListeners.clear();
+  }
+
+  // History: undo/redo
+  private undo(): void {
+    if (this.undoStack.length === 0) return;
+    const snapshot = this.undoStack.pop()!;
+    const currentSnapshot = { text: this.getValue(), cursorOffset: this.textModel.positionToOffset(this.getCursor().position) };
+    this.redoStack.push(currentSnapshot);
+
+    try {
+    this.suppressHistory = true;
+    // We're about to programmatically call setValue and then restore selection;
+    // prevent automatic caret preservation during that render to avoid conflicts.
+    this.expectingProgrammaticCursor = true;
+      let prevText: string;
+      let prevOffset: number | undefined;
+      if (typeof snapshot === 'string') {
+        prevText = snapshot;
+      } else {
+        prevText = snapshot.text;
+        prevOffset = snapshot.cursorOffset;
+      }
+
+      this.setValue(prevText);
+      // Restore selection/cursor on next animation frame to avoid timing races
+      requestAnimationFrame(() => {
+        try {
+          if (prevOffset !== undefined && prevOffset !== null) {
+            if (typeof snapshot !== 'string' && (snapshot.anchorOffset !== undefined || snapshot.focusOffset !== undefined)) {
+              const a = snapshot.anchorOffset !== undefined ? snapshot.anchorOffset : prevOffset;
+              const f = snapshot.focusOffset !== undefined ? snapshot.focusOffset : prevOffset;
+              const start = Math.min(a!, f!);
+              const end = Math.max(a!, f!);
+              const startPos = this.textModel.offsetToPosition(start);
+              const endPos = this.textModel.offsetToPosition(end);
+              this.setSelection({ start: startPos, end: endPos });
+            } else {
+              const pos = this.textModel.offsetToPosition(prevOffset);
+              this.setCursor(pos);
+            }
+          }
+        } catch (e) {
+          // ignore if conversion fails
+        }
+      });
+      // give the rAF a chance to run then clear the flag
+      setTimeout(() => { this.expectingProgrammaticCursor = false; }, 30);
+    } finally {
+      this.suppressHistory = false;
+    }
+  }
+
+  private redo(): void {
+    if (this.redoStack.length === 0) return;
+    const snapshot = this.redoStack.pop()!;
+    const currentSnapshot = { text: this.getValue(), cursorOffset: this.textModel.positionToOffset(this.getCursor().position) };
+    this.undoStack.push(currentSnapshot);
+
+    try {
+    this.suppressHistory = true;
+    this.expectingProgrammaticCursor = true;
+      let nextText: string;
+      let nextOffset: number | undefined;
+      if (typeof snapshot === 'string') {
+        nextText = snapshot;
+      } else {
+        nextText = snapshot.text;
+        nextOffset = snapshot.cursorOffset;
+      }
+
+      this.setValue(nextText);
+      // Restore selection/cursor on next animation frame
+      requestAnimationFrame(() => {
+        try {
+          if (nextOffset !== undefined && nextOffset !== null) {
+            if (typeof snapshot !== 'string' && (snapshot.anchorOffset !== undefined || snapshot.focusOffset !== undefined)) {
+              const a = snapshot.anchorOffset !== undefined ? snapshot.anchorOffset : nextOffset;
+              const f = snapshot.focusOffset !== undefined ? snapshot.focusOffset : nextOffset;
+              const start = Math.min(a!, f!);
+              const end = Math.max(a!, f!);
+              const startPos = this.textModel.offsetToPosition(start);
+              const endPos = this.textModel.offsetToPosition(end);
+              this.setSelection({ start: startPos, end: endPos });
+            } else {
+              const pos = this.textModel.offsetToPosition(nextOffset);
+              this.setCursor(pos);
+            }
+          }
+        } catch (e) {
+          // ignore
+        }
+      });
+      setTimeout(() => { this.expectingProgrammaticCursor = false; }, 30);
+    } finally {
+      this.suppressHistory = false;
+    }
+  }
+
+  // Insert a tab character or spaces at current cursor
+  private insertTab(): void {
+    if (this.config.readOnly) return;
+    const cursor = this.getCursor().position;
+    const cursorOffsetBefore = this.textModel.positionToOffset(cursor);
+    const tabText = ' '.repeat(this.config.tabSize || 2);
+    const change = this.textModel.insertText(cursor, tabText);
+    const newPos = this.textModel.offsetToPosition(this.textModel.positionToOffset(cursor) + tabText.length);
+
+    if (!this.suppressHistory) {
+      const sel = this.getSelection();
+      let anchorOffset: number | undefined;
+      let focusOffset: number | undefined;
+      if (sel) {
+        anchorOffset = this.textModel.positionToOffset(sel.start);
+        focusOffset = this.textModel.positionToOffset(sel.end);
+      }
+      this.undoStack.push({ text: this.getValue(), cursorOffset: cursorOffsetBefore, anchorOffset, focusOffset });
+      this.redoStack.length = 0;
+    }
+
+    // Avoid renderer restoring previous selection; we set cursor explicitly below.
+    this.expectingProgrammaticCursor = true;
+    this.renderTextWithHighlight(this.getValue(), false);
+    this.setCursor(newPos);
+    // Clear the flag shortly after giving the browser a chance to apply the programmatic cursor.
+    setTimeout(() => { this.expectingProgrammaticCursor = false; }, 20);
+    this.emit('change', [change]);
+  }
+
+  // Insert a newline at current cursor position
+  private insertNewLine(): void {
+    if (this.config.readOnly) return;
+    const cursor = this.getCursor().position;
+    const cursorOffsetBefore = this.textModel.positionToOffset(cursor);
+    const change = this.textModel.insertText(cursor, '\n');
+    const newPos = this.textModel.offsetToPosition(this.textModel.positionToOffset(cursor) + 1);
+
+    if (!this.suppressHistory) {
+      const sel = this.getSelection();
+      let anchorOffset: number | undefined;
+      let focusOffset: number | undefined;
+      if (sel) {
+        anchorOffset = this.textModel.positionToOffset(sel.start);
+        focusOffset = this.textModel.positionToOffset(sel.end);
+      }
+      this.undoStack.push({ text: this.getValue(), cursorOffset: cursorOffsetBefore, anchorOffset, focusOffset });
+      this.redoStack.length = 0;
+    }
+
+    // Avoid renderer restoring previous selection; we set cursor explicitly below.
+    this.expectingProgrammaticCursor = true;
+    this.renderTextWithHighlight(this.getValue(), false);
+    this.setCursor(newPos);
+    setTimeout(() => { this.expectingProgrammaticCursor = false; }, 20);
+    this.emit('change', [change]);
   }
 
   // Events

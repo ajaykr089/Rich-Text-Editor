@@ -1,6 +1,6 @@
 {
   "name": "@editora/themes",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Themes and styling system for Editora Rich Text Editor with light/dark mode support",
   "author": "Ajay Kumar <ajaykr089@gmail.com>",
   "license": "MIT",
@@ -32,7 +32,9 @@
       "import": "./dist/index.esm.js",
       "require": "./dist/index.cjs.js"
     },
-    "./styles": "./src/index.css"
+    "./theme.css": "./src/index.css",
+    "./themes/*": "./src/themes/*.css",
+    "./themes/default.css": "./src/themes/default.css"
   },
   "files": [
     "dist",
