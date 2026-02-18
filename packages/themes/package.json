@@ -32,7 +32,6 @@
       "import": "./dist/index.esm.js",
       "require": "./dist/index.cjs.js"
     },
-    "./theme.css": "./src/index.css",
     "./themes/*": "./src/themes/*.css",
     "./themes/default.css": "./src/themes/default.css"
   },

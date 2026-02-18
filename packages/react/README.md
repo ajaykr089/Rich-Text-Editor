@@ -37,8 +37,7 @@ The React package provides ready-to-use React components for building rich text 
 ```tsx
 import { EditoraEditor } from '@editora/react';
 import { BoldPlugin, ItalicPlugin } from '@editora/plugins';
-import "@editora/themes/theme.css";
-OR
+
 import "@editora/themes/themes/default.css";
 
 function App() {
@@ -75,8 +74,7 @@ import {
   CodeSamplePlugin,
   HistoryPlugin
 } from '@editora/plugins';
-import "@editora/themes/theme.css";
-OR
+
 import "@editora/themes/themes/default.css";
 
 function FullEditor() {
@@ -283,8 +281,7 @@ const {
 ### Using Built-in Themes
 
 ```tsx
-import "@editora/themes/theme.css";
-OR
+
 import "@editora/themes/themes/default.css";
 
 <EditoraEditor theme="dark" />

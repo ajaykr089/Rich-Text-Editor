@@ -36,8 +36,7 @@ The core package provides the fundamental editor engine that can be integrated w
 
 ```typescript
 import { createEditor, EditorConfig } from '@editora/core';
-import "@editora/themes/theme.css";
-OR
+
 import "@editora/themes/themes/default.css";
 // Create editor configuration
 const config: EditorConfig = {
@@ -61,8 +60,7 @@ editor.mount(container);
 ```typescript
 import { createEditor } from '@editora/core';
 import { BoldPlugin, ItalicPlugin, HeadingPlugin } from '@editora/plugins';
-import "@editora/themes/theme.css";
-OR
+
 import "@editora/themes/themes/default.css";
 
 const editor = createEditor({
@@ -214,8 +212,7 @@ Create custom plugins by extending the base Plugin class:
 
 ```typescript
 import { Plugin, Editor } from '@editora/core';
-import "@editora/themes/theme.css";
-OR
+
 import "@editora/themes/themes/default.css";
 class CustomPlugin extends Plugin {
   name = 'custom';

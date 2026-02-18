@@ -9,10 +9,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@editora/core": "^1.0.1",
-    "@editora/react": "^1.0.1",
-    "@editora/plugins": "^1.0.1",
-    "@editora/themes": "^1.0.1",
+    "@editora/core": "^1.0.2",
+    "@editora/react": "^1.0.2",
+    "@editora/plugins": "^1.0.2",
+    "@editora/themes": "^1.0.3",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },

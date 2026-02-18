@@ -84,8 +84,7 @@ import {
   UnderlinePlugin,
   StrikethroughPlugin
 } from '@editora/plugins';
-import "@editora/themes/theme.css";
-OR
+
 import "@editora/themes/themes/default.css";
 const plugins = [
   BoldPlugin(),
