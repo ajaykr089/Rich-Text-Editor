@@ -8,12 +8,13 @@ type Props = React.HTMLAttributes<HTMLElement> & {
   loading?: boolean;
   block?: boolean;
   headless?: boolean;
+  disabled?: boolean;
   animation?: 'scale' | 'pulse' | 'none';
   theme?: 'default' | 'dark' | 'brand';
 };
 
 export function Button(props: Props) {
-  const { children, onClick, variant, size, icon, loading, block, headless, animation, theme, ...rest } = props as any;
+  const { children, onClick, variant, size, icon, loading, block, headless, disabled, animation, theme, ...rest } = props as any;
   const ref = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
@@ -34,10 +35,12 @@ export function Button(props: Props) {
     if (loading) el.setAttribute('loading', ''); else el.removeAttribute('loading');
     if (block) el.setAttribute('block', ''); else el.removeAttribute('block');
     if (headless) el.setAttribute('headless', ''); else el.removeAttribute('headless');
+    // reflect disabled explicitly (support disabled={false} correctly)
+    if (disabled) el.setAttribute('disabled', ''); else el.removeAttribute('disabled');
     // animation is opt-in (do not set by default)
     if (animation) el.setAttribute('animation', animation); else el.removeAttribute('animation');
     if (theme && theme !== 'default') el.setAttribute('theme', theme); else el.removeAttribute('theme');
-  }, [variant, size, icon, loading, block, headless, animation, theme]);
+  }, [variant, size, icon, loading, block, headless, disabled, animation, theme]);
 
   return React.createElement('ui-button', { ref, ...rest }, children);
 }

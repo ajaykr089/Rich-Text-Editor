@@ -9,7 +9,35 @@ export abstract class ElementBase extends HTMLElement {
     this.render();
   }
 
-  attributeChangedCallback() {
+  disconnectedCallback() {
+    // ensure any component-level portal cleanup runs when element is detached
+    try {
+      // prefer calling component close() if available (releases traps/manager state)
+      if (typeof (this as any).close === 'function') {
+        try { (this as any).close(); } catch (e) {}
+      }
+      // call stored cleanup functions created by showPortalFor
+      if (typeof (this as any)._cleanup === 'function') {
+        try { (this as any)._cleanup(); } catch (e) {}
+        (this as any)._cleanup = undefined;
+      }
+      // some components store menu cleanup under __menuCleanup
+      if (typeof (this as any).__menuCleanup === 'function') {
+        try { (this as any).__menuCleanup(); } catch (e) {}
+        (this as any).__menuCleanup = null;
+      }
+      // remove any attached portal element
+      const portalEl = (this as any)._portalEl as HTMLElement | undefined | null;
+      if (portalEl && portalEl.parentElement) {
+        try { portalEl.parentElement.removeChild(portalEl); } catch (e) {}
+      }
+    } catch (e) {
+      // swallow errors to avoid throwing during DOM teardown
+    }
+  }
+
+  attributeChangedCallback(name?: string, oldValue?: string | null, newValue?: string | null) {
+    // default behavior: re-render on any attribute change
     this.render();
   }
 

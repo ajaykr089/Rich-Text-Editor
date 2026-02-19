@@ -6,14 +6,17 @@ export default {
   component: Button,
   argTypes: {
     disabled: { control: 'boolean' },
-    label: { control: 'text' }
+    label: { control: 'text' },
+    variant: { control: { type: 'radio', options: ['primary','secondary','ghost','danger'] } },
+    size: { control: { type: 'radio', options: ['sm','md','lg'] } },
+    theme: { control: { type: 'radio', options: ['default','dark','brand'] } }
   }
 };
 
-const Template = (args: any) => <Button disabled={args.disabled} variant={args.variant} size={args.size} icon={args.icon} loading={args.loading} block={args.block} headless={args.headless}>{args.label}</Button>;
+const Template = (args: any) => <Button disabled={args.disabled} variant={args.variant} size={args.size} icon={args.icon} loading={args.loading} block={args.block} headless={args.headless} theme={args.theme}>{args.label}</Button>;
 
 export const Default = Template.bind({});
-Default.args = { label: 'Click me', disabled: false, variant: 'primary', size: 'md', icon: undefined, loading: false, block: false, headless: false };
+Default.args = { label: 'Click me', disabled: false, variant: 'primary', size: 'md', icon: undefined, loading: false, block: false, headless: false, theme: 'default' };
 
 export const Variants = () => (
   <div style={{ display: 'flex', gap: 12 }}>
@@ -80,6 +83,17 @@ export const Themes = () => (
   </div>
 );
 
+export const ThemedByTokens = () => (
+  <div style={{ display: 'flex', gap: 12 }}>
+    <ThemeProvider tokens={{ colors: { primary: '#7c3aed', background: '#0f172a', text: '#f8fafc' }, radius: '10px' }}>
+      <div style={{ padding: 12, background: 'var(--ui-color-background)' }}>
+        <Button>Primary (token)</Button>
+        <Button variant="secondary" style={{ marginLeft: 8 }}>Secondary</Button>
+      </div>
+    </ThemeProvider>
+  </div>
+);
+
 export const CustomSize = () => (
   <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -101,9 +115,14 @@ export const CustomSize = () => (
 );
 
 export const Disabled = () => (
-  <div style={{ display: 'flex', gap: 12 }}>
+  <div style={{ display: "flex", gap: 12 }}>
     <Button disabled>Disabled</Button>
-    <Button disabled loading>Disabled + loading</Button>
+    <Button disabled loading>
+      Disabled + loading
+    </Button>
+    <Button disabled={false} loading>
+     Not Disabled + loading
+    </Button>
   </div>
 );
 

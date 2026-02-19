@@ -15,3 +15,11 @@ export { ContextMenu } from './ContextMenu';
 export { SelectionPopup } from './SelectionPopup';
 export { PluginPanel } from './PluginPanel';
 
+// layout
+export { Box } from './Box';
+export { Flex } from './Flex';
+export { Grid } from './Grid';
+export { Section } from './Section';
+export { Container } from './Container';
+
+export { ThemeProvider, useTheme } from './ThemeProvider';

@@ -14,6 +14,19 @@ export { CommandPalette } from './components/CommandPalette';
 export { ContextMenu } from './components/ContextMenu';
 export { SelectionPopup } from './components/SelectionPopup';
 export { PluginPanel } from './components/PluginPanel';
+export { Form } from './components/Form';
+export { useForm } from './hooks/useForm';
+export { useFloating } from './hooks/useFloating';
+
+// layout exports
+export { Box } from './components/Box';
+export { Flex } from './components/Flex';
+export { Grid } from './components/Grid';
+export { Section } from './components/Section';
+export { Container } from './components/Container';
+
+export { ThemeProvider } from './components/ThemeProvider';
+export { useTheme } from './hooks/useTheme';
 
 // Named exports only — no default export to keep ESM/CJS consumers consistent.
 

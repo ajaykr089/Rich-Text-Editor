@@ -135,7 +135,9 @@ export class UIButton extends ElementBase {
   }
 
   protected render() {
-    const disabled = this.hasAttribute('disabled');
+    // robust disabled parsing: support disabled="false" or disabled="0" being treated as *not* disabled
+    const rawDisabled = this.getAttribute('disabled');
+    const disabled = rawDisabled !== null && String(rawDisabled).toLowerCase() !== 'false' && String(rawDisabled) !== '0';
     const headless = this.hasAttribute('headless');
     const loading = this.hasAttribute('loading');
     const variant = (this.getAttribute('variant') || 'primary') as string;

@@ -5,7 +5,8 @@ import { showPortalFor } from '../portal';
 const style = `
   :host { display: inline-block; }
   .menu { background: white; border: 1px solid rgba(0,0,0,0.12); border-radius: 6px; padding: 6px; box-shadow: 0 6px 24px rgba(0,0,0,0.12); }
-  .item { padding: 6px 8px; cursor: pointer; }
+  .item { padding: 8px 12px; cursor: pointer; border-radius: 4px; font-size: 14px; white-space: nowrap; }
+  .item:hover, .item:focus { background: rgba(0,0,0,0.03); outline: none; }
   .item[aria-disabled="true"] { opacity: 0.5; cursor: not-allowed; }
 `;
 
@@ -23,8 +24,10 @@ export class UIMenu extends ElementBase {
 
   setup() {
     this.addEventListener('click', (e) => {
-      const t = e.composedPath()[0] as HTMLElement;
-      if (t && t.getAttribute && t.getAttribute('slot') === 'trigger') this.toggle();
+      // support clicks on any nested element inside the slotted trigger
+      const path = e.composedPath() as any[];
+      const triggerEl = path.find(p => p && p.getAttribute && p.getAttribute('slot') === 'trigger') as HTMLElement | undefined;
+      if (triggerEl) this.toggle();
     });
   }
 
@@ -89,13 +92,29 @@ export class UIMenu extends ElementBase {
           this.close();
         }
       };
+
+      // click outside handler: close the menu when clicking outside host and portal
+      const pointerHandler = (ev: PointerEvent) => {
+        if (!this.hasAttribute('open')) return;
+        const path = ev.composedPath ? ev.composedPath() : (ev as any).path || [];
+        const clickedInsideHost = path.indexOf(this) >= 0;
+        const clickedInsidePortal = this._portalEl && path.indexOf(this._portalEl) >= 0;
+        if (!clickedInsideHost && !clickedInsidePortal) {
+          this.close();
+        }
+      };
+
       window.addEventListener('keydown', keyHandler);
+      window.addEventListener('pointerdown', pointerHandler, true);
+
       // focus first item
       if (this._items.length > 0) this.focusItem(0);
+
       // cleanup when closed
       const cleanupAll = this._cleanup;
       const origClose = () => {
         window.removeEventListener('keydown', keyHandler);
+        window.removeEventListener('pointerdown', pointerHandler, true);
         if (cleanupAll) cleanupAll();
       };
       // attach an attribute watcher to remove listeners on next render when closed

@@ -17,3 +17,16 @@ export const Default = (args: any) => (
   </div>
 );
 Default.args = { open: true, anchorId: 'ctx-anchor' };
+
+export const RightClickDemo = () => {
+  const [state, setState] = React.useState<{open: boolean; point?: {x:number;y:number}}>({ open: false });
+  return (
+    <div style={{ padding: 40 }} onContextMenu={(e) => { e.preventDefault(); setState({ open: true, point: { x: e.clientX, y: e.clientY } }); }}>
+      <div style={{ padding: 20, border: '1px dashed #ccc', display: 'inline-block' }}>Right-click anywhere inside this box</div>
+      <ContextMenu open={state.open} anchorPoint={state.point}>
+        <div slot="content">Context action 1</div>
+        <div slot="content">Context action 2</div>
+      </ContextMenu>
+    </div>
+  );
+};

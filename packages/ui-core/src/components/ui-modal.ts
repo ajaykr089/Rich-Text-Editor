@@ -1,5 +1,6 @@
 import { ElementBase } from '../ElementBase';
 import { FocusManager } from '../focusManager';
+import OverlayManager from '../overlayManager';
 
 const style = `
   :host { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; }
@@ -38,12 +39,17 @@ export class UIModal extends ElementBase {
     this.setAttribute('open', '');
     this.dispatchEvent(new CustomEvent('open'));
     this._trap = FocusManager.trap(this as unknown as HTMLElement);
+    try { OverlayManager.register(this as unknown as HTMLElement); OverlayManager.acquireLock(); } catch (e) {}
   }
 
   close() {
     this.removeAttribute('open');
     this.dispatchEvent(new CustomEvent('close'));
     if (this._trap && this._trap.release) this._trap.release();
+    try {
+      OverlayManager.unregister(this as unknown as HTMLElement);
+      OverlayManager.releaseLock();
+    } catch (e) {}
   }
 
   protected render() {
