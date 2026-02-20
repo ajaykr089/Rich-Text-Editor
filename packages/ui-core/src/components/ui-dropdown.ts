@@ -13,18 +13,28 @@ export class UIDropdown extends ElementBase {
   static get observedAttributes() { return ['open']; }
   private _portalEl: HTMLElement | null = null;
   private _cleanup: (() => void) | undefined = undefined;
+  private _onHostClick: (e: Event) => void;
 
-  constructor() { super(); }
+  constructor() {
+    super();
+    this._onHostClick = this._handleHostClick.bind(this);
+  }
 
-  connectedCallback() { super.connectedCallback(); this.setup(); }
+  connectedCallback() {
+    super.connectedCallback();
+    this.addEventListener('click', this._onHostClick);
+  }
 
-  setup() {
+  disconnectedCallback() {
+    this.removeEventListener('click', this._onHostClick);
+    super.disconnectedCallback();
+  }
+
+  private _handleHostClick(e: Event) {
     // delegate: find first element with slot="trigger" (support clicks on nested elements)
-    this.addEventListener('click', (e) => {
-      const path = e.composedPath() as any[];
-      const triggerEl = path.find(p => p && p.getAttribute && p.getAttribute('slot') === 'trigger') as HTMLElement | undefined;
-      if (triggerEl) this.toggle();
-    });
+    const path = e.composedPath() as any[];
+    const triggerEl = path.find(p => p && p.getAttribute && p.getAttribute('slot') === 'trigger') as HTMLElement | undefined;
+    if (triggerEl) this.toggle();
   }
 
   open() { this.setAttribute('open', ''); this.dispatchEvent(new CustomEvent('open')); }

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button } from '@editora/ui-react';
+import { Button, ThemeProvider } from '@editora/ui-react';
 
 export default {
   title: 'UI/Button',
@@ -115,15 +115,9 @@ export const CustomSize = () => (
 );
 
 export const Disabled = () => (
-  <div style={{ display: "flex", gap: 12 }}>
+  <div style={{ display: 'flex', gap: 12 }}>
     <Button disabled>Disabled</Button>
-    <Button disabled loading>
-      Disabled + loading
-    </Button>
-    <Button disabled={false} loading>
-     Not Disabled + loading
-    </Button>
+    <Button disabled loading>Disabled + loading</Button>
+    <Button disabled={false} loading>Not Disabled + loading</Button>
   </div>
 );
-
-

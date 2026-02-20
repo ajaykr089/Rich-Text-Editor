@@ -1,15 +1,48 @@
 import { ElementBase } from '../ElementBase';
 
 const style = `
-  :host { display: block; }
-  .grid { display: grid; gap: var(--ui-gap, 12px); grid-template-columns: var(--ui-grid-columns, 1fr); align-items: center; }
+  :host {
+    display: block;
+    --ui-gap: 12px;
+    --ui-grid-columns: 1fr;
+  }
+  .grid {
+    display: grid;
+    gap: var(--ui-gap, 12px);
+    grid-template-columns: var(--ui-grid-columns, 1fr);
+    align-items: center;
+    width: 100%;
+  }
+  :host([headless]) .grid { display: none; }
 `;
 
 export class UIGrid extends ElementBase {
-  // accept legacy `classname` attribute so host HTML using `classname` still works
-  static get observedAttributes() { return ['classname']; }
+  static get observedAttributes() { return ['classname', 'headless']; }
 
-  constructor() { super(); }
+  private _headless = false;
+
+  constructor() {
+    super();
+  }
+
+  connectedCallback() {
+    super.connectedCallback();
+  }
+
+  disconnectedCallback() {
+    if ((this as any)._cleanup) (this as any)._cleanup();
+    super.disconnectedCallback();
+  }
+
+  attributeChangedCallback(name: string, oldValue: string | null, newValue: string | null) {
+    if (name === 'headless') {
+      this._headless = this.hasAttribute('headless');
+      this.render();
+    }
+    if (name === 'classname') {
+      this.render();
+    }
+  }
 
   protected render() {
     const parseJson = (v: string | null) => {
@@ -110,7 +143,12 @@ export class UIGrid extends ElementBase {
     if (columns) this.style.setProperty('--ui-grid-columns', columns);
     if (gap) this.style.setProperty('--ui-gap', tokenOrRaw(gap));
 
-    this.setContent(`<style>${style}</style><div class="grid"><slot></slot></div>`);
+    if (this._headless) {
+      this.setContent('');
+      return;
+    }
+    this.setContent(`<style>${style}</style><div class="grid" role="group" aria-label="Grid layout"><slot></slot></div>`);
+    this.dispatchEvent(new CustomEvent('layoutchange', { bubbles: true }));
   }
 }
 

@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 
 type BreakpointKey = 'initial' | 'sm' | 'md' | 'lg' | 'xl';
 type Responsive<T> = T | Partial<Record<BreakpointKey, T>>;
+type ResponsiveBreakpoint = Exclude<BreakpointKey, 'initial'>;
 
 type Props = React.HTMLAttributes<HTMLElement> & {
   direction?: Responsive<'row'|'column'>;
@@ -50,8 +51,8 @@ export function Flex(props: Props) {
       lines.push(`.${cls} { ${rule} }`);
     }
 
-    const bpKeys: Array<BreakpointKey> = ['sm','md','lg','xl'];
-    const bpVar: Record<BreakpointKey,string> = { sm: '--ui-breakpoint-sm', md: '--ui-breakpoint-md', lg: '--ui-breakpoint-lg', xl: '--ui-breakpoint-lg' };
+    const bpKeys: Array<ResponsiveBreakpoint> = ['sm','md','lg','xl'];
+    const bpVar: Record<ResponsiveBreakpoint,string> = { sm: '--ui-breakpoint-sm', md: '--ui-breakpoint-md', lg: '--ui-breakpoint-lg', xl: '--ui-breakpoint-lg' };
     for (const bp of bpKeys) {
       const rules: string[] = [];
       for (const ent of responsiveEntries) {

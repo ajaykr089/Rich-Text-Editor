@@ -70,10 +70,14 @@ export function Input(props: Props) {
     const el = ref.current;
     if (!el) return;
 
-    const inputHandler = (e: any) => {
+    const onInputHandler = (e: any) => {
+      const v = e.detail?.value ?? (e.target && (e.target as HTMLInputElement).value);
+      if (onInput) onInput(v);
+    };
+
+    const onChangeHandler = (e: any) => {
       const v = e.detail?.value ?? (e.target && (e.target as HTMLInputElement).value);
       if (onChange) onChange(v);
-      if (onInput) onInput(v);
     };
 
     const debouncedHandler = (e: any) => {
@@ -82,15 +86,15 @@ export function Input(props: Props) {
 
     const clearHandler = () => { if (onClear) onClear(); };
 
-    el.addEventListener('input', inputHandler as EventListener);
+    el.addEventListener('input', onInputHandler as EventListener);
     el.addEventListener('debounced-input', debouncedHandler as EventListener);
-    el.addEventListener('change', inputHandler as EventListener);
+    el.addEventListener('change', onChangeHandler as EventListener);
     el.addEventListener('clear', clearHandler as EventListener);
 
     return () => {
-      el.removeEventListener('input', inputHandler as EventListener);
+      el.removeEventListener('input', onInputHandler as EventListener);
       el.removeEventListener('debounced-input', debouncedHandler as EventListener);
-      el.removeEventListener('change', inputHandler as EventListener);
+      el.removeEventListener('change', onChangeHandler as EventListener);
       el.removeEventListener('clear', clearHandler as EventListener);
     };
   }, [onChange, onInput, onDebouncedInput, onClear]);

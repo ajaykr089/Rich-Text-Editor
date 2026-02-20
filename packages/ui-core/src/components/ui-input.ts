@@ -72,6 +72,15 @@ const style = `
   .error-text { margin-top: 6px; color: var(--ui-error, #dc2626); font-size: 12px; }
 `;
 
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 export class UIInput extends ElementBase {
   static get observedAttributes() {
     return [
@@ -83,12 +92,16 @@ export class UIInput extends ElementBase {
   }
 
   private _input!: HTMLInputElement | null;
+  private _clearBtn: HTMLButtonElement | null = null;
   private _debounceTimer: any = null;
 
   private _uid = Math.random().toString(36).slice(2, 8);
 
   constructor() {
     super();
+    this._onNativeInput = this._onNativeInput.bind(this);
+    this._onNativeChange = this._onNativeChange.bind(this);
+    this._onClearClick = this._onClearClick.bind(this);
   }
 
   private _formUnregister: (() => void) | null = null;
@@ -128,8 +141,10 @@ export class UIInput extends ElementBase {
   }
 
   disconnectedCallback() {
+    this._detachInputListeners();
     if (this._debounceTimer) { clearTimeout(this._debounceTimer); this._debounceTimer = null; }
     if (this._formUnregister) { this._formUnregister(); this._formUnregister = null; }
+    super.disconnectedCallback();
   }
 
   // keep a lightweight attributeChangedCallback so updating `value` doesn't force
@@ -149,7 +164,7 @@ export class UIInput extends ElementBase {
       return; // avoid full re-render
     }
     // otherwise perform a normal render
-    super.attributeChangedCallback();
+    super.attributeChangedCallback(name, oldVal, newVal);
   }
 
   get value() { return this.getAttribute('value') || ''; }
@@ -218,12 +233,13 @@ export class UIInput extends ElementBase {
         </div>
         <div class="suffix"><slot name="suffix"></slot></div>
       </div>
-      <div class="error-text">${this.getAttribute('data-error') ? `${this.getAttribute('data-error')}` : `<slot name="error"></slot>`}</div>
+      <div class="error-text">${this.getAttribute('data-error') ? `${escapeHtml(this.getAttribute('data-error') || '')}` : `<slot name="error"></slot>`}</div>
     `);
 
+    this._detachInputListeners();
     this._input = this.root.querySelector('input');
+    this._clearBtn = this.root.querySelector('button.clear-btn') as HTMLButtonElement | null;
 
-    const debounceMs = Number(this.getAttribute('debounce') || 0);
     const validation = this.getAttribute('validation');
 
     if (this._input) {
@@ -243,60 +259,63 @@ export class UIInput extends ElementBase {
         setTimeout(() => { try { this._input && this._input.focus(); } catch (e) {} }, 0);
       }
 
-      this._input.addEventListener('input', (e: Event) => {
-        const v = (e.target as HTMLInputElement).value;
-
-        // update attribute for external observers but avoid forcing a full re-render here
-        this.setAttribute('value', v);
-        this.dispatchEvent(new CustomEvent('input', { detail: { value: v }, bubbles: true }));
-
-        // debounce behavior
-        if (debounceMs > 0) {
-          if (this._debounceTimer) clearTimeout(this._debounceTimer);
-          this._debounceTimer = setTimeout(() => {
-            this.dispatchEvent(new CustomEvent('debounced-input', { detail: { value: v }, bubbles: true }));
-            this._debounceTimer = null;
-          }, debounceMs);
-        } else {
-          // still emit debounced-input synchronously when debounce not set (convenience)
-          this.dispatchEvent(new CustomEvent('debounced-input', { detail: { value: v }, bubbles: true }));
-        }
-
-        // toggle clear button visibility without re-rendering
-        if (clearable) {
-          const cb = this.root.querySelector('button.clear-btn') as HTMLButtonElement | null;
-          if (cb) {
-            if (v) cb.removeAttribute('hidden'); else cb.setAttribute('hidden', '');
-          }
-        }
-      });
-
-      this._input.addEventListener('change', (e: Event) => {
-        const v = (e.target as HTMLInputElement).value;
-        this.dispatchEvent(new CustomEvent('change', { detail: { value: v }, bubbles: true }));
-      });
-
-      // clear button
-      const clearBtn = this.root.querySelector('button.clear-btn') as HTMLButtonElement | null;
-      if (clearBtn) {
-        clearBtn.addEventListener('click', (ev) => {
-          ev.preventDefault();
-          this.setAttribute('value', '');
-          if (this._input) {
-            this._input.value = '';
-            // trigger input/change events
-            this._input.dispatchEvent(new Event('input', { bubbles: true }));
-            this._input.dispatchEvent(new Event('change', { bubbles: true }));
-          }
-          this.dispatchEvent(new CustomEvent('clear', { bubbles: true }));
-          // hide clear button without re-rendering
-          if (clearable) {
-            const cb = this.root.querySelector('button.clear-btn') as HTMLButtonElement | null;
-            if (cb) cb.setAttribute('hidden', '');
-          }
-        });
-      }
+      this._input.addEventListener('input', this._onNativeInput);
+      this._input.addEventListener('change', this._onNativeChange);
+      if (this._clearBtn) this._clearBtn.addEventListener('click', this._onClearClick);
     }
+  }
+
+  private _detachInputListeners() {
+    if (this._input) {
+      this._input.removeEventListener('input', this._onNativeInput);
+      this._input.removeEventListener('change', this._onNativeChange);
+    }
+    if (this._clearBtn) {
+      this._clearBtn.removeEventListener('click', this._onClearClick);
+    }
+    this._clearBtn = null;
+  }
+
+  private _onNativeInput(e: Event) {
+    const v = (e.target as HTMLInputElement).value;
+    const clearable = this.hasAttribute('clearable');
+    const debounceMs = Number(this.getAttribute('debounce') || 0);
+
+    // update attribute for external observers but avoid forcing a full re-render here
+    this.setAttribute('value', v);
+    this.dispatchEvent(new CustomEvent('input', { detail: { value: v }, bubbles: true }));
+
+    if (debounceMs > 0) {
+      if (this._debounceTimer) clearTimeout(this._debounceTimer);
+      this._debounceTimer = setTimeout(() => {
+        this.dispatchEvent(new CustomEvent('debounced-input', { detail: { value: v }, bubbles: true }));
+        this._debounceTimer = null;
+      }, debounceMs);
+    } else {
+      this.dispatchEvent(new CustomEvent('debounced-input', { detail: { value: v }, bubbles: true }));
+    }
+
+    if (clearable && this._clearBtn) {
+      if (v) this._clearBtn.removeAttribute('hidden');
+      else this._clearBtn.setAttribute('hidden', '');
+    }
+  }
+
+  private _onNativeChange(e: Event) {
+    const v = (e.target as HTMLInputElement).value;
+    this.dispatchEvent(new CustomEvent('change', { detail: { value: v }, bubbles: true }));
+  }
+
+  private _onClearClick(ev: Event) {
+    ev.preventDefault();
+    this.setAttribute('value', '');
+    if (this._input) {
+      this._input.value = '';
+      this._input.dispatchEvent(new Event('input', { bubbles: true }));
+      this._input.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+    this.dispatchEvent(new CustomEvent('clear', { bubbles: true }));
+    if (this._clearBtn) this._clearBtn.setAttribute('hidden', '');
   }
 }
 

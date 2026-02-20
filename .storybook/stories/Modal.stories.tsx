@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Modal, Button } from '@editora/ui-react';
+import { Modal, Button, ThemeProvider } from '@editora/ui-react';
 
 export default {
   title: 'UI/Modal',

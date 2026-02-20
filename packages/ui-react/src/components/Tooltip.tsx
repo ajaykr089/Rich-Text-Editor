@@ -2,9 +2,13 @@ import React from 'react';
 
 type Props = React.HTMLAttributes<HTMLElement> & { children?: React.ReactNode; text?: string };
 
-export function Tooltip(props: Props & { text?: string }) {
-  const { children, text, ...rest } = props as any;
-  return React.createElement('ui-tooltip', { text, ...rest }, children);
-}
+export const Tooltip = React.forwardRef<HTMLElement, Props>(function Tooltip(
+  { children, text, ...rest },
+  ref
+) {
+  return React.createElement('ui-tooltip', { ref, text, ...rest }, children);
+});
+
+Tooltip.displayName = 'Tooltip';
 
 export default Tooltip;

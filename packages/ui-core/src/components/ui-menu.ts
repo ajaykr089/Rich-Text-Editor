@@ -17,18 +17,28 @@ export class UIMenu extends ElementBase {
   private _cleanup: (() => void) | undefined = undefined;
   private _items: HTMLElement[] = [];
   private _focusedIndex = -1;
+  private _onHostClick: (e: Event) => void;
 
-  constructor() { super(); }
+  constructor() {
+    super();
+    this._onHostClick = this._handleHostClick.bind(this);
+  }
 
-  connectedCallback() { super.connectedCallback(); this.setup(); }
+  connectedCallback() {
+    super.connectedCallback();
+    this.addEventListener('click', this._onHostClick);
+  }
 
-  setup() {
-    this.addEventListener('click', (e) => {
-      // support clicks on any nested element inside the slotted trigger
-      const path = e.composedPath() as any[];
-      const triggerEl = path.find(p => p && p.getAttribute && p.getAttribute('slot') === 'trigger') as HTMLElement | undefined;
-      if (triggerEl) this.toggle();
-    });
+  disconnectedCallback() {
+    this.removeEventListener('click', this._onHostClick);
+    super.disconnectedCallback();
+  }
+
+  private _handleHostClick(e: Event) {
+    // support clicks on any nested element inside the slotted trigger
+    const path = e.composedPath() as any[];
+    const triggerEl = path.find(p => p && p.getAttribute && p.getAttribute('slot') === 'trigger') as HTMLElement | undefined;
+    if (triggerEl) this.toggle();
   }
 
   open() { this.setAttribute('open',''); this.dispatchEvent(new CustomEvent('open')); this._trap = FocusManager.trap(this as unknown as HTMLElement); }

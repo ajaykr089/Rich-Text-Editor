@@ -21,30 +21,48 @@ const style = `
 
 export class UIModal extends ElementBase {
   private _trap: any = null;
+  private _onHostClick: (e: Event) => void;
 
   static get observedAttributes() { return ['open']; }
 
-  constructor() { super(); }
+  constructor() {
+    super();
+    this._onHostClick = this._handleHostClick.bind(this);
+  }
 
-  connectedCallback() { super.connectedCallback(); this.setup(); }
 
-  setup() {
-    this.addEventListener('click', (e) => {
-      const t = e.target as HTMLElement;
-      if (t && t.classList.contains('overlay')) this.close();
-    });
+  connectedCallback() {
+    super.connectedCallback();
+    this.addEventListener('click', this._onHostClick);
+    this._onKeyDown = this._onKeyDown.bind(this);
+    document.addEventListener('keydown', this._onKeyDown);
+  }
+
+  disconnectedCallback() {
+    this.removeEventListener('click', this._onHostClick);
+    document.removeEventListener('keydown', this._onKeyDown);
+    if (this._trap && this._trap.release) this._trap.release();
+    try { OverlayManager.unregister(this as unknown as HTMLElement); OverlayManager.releaseLock(); } catch (e) {}
+    super.disconnectedCallback();
+  }
+
+  private _handleHostClick(e: Event) {
+    const t = e.target as HTMLElement;
+    if (t && t.classList.contains('overlay')) this.close();
   }
 
   open() {
     this.setAttribute('open', '');
-    this.dispatchEvent(new CustomEvent('open'));
+    this.dispatchEvent(new CustomEvent('open', { bubbles: true }));
+    this.dispatchEvent(new CustomEvent('show', { bubbles: true }));
     this._trap = FocusManager.trap(this as unknown as HTMLElement);
     try { OverlayManager.register(this as unknown as HTMLElement); OverlayManager.acquireLock(); } catch (e) {}
   }
 
   close() {
     this.removeAttribute('open');
-    this.dispatchEvent(new CustomEvent('close'));
+    this.dispatchEvent(new CustomEvent('close', { bubbles: true }));
+    this.dispatchEvent(new CustomEvent('hide', { bubbles: true }));
     if (this._trap && this._trap.release) this._trap.release();
     try {
       OverlayManager.unregister(this as unknown as HTMLElement);
@@ -52,13 +70,20 @@ export class UIModal extends ElementBase {
     } catch (e) {}
   }
 
+  _onKeyDown(e: KeyboardEvent) {
+    if (!this.hasAttribute('open')) return;
+    if (e.key === 'Escape') {
+      this.close();
+    }
+  }
+
   protected render() {
     const isOpen = this.hasAttribute('open');
     const headless = this.hasAttribute('headless');
     this.setContent(`
       ${headless ? '' : `<style>${style}</style>`}
-      <div class="overlay"></div>
-      <div class="dialog" role="dialog" aria-modal="true">
+      <div class="overlay" tabindex="-1" aria-hidden="${!isOpen}"></div>
+      <div class="dialog" role="dialog" aria-modal="true" aria-label="Modal dialog">
         <slot></slot>
       </div>
     `);

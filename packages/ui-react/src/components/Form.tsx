@@ -12,7 +12,7 @@ export const Form = React.forwardRef<HTMLElement, Props>(function Form(props, fo
   const { children, onSubmit, onInvalid, novalidate, ...rest } = props as any;
   const ref = useRef<HTMLElement | null>(null);
 
-  useImperativeHandle(forwardedRef, () => ref.current as any, []);
+  useImperativeHandle(forwardedRef, () => ref.current as any);
 
   useEffect(() => {
     const el = ref.current as any;

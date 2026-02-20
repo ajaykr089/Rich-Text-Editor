@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 
 type BreakpointKey = 'initial' | 'sm' | 'md' | 'lg' | 'xl';
 type Responsive<T> = T | Partial<Record<BreakpointKey, T>>;
+type ResponsiveBreakpoint = Exclude<BreakpointKey, 'initial'>;
 
 type Props = React.HTMLAttributes<HTMLElement> & {
   p?: Responsive<string>; px?: Responsive<string>; py?: Responsive<string>; pt?: Responsive<string>; pr?: Responsive<string>; pb?: Responsive<string>; pl?: Responsive<string>;
@@ -66,7 +67,9 @@ function propToCssEntries(prop: string, value: string) {
     case 'minW': return { minWidth: value };
     case 'maxW': return { maxWidth: value };
     case 'minH': return { minHeight: value };
-    case 'maxH': return { maxHeight: value };    case 'align': return { alignItems: value };    case 'color': return { color: value };
+    case 'maxH': return { maxHeight: value };
+    case 'align': return { alignItems: value };
+    case 'color': return { color: value };
     default:
       // direct mapping for simple props
       return { [prop.replace(/[A-Z]/g, m => `-${m.toLowerCase()}`)]: value } as Record<string,string>;
@@ -108,8 +111,8 @@ export function Box(props: Props) {
     }
 
     // breakpoints -> media queries
-    const bpKeys: Array<BreakpointKey> = ['sm','md','lg','xl'];
-    const bpVar: Record<BreakpointKey,string> = {
+    const bpKeys: Array<ResponsiveBreakpoint> = ['sm','md','lg','xl'];
+    const bpVar: Record<ResponsiveBreakpoint,string> = {
       sm: '--ui-breakpoint-sm', md: '--ui-breakpoint-md', lg: '--ui-breakpoint-lg', xl: '--ui-breakpoint-lg'
     };
 

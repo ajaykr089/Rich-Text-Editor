@@ -1,5 +1,5 @@
 import React from 'react';
-import { Input } from '@editora/ui-react';
+import { Input, ThemeProvider } from '@editora/ui-react';
 
 export default {
   title: 'UI/Input',
@@ -44,7 +44,7 @@ ValidationStates.args = { value: '', validation: 'error', placeholder: 'Shows er
 export const WithSlots = (args: any) => (
   <Input {...args}>
     <span slot="prefix">🔍</span>
-    <button slot="suffix" onClick={() => alert('suffix clicked')}>Go</button>
+    <button slot="suffix">Go</button>
     <div slot="error">This is an error message</div>
   </Input>
 );
@@ -62,7 +62,7 @@ FormAttributes.args = { value: '', type: 'email', name: 'email', required: true,
 export const StyledWithCSSVars = Template.bind({});
 StyledWithCSSVars.args = { value: '', placeholder: 'Custom CSS vars', style: { ['--ui-input-border' as any]: '2px dashed #6b46c1', ['--ui-input-border-radius' as any]: '12px' } };
 
-export const ThemedByTokens = (args: any) => (
+export const ThemedByTokens = () => (
   <ThemeProvider tokens={{ colors: { primary: '#16a34a', background: '#0f172a', text: '#f8fafc' }, radius: '12px' }}>
     <div style={{ padding: 12, background: 'var(--ui-color-background)' }}>
       <Input placeholder="Token-driven input" />

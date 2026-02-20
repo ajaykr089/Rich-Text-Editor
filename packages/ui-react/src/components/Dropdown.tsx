@@ -2,14 +2,21 @@ import React, { useEffect, useRef } from 'react';
 
 type Props = React.HTMLAttributes<HTMLElement> & { children?: React.ReactNode };
 
-export function Dropdown(props: Props & { onOpen?: () => void; onClose?: () => void }) {
-  const { children, onOpen, onClose, ...rest } = props as any;
+type DropdownProps = Props & { onOpen?: () => void; onClose?: () => void };
+
+export const Dropdown = React.forwardRef<HTMLElement, DropdownProps>(function Dropdown(
+  { children, onOpen, onClose, ...rest },
+  forwardedRef
+) {
   const ref = useRef<HTMLElement | null>(null);
+
+  React.useImperativeHandle(forwardedRef, () => ref.current as any);
+
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    const handleOpen = () => onOpen && onOpen();
-    const handleClose = () => onClose && onClose();
+    const handleOpen = () => onOpen?.();
+    const handleClose = () => onClose?.();
     el.addEventListener('open', handleOpen as EventListener);
     el.addEventListener('close', handleClose as EventListener);
     return () => {
@@ -18,6 +25,8 @@ export function Dropdown(props: Props & { onOpen?: () => void; onClose?: () => v
     };
   }, [onOpen, onClose]);
   return React.createElement('ui-dropdown', { ref, ...rest }, children);
-}
+});
+
+Dropdown.displayName = 'Dropdown';
 
 export default Dropdown;

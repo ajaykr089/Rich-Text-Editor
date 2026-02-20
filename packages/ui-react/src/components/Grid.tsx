@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 
 type BreakpointKey = 'initial' | 'sm' | 'md' | 'lg' | 'xl';
 type Responsive<T> = T | Partial<Record<BreakpointKey, T>>;
+type ResponsiveBreakpoint = Exclude<BreakpointKey, 'initial'>;
 
 type Props = React.HTMLAttributes<HTMLElement> & { columns?: Responsive<string>; gap?: Responsive<string> };
 
@@ -22,8 +23,8 @@ export function Grid(props: Props) {
     if (!isResponsiveValue(gap) && gap) base.push(`gap: ${gap};`);
     if (base.length) lines.push(`.${cls} { ${base.join(' ')} }`);
 
-    const bpKeys: Array<BreakpointKey> = ['sm','md','lg','xl'];
-    const bpVar: Record<BreakpointKey,string> = { sm: '--ui-breakpoint-sm', md: '--ui-breakpoint-md', lg: '--ui-breakpoint-lg', xl: '--ui-breakpoint-lg' };
+    const bpKeys: Array<ResponsiveBreakpoint> = ['sm','md','lg','xl'];
+    const bpVar: Record<ResponsiveBreakpoint,string> = { sm: '--ui-breakpoint-sm', md: '--ui-breakpoint-md', lg: '--ui-breakpoint-lg', xl: '--ui-breakpoint-lg' };
     for (const bp of bpKeys) {
       const rules: string[] = [];
       if (isResponsiveValue(columns) && (columns as any)[bp]) rules.push(`grid-template-columns: ${(columns as any)[bp]};`);

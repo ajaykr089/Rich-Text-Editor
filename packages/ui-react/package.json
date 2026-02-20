@@ -9,6 +9,8 @@
   "scripts": {
     "build": "vite build",
     "dev": "vite build --watch",
+    "dev:examples": "vite --config examples/vite.config.ts",
+    "build:examples": "vite build --config examples/vite.config.ts",
     "prepare": "npm run build"
   },
   "devDependencies": {

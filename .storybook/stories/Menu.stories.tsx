@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Menu, Button } from '@editora/ui-react';
 
 export default {
@@ -6,11 +6,32 @@ export default {
   component: Menu
 };
 
-export const Default = (args: any) => (
+const items = ['Rename', 'Duplicate', 'Archive'];
+
+export const Default = () => {
+  const [selected, setSelected] = useState<number | null>(null);
+
+  return (
+    <div style={{ display: 'grid', gap: 12 }}>
+      <Menu onSelect={(idx) => setSelected(idx)}>
+        <Button slot="trigger">Open menu</Button>
+        {items.map((item) => (
+          <div key={item} slot="item">{item}</div>
+        ))}
+      </Menu>
+
+      <div style={{ fontSize: 13, color: '#475569' }}>
+        Selected action: {selected == null ? 'none' : items[selected]}
+      </div>
+    </div>
+  );
+};
+
+export const MenuWithDangerZone = () => (
   <Menu>
-    <Button slot="trigger">Open menu</Button>
-    <div slot="item">Action 1</div>
-    <div slot="item">Action 2</div>
-    <div slot="item">Action 3</div>
+    <Button slot="trigger" variant="secondary">Document actions</Button>
+    <div slot="item">Move</div>
+    <div slot="item">Share</div>
+    <div slot="item" style={{ color: '#dc2626' }}>Delete permanently</div>
   </Menu>
 );

@@ -39,18 +39,28 @@ export class UIPopover extends ElementBase {
   static get observedAttributes() { return ['open']; }
   private _portalEl: HTMLElement | null = null;
   private _cleanup: (() => void) | undefined = undefined;
+  private _onHostClick: (e: Event) => void;
 
-  constructor() { super(); }
+  constructor() {
+    super();
+    this._onHostClick = this._handleHostClick.bind(this);
+  }
 
-  connectedCallback() { super.connectedCallback(); this.setup(); }
+  connectedCallback() {
+    super.connectedCallback();
+    this.addEventListener('click', this._onHostClick);
+  }
 
-  setup() {
-    this.addEventListener('click', (e) => {
-      // support clicking any element inside a slotted trigger (use composedPath)
-      const path = e.composedPath() as any[];
-      const triggerEl = path.find(p => p && p.getAttribute && p.getAttribute('slot') === 'trigger') as HTMLElement | undefined;
-      if (triggerEl) this.toggle();
-    });
+  disconnectedCallback() {
+    this.removeEventListener('click', this._onHostClick);
+    super.disconnectedCallback();
+  }
+
+  private _handleHostClick(e: Event) {
+    // support clicking any element inside a slotted trigger (use composedPath)
+    const path = e.composedPath() as any[];
+    const triggerEl = path.find(p => p && p.getAttribute && p.getAttribute('slot') === 'trigger') as HTMLElement | undefined;
+    if (triggerEl) this.toggle();
   }
 
   open() { this.setAttribute('open',''); this.dispatchEvent(new CustomEvent('open')); }

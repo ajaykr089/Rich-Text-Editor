@@ -1,5 +1,5 @@
 import { ElementBase } from '../ElementBase';
-import { createPortalContainer, showPortalFor } from '../portal';
+import { showPortalFor } from '../portal';
 
 const style = `
   .tooltip {
@@ -42,13 +42,34 @@ export class UITooltip extends ElementBase {
   private _cleanup: (() => void) | undefined = undefined;
   private _currentId: string | null = null;
 
-  constructor() { super(); this.addEventListeners(); }
+  private _onMouseEnter: () => void;
+  private _onFocus: () => void;
+  private _onMouseLeave: () => void;
+  private _onBlur: () => void;
 
-  addEventListeners() {
-    this.addEventListener('mouseenter', () => this.show());
-    this.addEventListener('focus', () => this.show(), true);
-    this.addEventListener('mouseleave', () => this.hide());
-    this.addEventListener('blur', () => this.hide(), true);
+  constructor() {
+    super();
+    this._onMouseEnter = () => this.show();
+    this._onFocus = () => this.show();
+    this._onMouseLeave = () => this.hide();
+    this._onBlur = () => this.hide();
+  }
+
+  connectedCallback() {
+    super.connectedCallback();
+    this.addEventListener('mouseenter', this._onMouseEnter);
+    this.addEventListener('focus', this._onFocus, true);
+    this.addEventListener('mouseleave', this._onMouseLeave);
+    this.addEventListener('blur', this._onBlur, true);
+  }
+
+  disconnectedCallback() {
+    this.removeEventListener('mouseenter', this._onMouseEnter);
+    this.removeEventListener('focus', this._onFocus, true);
+    this.removeEventListener('mouseleave', this._onMouseLeave);
+    this.removeEventListener('blur', this._onBlur, true);
+    this.hide();
+    super.disconnectedCallback();
   }
 
   show() {
@@ -103,6 +124,7 @@ export class UITooltip extends ElementBase {
     } catch (e) {}
 
     const anchor = this as unknown as HTMLElement;
+    if (this._cleanup) this._cleanup();
     this._cleanup = showPortalFor(anchor, this._portalEl, { placement: placementAttr, shift: true, offset: 6, flip: true });
   }
 
@@ -117,8 +139,7 @@ export class UITooltip extends ElementBase {
 
   protected render() {
     // render only slot since tooltip renders to portal
-    const headless = this.hasAttribute('headless');
-    this.setContent(`${headless ? '' : ''}<slot></slot>`);
+    this.setContent('<slot></slot>');
   }
 }
 
