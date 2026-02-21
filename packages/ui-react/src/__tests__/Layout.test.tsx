@@ -21,8 +21,7 @@ describe('React layout wrappers', () => {
     expect(el?.style.color).toBe('white');
     expect(el?.style.width).toBe('100%');
     expect(el?.style.height).toBe('48px');
-    // default align-items should be present on ui-box
-    expect(el?.style.alignItems).toBe('center');
+    expect(el?.style.alignItems).toBe('');
   });
 
   it('Box accepts explicit align prop and responsive align', () => {
@@ -34,39 +33,34 @@ describe('React layout wrappers', () => {
 
     const { container: c2 } = render(<Box align={{ initial: 'flex-start', md: 'center' }} />);
     const el2 = c2.querySelector('ui-box');
-    const cls = el2?.getAttribute('class') || '';
-    expect(cls).toMatch(/ui-box-rsp-/);
-    const style = Array.from(document.head.querySelectorAll('style')).find(s => s.textContent && s.textContent.includes(cls));
+    expect(el2?.getAttribute('align')).toContain('\"initial\"');
+    const style = el2?.shadowRoot?.querySelector('style');
     expect(style).toBeTruthy();
     expect(style?.textContent).toContain('align-items: flex-start;');
     expect(style?.textContent).toContain('@media (min-width: var(--ui-breakpoint-md)');
   });
 
-  it('Box accepts responsive props and injects scoped CSS', () => {
+  it('Box accepts responsive props and serializes them to host attributes', () => {
     const { container } = render(<Box p={{ initial: '4px', sm: '8px', md: '12px' }} />);
-    // class added to host
     const el = container.querySelector('ui-box');
     expect(el).toBeTruthy();
-    const cls = el?.getAttribute('class') || '';
-    expect(cls).toMatch(/ui-box-rsp-/);
-    // style tag should exist in head with media queries for breakpoints
-    const style = Array.from(document.head.querySelectorAll('style')).find(s => s.textContent && s.textContent.includes(cls));
+    expect(el?.getAttribute('p')).toContain('\"initial\"');
+    const style = el?.shadowRoot?.querySelector('style');
     expect(style).toBeTruthy();
     expect(style?.textContent).toContain('@media (min-width: var(--ui-breakpoint-sm)');
   });
 
-  it('Box accepts responsive shorthand props and injects scoped CSS', () => {
+  it('Box accepts responsive shorthand props and injects component-scoped CSS', () => {
     const { container } = render(<Box bg={{ initial: 'red', md: 'blue' }} />);
     const el = container.querySelector('ui-box');
-    const cls = el?.getAttribute('class') || '';
-    expect(cls).toMatch(/ui-box-rsp-/);
-    const style = Array.from(document.head.querySelectorAll('style')).find(s => s.textContent && s.textContent.includes(cls));
+    expect(el?.getAttribute('bg')).toContain('\"md\"');
+    const style = el?.shadowRoot?.querySelector('style');
     expect(style).toBeTruthy();
     expect(style?.textContent).toContain('background:');
     expect(style?.textContent).toContain('@media (min-width: var(--ui-breakpoint-md)');
   });
 
-  it('Flex and Grid accept responsive props and inject scoped CSS', () => {
+  it('Flex and Grid accept responsive props and inject scoped CSS in each component', () => {
     const { container } = render(
       <div>
         <Flex gap={{ initial: '4px', md: '24px' }} direction={{ initial: 'row', md: 'column' }} />
@@ -76,15 +70,13 @@ describe('React layout wrappers', () => {
 
     const flex = container.querySelector('ui-flex');
     expect(flex).toBeTruthy();
-    const flexCls = flex?.getAttribute('class') || '';
-    expect(flexCls).toMatch(/ui-flex-rsp-/);
+    expect(flex?.getAttribute('gap')).toContain('\"initial\"');
     const grid = container.querySelector('ui-grid');
     expect(grid).toBeTruthy();
-    const gridCls = grid?.getAttribute('class') || '';
-    expect(gridCls).toMatch(/ui-grid-rsp-/);
+    expect(grid?.getAttribute('columns')).toContain('\"md\"');
 
-    const styleForFlex = Array.from(document.head.querySelectorAll('style')).find(s => s.textContent && s.textContent.includes(flexCls));
-    const styleForGrid = Array.from(document.head.querySelectorAll('style')).find(s => s.textContent && s.textContent.includes(gridCls));
+    const styleForFlex = flex?.shadowRoot?.querySelector('style');
+    const styleForGrid = grid?.shadowRoot?.querySelector('style');
     expect(styleForFlex).toBeTruthy();
     expect(styleForFlex?.textContent).toContain('@media (min-width: var(--ui-breakpoint-md)');
     expect(styleForGrid).toBeTruthy();

@@ -196,10 +196,11 @@ export class UITable extends ElementBase {
       if (this._isSyncing) return;
       this._syncStructure();
     });
+    // Avoid observing subtree attribute mutations because table sync updates
+    // header/row attributes itself and can otherwise trigger feedback loops.
     this._observer.observe(this, {
       childList: true,
       subtree: true,
-      attributes: true,
       characterData: true
     });
   }
@@ -215,6 +216,7 @@ export class UITable extends ElementBase {
   }
 
   attributeChangedCallback(name: string, oldValue: string | null, newValue: string | null) {
+    if (oldValue === newValue) return;
     super.attributeChangedCallback(name, oldValue, newValue);
     this._syncStructure();
   }

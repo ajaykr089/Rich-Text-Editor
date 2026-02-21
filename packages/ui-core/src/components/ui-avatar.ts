@@ -3,152 +3,291 @@ import { ElementBase } from '../ElementBase';
 const style = `
   :host {
     display: inline-block;
-    --ui-avatar-size: 32px;
-    --ui-avatar-bg: #e5e7eb;
-    --ui-avatar-color: #2563eb;
-    --ui-avatar-border: none;
+    --ui-avatar-size: 38px;
     --ui-avatar-radius: 50%;
-    --ui-avatar-font: 16px;
-    --ui-avatar-font-weight: 400;
-    
+    --ui-avatar-bg: linear-gradient(145deg, color-mix(in srgb, var(--ui-color-primary, #2563eb) 16%, #ffffff), color-mix(in srgb, var(--ui-color-primary, #2563eb) 6%, var(--ui-color-surface, #ffffff)));
+    --ui-avatar-color: color-mix(in srgb, var(--ui-color-primary, #2563eb) 78%, var(--ui-color-text, #0f172a) 22%);
+    --ui-avatar-border: 1px solid var(--ui-color-border, rgba(15, 23, 42, 0.14));
+    --ui-avatar-ring: 0 0 0 0 transparent, 0 6px 18px rgba(15, 23, 42, 0.14);
+    --ui-avatar-font-size: 13px;
+    --ui-avatar-font-weight: 650;
+    --ui-avatar-status-size: 10px;
+    --ui-avatar-status-border: 2px solid var(--ui-color-surface, #ffffff);
+    --ui-avatar-transition: 170ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    color-scheme: light dark;
   }
+
   .avatar {
+    position: relative;
+    box-sizing: border-box;
     width: var(--ui-avatar-size);
     height: var(--ui-avatar-size);
     border-radius: var(--ui-avatar-radius);
+    border: var(--ui-avatar-border);
     background: var(--ui-avatar-bg);
     color: var(--ui-avatar-color);
-    border: var(--ui-avatar-border);
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    box-shadow: var(--ui-avatar-ring);
     overflow: hidden;
-    font-size: var(--ui-avatar-font);
-    font-weight: var(--ui-avatar-font-weight);
-    position: relative;
     user-select: none;
+    display: grid;
+    place-items: center;
+    transition: border-color var(--ui-avatar-transition), box-shadow var(--ui-avatar-transition), transform var(--ui-avatar-transition);
   }
+
+  :host([ring]) .avatar {
+    --ui-avatar-ring: 0 0 0 3px color-mix(in srgb, var(--ui-color-primary, #2563eb) 24%, transparent), 0 10px 24px color-mix(in srgb, var(--ui-color-primary, #2563eb) 20%, rgba(15, 23, 42, 0.2));
+  }
+
+  .avatar:hover {
+    transform: translateY(-1px);
+  }
+
+  :host([shape="rounded"]) .avatar {
+    --ui-avatar-radius: 14px;
+  }
+
+  :host([shape="square"]) .avatar {
+    --ui-avatar-radius: 8px;
+  }
+
   img {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    border-radius: var(--ui-avatar-radius);
     display: block;
+    border-radius: var(--ui-avatar-radius);
   }
+
   .fallback {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: var(--ui-avatar-font);
-    color: var(--ui-avatar-color);
-    background: var(--ui-avatar-bg);
-    font-weight: var(--ui-avatar-font-weight);
     position: absolute;
-    top: 0; left: 0;
-    pointer-events: none;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    background: var(--ui-avatar-bg);
+    color: var(--ui-avatar-color);
+    font-size: var(--ui-avatar-font-size);
+    font-weight: var(--ui-avatar-font-weight);
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
   }
-  :host([headless]) .avatar { display: none; }
+
+  .fallback[hidden] {
+    display: none;
+  }
+
+  .status {
+    position: absolute;
+    inset-inline-end: 0;
+    inset-block-end: 0;
+    transform: translate(12%, 12%);
+    width: var(--ui-avatar-status-size);
+    height: var(--ui-avatar-status-size);
+    border-radius: 50%;
+    border: var(--ui-avatar-status-border);
+    background: var(--ui-avatar-status-color, var(--ui-color-success, #16a34a));
+    box-sizing: border-box;
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--ui-avatar-status-color, #16a34a) 28%, transparent);
+  }
+
+  :host([status="offline"]) .status {
+    --ui-avatar-status-color: var(--ui-color-muted, #94a3b8);
+  }
+
+  :host([status="busy"]) .status {
+    --ui-avatar-status-color: var(--ui-color-danger, #dc2626);
+  }
+
+  :host([status="away"]) .status {
+    --ui-avatar-status-color: var(--ui-color-warning, #f59e0b);
+  }
+
+  :host([headless]) .avatar {
+    display: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .avatar {
+      transition: none !important;
+    }
+  }
+
+  @media (prefers-contrast: more) {
+    :host {
+      --ui-avatar-border: 2px solid currentColor;
+      --ui-avatar-ring: none;
+      --ui-avatar-status-border: 2px solid Canvas;
+    }
+  }
+
+  @media (forced-colors: active) {
+    :host {
+      --ui-avatar-bg: Canvas;
+      --ui-avatar-color: CanvasText;
+      --ui-avatar-border: 1px solid CanvasText;
+      --ui-avatar-status-border: 1px solid Canvas;
+    }
+    .status {
+      --ui-avatar-status-color: Highlight;
+    }
+  }
 `;
 
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/\"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function deriveInitials(value: string): string {
+  const parts = value.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return '?';
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return `${parts[0][0] || ''}${parts[1][0] || ''}`.toUpperCase();
+}
+
+function normalizeSize(raw: string | null): string {
+  if (!raw) return '';
+  const value = raw.trim().toLowerCase();
+  if (!value) return '';
+  if (/^\d+(\.\d+)?$/.test(value)) return `${value}px`;
+  if (value === 'xs') return '24px';
+  if (value === 'sm') return '30px';
+  if (value === 'md') return '36px';
+  if (value === 'lg') return '44px';
+  if (value === 'xl') return '56px';
+  return raw;
+}
+
+function toLoading(raw: string | null): 'lazy' | 'eager' {
+  if (raw === 'eager') return 'eager';
+  if (raw === 'lazy') return 'lazy';
+  if (!raw) return 'lazy';
+  const value = raw.toLowerCase();
+  return value === 'true' || value === '1' ? 'eager' : 'lazy';
+}
 
 export class UIAvatar extends ElementBase {
-  private _imgFailed: boolean = false;
-  private _imgEl: HTMLImageElement | null = null;
   static get observedAttributes() {
-    return ['src', 'alt', 'headless', 'size', 'bg', 'color', 'radius', 'fontweight'];
+    return [
+      'src',
+      'alt',
+      'initials',
+      'size',
+      'bg',
+      'color',
+      'radius',
+      'fontweight',
+      'shape',
+      'status',
+      'ring',
+      'loading',
+      'headless',
+    ];
   }
+
+  private _img: HTMLImageElement | null = null;
+  private _imgLoaded = false;
+  private _imgFailed = false;
 
   constructor() {
     super();
-    this._onImgError = this._onImgError.bind(this);
-    this._onImgLoad = this._onImgLoad.bind(this);
+    this._onImageLoad = this._onImageLoad.bind(this);
+    this._onImageError = this._onImageError.bind(this);
   }
 
   connectedCallback() {
     super.connectedCallback();
-    this.setAttribute('role', 'img');
-    this.setAttribute('tabindex', '0');
+    if (!this.hasAttribute('role')) this.setAttribute('role', 'img');
+  }
+
+  attributeChangedCallback(name: string, oldValue: string | null, newValue: string | null) {
+    if (name === 'src' && oldValue !== newValue) {
+      this._imgLoaded = false;
+      this._imgFailed = false;
+    }
+    super.attributeChangedCallback(name, oldValue, newValue);
   }
 
   disconnectedCallback() {
-    this._detachImgListeners();
+    this._detachImageListeners();
     super.disconnectedCallback();
   }
 
-  get headless() {
-    return this.hasAttribute('headless');
-  }
-  set headless(val: boolean) {
-    if (val === this.headless) return;
-    if (val) this.setAttribute('headless', '');
-    else this.removeAttribute('headless');
+  private _onImageLoad() {
+    this._imgLoaded = true;
+    this._imgFailed = false;
+    this.render();
+    this.dispatchEvent(new CustomEvent('load', { detail: { src: this.getAttribute('src') || '' }, bubbles: true }));
   }
 
-  _onImgError(e: any) {
+  private _onImageError() {
+    this._imgLoaded = false;
     this._imgFailed = true;
     this.render();
-    this.dispatchEvent(new CustomEvent('error', { detail: { src: this.getAttribute('src') }, bubbles: true }));
+    this.dispatchEvent(new CustomEvent('error', { detail: { src: this.getAttribute('src') || '' }, bubbles: true }));
   }
 
-  _onImgLoad(e: any) {
-    this._imgFailed = false;
-    this.dispatchEvent(new CustomEvent('load', { detail: { src: this.getAttribute('src') }, bubbles: true }));
-  }
-
-  private _detachImgListeners() {
-    if (!this._imgEl) return;
-    this._imgEl.removeEventListener('error', this._onImgError as EventListener);
-    this._imgEl.removeEventListener('load', this._onImgLoad as EventListener);
-    this._imgEl = null;
+  private _detachImageListeners() {
+    if (!this._img) return;
+    this._img.removeEventListener('load', this._onImageLoad);
+    this._img.removeEventListener('error', this._onImageError);
+    this._img = null;
   }
 
   protected render() {
-    const src = this.getAttribute('src');
+    const src = this.getAttribute('src') || '';
     const alt = this.getAttribute('alt') || '';
-    const headless = this.headless;
-    // Shorthands
-    const size = this.getAttribute('size');
+    const initials = this.getAttribute('initials') || '';
+    const fallbackSlot = (this.textContent || '').trim();
+
+    const fallback = initials.trim()
+      ? initials.trim().slice(0, 2).toUpperCase()
+      : alt.trim()
+        ? deriveInitials(alt)
+        : fallbackSlot
+          ? deriveInitials(fallbackSlot)
+          : '?';
+
+    if (!this.hasAttribute('aria-label')) {
+      this.setAttribute('aria-label', alt.trim() || fallback);
+    }
+
+    let vars = '';
+    const normalizedSize = normalizeSize(this.getAttribute('size'));
+    if (normalizedSize) vars += `--ui-avatar-size:${normalizedSize};`;
     const bg = this.getAttribute('bg');
     const color = this.getAttribute('color');
     const radius = this.getAttribute('radius');
     const fontWeight = this.getAttribute('fontweight');
-    let styleVars = '';
-    if (size) styleVars += `--ui-avatar-size:${size}px;`;
-    if (bg) styleVars += `--ui-avatar-bg:${bg};`;
-    if (color) styleVars += `--ui-avatar-color:${color};`;
-    if (radius) styleVars += `--ui-avatar-radius:${radius};`;
-    if (fontWeight) styleVars += `--ui-avatar-font-weight:${fontWeight};`;
+    if (bg) vars += `--ui-avatar-bg:${bg};`;
+    if (color) vars += `--ui-avatar-color:${color};`;
+    if (radius) vars += `--ui-avatar-radius:${radius};`;
+    if (fontWeight) vars += `--ui-avatar-font-weight:${fontWeight};`;
 
-    // Extract font-size and font-weight from host's style attribute, if present
-    let extraStyle = '';
-    if (this.hasAttribute('style')) {
-      const styleAttr = this.getAttribute('style') || '';
-      // Only extract font-size and font-weight from style attribute
-      const fontSizeMatch = styleAttr.match(/font-size\s*:\s*([^;]+);?/i);
-      const fontWeightMatch = styleAttr.match(/font-weight\s*:\s*([^;]+);?/i);
-      if (fontSizeMatch) extraStyle += `font-size:${fontSizeMatch[1]};`;
-      if (fontWeightMatch) extraStyle += `font-weight:${fontWeightMatch[1]};`;
-    }
+    const showImage = Boolean(src) && !this._imgFailed;
+    const showFallback = !showImage || !this._imgLoaded;
+    const loading = toLoading(this.getAttribute('loading'));
+    const showStatus = this.hasAttribute('status');
 
-    let fallback = '';
-    if (!src || this._imgFailed) {
-      fallback = `<span class="fallback"><slot>${alt ? alt[0] : '?'}</slot></span>`;
-    }
-    this._detachImgListeners();
+    this._detachImageListeners();
     this.setContent(`
       <style>${style}</style>
-      <div class="avatar" aria-label="${alt || 'avatar'}" tabindex="0" style="${styleVars}${extraStyle}">
-        ${src && !this._imgFailed ? `<img src="${src}" alt="${alt}" />` : ''}
-        ${fallback}
+      <div class="avatar" part="base" style="${vars}">
+        ${showImage ? `<img src="${escapeHtml(src)}" alt="${escapeHtml(alt)}" loading="${loading}" />` : ''}
+        <span class="fallback" part="fallback" ${showFallback ? '' : 'hidden'}>
+          <slot>${escapeHtml(fallback)}</slot>
+        </span>
+        ${showStatus ? '<span class="status" part="status" aria-hidden="true"></span>' : ''}
       </div>
     `);
-    this._imgEl = this.root.querySelector('img');
-    if (this._imgEl) {
-      this._imgEl.addEventListener('error', this._onImgError as EventListener);
-      this._imgEl.addEventListener('load', this._onImgLoad as EventListener);
-    }
+
+    this._img = this.root.querySelector('img');
+    if (!this._img) return;
+    this._img.addEventListener('load', this._onImageLoad);
+    this._img.addEventListener('error', this._onImageError);
   }
 }
 

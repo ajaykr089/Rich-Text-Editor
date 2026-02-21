@@ -1,30 +1,47 @@
-
 import * as React from 'react';
+import { warnIfElementNotRegistered } from './_internals';
 
-/**
- * AspectRatio component
- * @param ratio - number (e.g. 16/9 or 4/3) or string (e.g. '16/9')
- * @example <AspectRatio ratio={16/9}>...</AspectRatio>
- */
 export interface AspectRatioProps extends React.HTMLAttributes<HTMLElement> {
   ratio?: number | string;
+  fit?: 'cover' | 'contain' | 'fill' | 'none' | 'scale-down';
 }
 
-export const AspectRatio = React.forwardRef<HTMLElement, AspectRatioProps>(({ ratio, ...rest }, ref) => {
-  let ratioProp = ratio;
-  if (typeof ratio === 'number' && isFinite(ratio)) {
-    // Convert number to string format w/h
-    // Use 100 as denominator for precision if decimal
-    if (Number.isInteger(ratio)) {
-      ratioProp = `${ratio}/1`;
-    } else {
-      // Try to find a simple fraction for common ratios
-      if (Math.abs(ratio - 16/9) < 0.01) ratioProp = '16/9';
-      else if (Math.abs(ratio - 4/3) < 0.01) ratioProp = '4/3';
-      else if (Math.abs(ratio - 1) < 0.01) ratioProp = '1/1';
-      else ratioProp = `${ratio}/1`;
-    }
-  }
-  return React.createElement('ui-aspect-ratio', { ref, ratio: ratioProp, ...rest });
+function normalizeRatio(value: number | string | undefined): string | undefined {
+  if (value == null) return undefined;
+  if (typeof value === 'string') return value;
+  if (!Number.isFinite(value) || value <= 0) return undefined;
+
+  if (Math.abs(value - 16 / 9) < 0.01) return '16/9';
+  if (Math.abs(value - 4 / 3) < 0.01) return '4/3';
+  if (Math.abs(value - 1) < 0.01) return '1/1';
+  return `${value}/1`;
+}
+
+export const AspectRatio = React.forwardRef<HTMLElement, AspectRatioProps>(function AspectRatio(
+  { ratio, fit, children, ...rest },
+  forwardedRef
+) {
+  const ref = React.useRef<HTMLElement | null>(null);
+
+  React.useImperativeHandle(forwardedRef, () => ref.current as HTMLElement);
+
+  React.useEffect(() => {
+    warnIfElementNotRegistered('ui-aspect-ratio', 'AspectRatio');
+  }, []);
+
+  React.useEffect(() => {
+    const element = ref.current;
+    if (!element) return;
+
+    const nextRatio = normalizeRatio(ratio);
+    if (nextRatio) element.setAttribute('ratio', nextRatio);
+    else element.removeAttribute('ratio');
+
+    if (fit) element.setAttribute('fit', fit);
+    else element.removeAttribute('fit');
+  }, [ratio, fit]);
+
+  return React.createElement('ui-aspect-ratio', { ref, ...rest }, children);
 });
+
 AspectRatio.displayName = 'AspectRatio';

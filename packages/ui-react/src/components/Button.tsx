@@ -16,6 +16,7 @@ type Props = React.HTMLAttributes<HTMLElement> & {
 export function Button(props: Props) {
   const { children, onClick, variant, size, icon, loading, block, headless, disabled, animation, theme, ...rest } = props as any;
   const ref = useRef<HTMLElement | null>(null);
+  const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? React.useLayoutEffect : React.useEffect;
 
   useEffect(() => {
     const el = ref.current;
@@ -25,8 +26,8 @@ export function Button(props: Props) {
     return () => { if (onClick) el.removeEventListener('click', handler as EventListener); };
   }, [onClick]);
 
-  // Reflect attributes for custom element (boolean attributes and known enumerations)
-  useEffect(() => {
+  // Reflect attributes for custom element before paint to avoid style flash (e.g. secondary -> primary -> secondary).
+  useIsomorphicLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
     if (variant) el.setAttribute('variant', variant); else el.removeAttribute('variant');
@@ -42,7 +43,22 @@ export function Button(props: Props) {
     if (theme && theme !== 'default') el.setAttribute('theme', theme); else el.removeAttribute('theme');
   }, [variant, size, icon, loading, block, headless, disabled, animation, theme]);
 
-  return React.createElement('ui-button', { ref, ...rest }, children);
+  // Set style-critical attributes on initial render so connectedCallback sees the final variant immediately.
+  const hostProps: Record<string, unknown> = {
+    ref,
+    ...rest,
+    variant,
+    size,
+    icon,
+    animation,
+    theme: theme && theme !== 'default' ? theme : undefined,
+    loading: loading ? '' : undefined,
+    block: block ? '' : undefined,
+    headless: headless ? '' : undefined,
+    disabled: disabled ? '' : undefined,
+  };
+
+  return React.createElement('ui-button', hostProps, children);
 }
 
 export default Button;

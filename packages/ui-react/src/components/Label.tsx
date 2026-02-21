@@ -1,6 +1,81 @@
-import * as React from 'react';
+import React, { useEffect, useImperativeHandle, useRef } from 'react';
 
-export const Label = React.forwardRef<HTMLElement, React.HTMLAttributes<HTMLElement>>((props, ref) => (
-  <ui-label ref={ref as any} {...props} />
-));
+export type LabelProps = React.HTMLAttributes<HTMLElement> & {
+  children?: React.ReactNode;
+  htmlFor?: string;
+  for?: string;
+  required?: boolean;
+  description?: string;
+  variant?: 'default' | 'surface' | 'soft' | 'contrast' | 'minimal' | 'elevated';
+  tone?: 'default' | 'brand' | 'success' | 'warning' | 'danger';
+  size?: 'sm' | 'md' | 'lg' | '1' | '2' | '3';
+  density?: 'default' | 'compact' | 'comfortable';
+  shape?: 'default' | 'square' | 'soft';
+  disabled?: boolean;
+  headless?: boolean;
+};
+
+export const Label = React.forwardRef<HTMLElement, LabelProps>(function Label(
+  {
+    children,
+    htmlFor,
+    for: forProp,
+    required,
+    description,
+    variant,
+    tone,
+    size,
+    density,
+    shape,
+    disabled,
+    headless,
+    ...rest
+  },
+  forwardedRef
+) {
+  const ref = useRef<HTMLElement | null>(null);
+
+  useImperativeHandle(forwardedRef, () => ref.current as HTMLElement);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    const targetFor = htmlFor || forProp;
+    if (targetFor) el.setAttribute('for', targetFor);
+    else el.removeAttribute('for');
+
+    if (required) el.setAttribute('required', '');
+    else el.removeAttribute('required');
+
+    if (description) el.setAttribute('description', description);
+    else el.removeAttribute('description');
+
+    if (variant && variant !== 'default') el.setAttribute('variant', variant);
+    else el.removeAttribute('variant');
+
+    if (tone && tone !== 'default') el.setAttribute('tone', tone);
+    else el.removeAttribute('tone');
+
+    if (size && size !== 'md' && size !== '2') el.setAttribute('size', size);
+    else el.removeAttribute('size');
+
+    if (density && density !== 'default') el.setAttribute('density', density);
+    else el.removeAttribute('density');
+
+    if (shape && shape !== 'default') el.setAttribute('shape', shape);
+    else el.removeAttribute('shape');
+
+    if (disabled) el.setAttribute('disabled', '');
+    else el.removeAttribute('disabled');
+
+    if (headless) el.setAttribute('headless', '');
+    else el.removeAttribute('headless');
+  }, [htmlFor, forProp, required, description, variant, tone, size, density, shape, disabled, headless]);
+
+  return React.createElement('ui-label', { ref, ...rest }, children);
+});
+
 Label.displayName = 'Label';
+
+export default Label;

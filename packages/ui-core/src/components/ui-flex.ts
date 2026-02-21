@@ -1,144 +1,182 @@
 import { ElementBase } from '../ElementBase';
 
+type ResponsiveMap = Partial<Record<'initial' | 'sm' | 'md' | 'lg' | 'xl', string>>;
+
+const BREAKPOINTS: Record<Exclude<keyof ResponsiveMap, 'initial'>, string> = {
+  sm: 'var(--ui-breakpoint-sm, 640px)',
+  md: 'var(--ui-breakpoint-md, 768px)',
+  lg: 'var(--ui-breakpoint-lg, 1024px)',
+  xl: 'var(--ui-breakpoint-xl, 1280px)'
+};
+
+const FLEX_ATTRS = ['display', 'direction', 'align', 'justify', 'wrap', 'gap', 'rowgap', 'columngap'] as const;
+
+const SPACE_TOKENS: Record<string, string> = {
+  xs: 'var(--ui-space-xs, 4px)',
+  sm: 'var(--ui-space-sm, 8px)',
+  md: 'var(--ui-space-md, 12px)',
+  lg: 'var(--ui-space-lg, 20px)',
+  xl: 'var(--ui-space-xl, 28px)'
+};
+
 const style = `
-  :host { display: block; }
-  .flex {
-    display: flex;
-    gap: var(--ui-gap, 12px);
-    justify-content: var(--ui-justify, flex-start);
-    align-items: var(--ui-align, center);
-    flex-direction: var(--ui-flex-direction, row);
-    flex-wrap: var(--ui-flex-wrap, nowrap);
+  :host {
+    --ui-flex-display: flex;
+    --ui-flex-direction: row;
+    --ui-flex-align: stretch;
+    --ui-flex-justify: flex-start;
+    --ui-flex-wrap: nowrap;
+    --ui-flex-gap: 0px;
+    --ui-flex-row-gap: var(--ui-flex-gap);
+    --ui-flex-column-gap: var(--ui-flex-gap);
+    color-scheme: light dark;
+    display: var(--ui-flex-display);
+    box-sizing: border-box;
+    min-inline-size: 0;
+    flex-direction: var(--ui-flex-direction);
+    align-items: var(--ui-flex-align);
+    justify-content: var(--ui-flex-justify);
+    flex-wrap: var(--ui-flex-wrap);
+    gap: var(--ui-flex-gap);
+    row-gap: var(--ui-flex-row-gap);
+    column-gap: var(--ui-flex-column-gap);
+  }
+
+  slot {
+    display: contents;
+  }
+
+  :host([headless]) {
+    display: block;
+    gap: 0;
   }
 `;
 
+function parseResponsive(raw: string | null): ResponsiveMap | null {
+  if (!raw) return null;
+  const value = raw.trim();
+  if (!value.startsWith('{')) return null;
+  try {
+    const parsed = JSON.parse(value) as ResponsiveMap;
+    if (!parsed || typeof parsed !== 'object') return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function normalizeSpace(value: string): string {
+  const token = SPACE_TOKENS[value];
+  return token || value;
+}
+
+function toCssVariable(attr: (typeof FLEX_ATTRS)[number], value: string): Record<string, string> {
+  switch (attr) {
+    case 'display': return { '--ui-flex-display': value };
+    case 'direction': return { '--ui-flex-direction': value };
+    case 'align': return { '--ui-flex-align': value };
+    case 'justify': return { '--ui-flex-justify': value };
+    case 'wrap': return { '--ui-flex-wrap': value };
+    case 'gap': return { '--ui-flex-gap': normalizeSpace(value) };
+    case 'rowgap': return { '--ui-flex-row-gap': normalizeSpace(value) };
+    case 'columngap': return { '--ui-flex-column-gap': normalizeSpace(value) };
+    default: return {};
+  }
+}
+
 export class UIFlex extends ElementBase {
-  // accept legacy `classname` attribute so host HTML using `classname` still works
-  static get observedAttributes() { return ['classname']; }
+  static get observedAttributes() {
+    return ['classname', 'headless', ...FLEX_ATTRS];
+  }
 
-  constructor() { super(); }
+  private _lastClassname = '';
+  private _appliedInlineProps = new Set<string>();
 
-  protected render() {
-    const parseJson = (v: string | null) => {
-      if (!v) return null;
-      const t = v.trim();
-      if (!t.startsWith('{')) return null;
-      try { return JSON.parse(t); } catch (e) { return null; }
+  private _syncLegacyClassname(): void {
+    const next = this.getAttribute('classname') || '';
+    if (next === this._lastClassname) return;
+
+    if (this._lastClassname) {
+      this._lastClassname.split(/\s+/).forEach((token) => {
+        if (token) this.classList.remove(token);
+      });
+    }
+
+    if (next) {
+      next.split(/\s+/).forEach((token) => {
+        if (token) this.classList.add(token);
+      });
+    }
+
+    this._lastClassname = next;
+  }
+
+  private _applyInlineStyles(): void {
+    this._appliedInlineProps.forEach((prop) => this.style.removeProperty(prop));
+    this._appliedInlineProps.clear();
+
+    FLEX_ATTRS.forEach((attr) => {
+      const raw = this.getAttribute(attr);
+      if (!raw) return;
+      if (parseResponsive(raw)) return;
+
+      const mapped = toCssVariable(attr, raw);
+      Object.entries(mapped).forEach(([prop, value]) => {
+        this.style.setProperty(prop, value);
+        this._appliedInlineProps.add(prop);
+      });
+    });
+  }
+
+  private _buildResponsiveCss(): string {
+    const initial: Record<string, string> = {};
+    const media: Record<Exclude<keyof ResponsiveMap, 'initial'>, Record<string, string>> = {
+      sm: {},
+      md: {},
+      lg: {},
+      xl: {}
     };
 
-    // mirror legacy `classname` attribute into classList
-    const legacyClassAttr = this.getAttribute('classname');
-    const prevLegacy = (this as any).__legacyClassName;
-    if (legacyClassAttr && legacyClassAttr !== prevLegacy) {
-      if (prevLegacy) prevLegacy.split(/\s+/).forEach((c: string) => { if (c) this.classList.remove(c); });
-      legacyClassAttr.split(/\s+/).forEach((c: string) => { if (c) this.classList.add(c); });
-      (this as any).__legacyClassName = legacyClassAttr;
-    } else if (!legacyClassAttr && prevLegacy) {
-      prevLegacy.split(/\s+/).forEach((c: string) => { if (c) this.classList.remove(c); });
-      (this as any).__legacyClassName = undefined;
-    }
+    FLEX_ATTRS.forEach((attr) => {
+      const raw = this.getAttribute(attr);
+      const responsive = parseResponsive(raw);
+      if (!responsive) return;
 
-    const tokenOrRaw = (v: string | null): string => {
-      if (!v) return '';
-      const map: Record<string,string> = { xs: 'var(--ui-space-xs, 4px)', sm: 'var(--ui-space-sm, 8px)', md: 'var(--ui-space-md, 12px)', lg: 'var(--ui-space-lg, 20px)' };
-      return (v in map) ? map[v as keyof typeof map] : v;
+      const applyMap = (bucket: Record<string, string>, value: string) => {
+        Object.assign(bucket, toCssVariable(attr, value));
+      };
+
+      if (typeof responsive.initial === 'string') applyMap(initial, responsive.initial);
+      if (typeof responsive.sm === 'string') applyMap(media.sm, responsive.sm);
+      if (typeof responsive.md === 'string') applyMap(media.md, responsive.md);
+      if (typeof responsive.lg === 'string') applyMap(media.lg, responsive.lg);
+      if (typeof responsive.xl === 'string') applyMap(media.xl, responsive.xl);
+    });
+
+    const ruleFor = (selector: string, values: Record<string, string>): string => {
+      const entries = Object.entries(values);
+      if (!entries.length) return '';
+      return `${selector} { ${entries.map(([k, v]) => `${k}: ${v};`).join(' ')} }`;
     };
 
-    // responsive keys supported for ui-flex
-    const rspKeys = ['direction','align','justify','wrap','gap'];
-    const responsiveEntries: Array<{ prop: string; map: any }> = [];
-    for (const k of rspKeys) {
-      const raw = this.getAttribute(k);
-      const parsed = parseJson(raw);
-      if (parsed && typeof parsed === 'object') responsiveEntries.push({ prop: k, map: parsed });
-    }
+    const lines: string[] = [];
+    const base = ruleFor(':host', initial);
+    if (base) lines.push(base);
 
-    if (responsiveEntries.length) {
-      if (!(this as any).__rspUid) {
-        (this as any).__rspUid = `ui-flex-rsp-${Math.random().toString(36).slice(2,8)}`;
-        this.classList.add((this as any).__rspUid);
-      }
-      const uid = (this as any).__rspUid as string;
-      const lines: string[] = [];
+    (Object.keys(media) as Array<Exclude<keyof ResponsiveMap, 'initial'>>).forEach((bp) => {
+      const body = ruleFor(':host', media[bp]);
+      if (body) lines.push(`@media (min-width: ${BREAKPOINTS[bp]}) { ${body} }`);
+    });
 
-      // base initial rules -> set CSS variables on host
-      const baseVars: Record<string,string> = {};
-      for (const ent of responsiveEntries) {
-        const initial = ent.map.initial;
-        if (typeof initial !== 'undefined') {
-          switch (ent.prop) {
-            case 'gap': baseVars['--ui-gap'] = tokenOrRaw(initial); break;
-            case 'direction': baseVars['--ui-flex-direction'] = initial; break;
-            case 'align': baseVars['--ui-align'] = initial; break;
-            case 'justify': baseVars['--ui-justify'] = initial; break;
-            case 'wrap': baseVars['--ui-flex-wrap'] = initial; break;
-          }
-        }
-      }
-      if (Object.keys(baseVars).length) {
-        const rule = Object.entries(baseVars).map(([k,v]) => `${k}: ${v};`).join(' ');
-        lines.push(`.${uid} { ${rule} }`);
-      }
+    return lines.join('\n');
+  }
 
-      const bpKeys = ['sm','md','lg','xl'];
-      const bpVar: Record<string,string> = { sm: '--ui-breakpoint-sm', md: '--ui-breakpoint-md', lg: '--ui-breakpoint-lg', xl: '--ui-breakpoint-lg' };
+  protected override render(): void {
+    this._syncLegacyClassname();
+    this._applyInlineStyles();
 
-      for (const bp of bpKeys) {
-        const setVars: string[] = [];
-        for (const ent of responsiveEntries) {
-          const v = ent.map[bp];
-          if (typeof v !== 'undefined') {
-            switch (ent.prop) {
-              case 'gap': setVars.push(`--ui-gap: ${tokenOrRaw(v)};`); break;
-              case 'direction': setVars.push(`--ui-flex-direction: ${v};`); break;
-              case 'align': setVars.push(`--ui-align: ${v};`); break;
-              case 'justify': setVars.push(`--ui-justify: ${v};`); break;
-              case 'wrap': setVars.push(`--ui-flex-wrap: ${v};`); break;
-            }
-          }
-        }
-        if (setVars.length) lines.push(`@media (min-width: var(${bpVar[bp]})) { .${uid} { ${setVars.join(' ')} } }`);
-      }
-
-      let styleEl = (this as any).__rspStyleEl as HTMLStyleElement | null | undefined;
-      if (!styleEl) {
-        styleEl = document.createElement('style');
-        styleEl.dataset['uid'] = uid;
-        document.head.appendChild(styleEl);
-        (this as any).__rspStyleEl = styleEl;
-        (this as any)._cleanup = () => {
-          try { styleEl?.parentElement?.removeChild(styleEl); } catch (e) {}
-          (this as any).__rspStyleEl = null;
-          try { this.classList.remove(uid); } catch (e) {}
-        };
-      }
-      styleEl.textContent = lines.join('\n');
-    } else {
-      // remove any existing responsive artifacts
-      if ((this as any).__rspStyleEl) {
-        try { (this as any).__rspStyleEl.parentElement?.removeChild((this as any).__rspStyleEl); } catch (e) {}
-        (this as any).__rspStyleEl = null;
-      }
-      if ((this as any).__rspUid) {
-        try { this.classList.remove((this as any).__rspUid); } catch (e) {}
-        (this as any).__rspUid = undefined;
-      }
-    }
-
-    // single-value attributes -> set CSS variables on host so shadow CSS picks them up
-    const dir = parseJson(this.getAttribute('direction')) ? undefined : (this.getAttribute('direction') || undefined);
-    const gap = parseJson(this.getAttribute('gap')) ? undefined : (this.getAttribute('gap') || undefined);
-    const align = parseJson(this.getAttribute('align')) ? undefined : (this.getAttribute('align') || undefined);
-    const justify = parseJson(this.getAttribute('justify')) ? undefined : (this.getAttribute('justify') || undefined);
-    const wrap = parseJson(this.getAttribute('wrap')) ? undefined : (this.getAttribute('wrap') || undefined);
-
-    if (dir) this.style.setProperty('--ui-flex-direction', dir);
-    if (gap) this.style.setProperty('--ui-gap', tokenOrRaw(gap));
-    if (align) this.style.setProperty('--ui-align', align);
-    if (justify) this.style.setProperty('--ui-justify', justify);
-    if (wrap) this.style.setProperty('--ui-flex-wrap', wrap);
-
-    this.setContent(`<style>${style}</style><div class="flex"><slot></slot></div>`);
+    const responsiveCss = this._buildResponsiveCss();
+    this.setContent(`<style>${style}${responsiveCss ? `\n${responsiveCss}` : ''}</style><slot></slot>`);
   }
 }
 

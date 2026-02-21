@@ -1,224 +1,359 @@
 import { ElementBase } from '../ElementBase';
 
-/**
- * UIBox — rewritten from scratch per request.
- * - single-value attributes (p, m, width, etc.) set inline styles
- * - responsive JSON attributes (initial, sm, md, lg, xl) inject scoped stylesheet
- * - mirrors legacy `classname` attribute into element.classList
- */
+type ResponsiveMap = Partial<Record<'initial' | 'sm' | 'md' | 'lg' | 'xl', string>>;
+
+const BREAKPOINTS: Record<Exclude<keyof ResponsiveMap, 'initial'>, string> = {
+  sm: 'var(--ui-breakpoint-sm, 640px)',
+  md: 'var(--ui-breakpoint-md, 768px)',
+  lg: 'var(--ui-breakpoint-lg, 1024px)',
+  xl: 'var(--ui-breakpoint-xl, 1280px)'
+};
+
+const STYLE_ATTRS = [
+  'p','px','py','pt','pr','pb','pl',
+  'm','mx','my','mt','mr','mb','ml',
+  'width','w','minwidth','minw','maxwidth','maxw','height','h','minheight','minh','maxheight','maxh',
+  'background','bg','color',
+  'display','position','inset','top','right','bottom','left','align',
+  'flexbasis','flexgrow','flexshrink',
+  'gridarea','gridcolumn','gridcolumnstart','gridcolumnend','gridrow','gridrowstart','gridrowend'
+] as const;
+
+const SPACE_TOKENS: Record<string, string> = {
+  xs: 'var(--ui-space-xs, 4px)',
+  sm: 'var(--ui-space-sm, 8px)',
+  md: 'var(--ui-space-md, 12px)',
+  lg: 'var(--ui-space-lg, 20px)',
+  xl: 'var(--ui-space-xl, 28px)'
+};
+
+const style = `
+  :host {
+    --ui-box-bg: transparent;
+    --ui-box-color: inherit;
+    --ui-box-border-color: transparent;
+    --ui-box-border: 1px solid var(--ui-box-border-color);
+    --ui-box-shadow: none;
+    --ui-box-radius: 12px;
+    --ui-box-backdrop: none;
+    --ui-box-accent: var(--ui-color-primary, var(--ui-primary, #2563eb));
+    --ui-box-outline: color-mix(in srgb, var(--ui-box-accent) 36%, transparent);
+    color-scheme: light dark;
+    display: block;
+    box-sizing: border-box;
+    position: relative;
+    min-inline-size: 0;
+    background: var(--ui-box-bg);
+    color: var(--ui-box-color);
+    border: var(--ui-box-border);
+    border-radius: var(--ui-box-radius);
+    box-shadow: var(--ui-box-shadow);
+    backdrop-filter: var(--ui-box-backdrop);
+    transition:
+      background-color 180ms ease,
+      border-color 180ms ease,
+      box-shadow 180ms ease,
+      transform 180ms ease;
+  }
+
+  :host([variant="surface"]) {
+    --ui-box-bg: var(--ui-color-surface, var(--ui-surface, #ffffff));
+    --ui-box-color: var(--ui-color-text, var(--ui-text, #0f172a));
+    --ui-box-border-color: color-mix(in srgb, var(--ui-color-border, #cbd5e1) 78%, transparent);
+    --ui-box-shadow:
+      0 1px 3px rgba(2, 6, 23, 0.05),
+      0 10px 24px rgba(2, 6, 23, 0.06);
+  }
+
+  :host([variant="elevated"]) {
+    --ui-box-bg: var(--ui-color-surface, var(--ui-surface, #ffffff));
+    --ui-box-color: var(--ui-color-text, var(--ui-text, #0f172a));
+    --ui-box-border-color: color-mix(in srgb, var(--ui-color-border, #cbd5e1) 64%, transparent);
+    --ui-box-shadow:
+      0 2px 8px rgba(2, 6, 23, 0.08),
+      0 24px 52px rgba(2, 6, 23, 0.14);
+  }
+
+  :host([variant="outline"]) {
+    --ui-box-bg: color-mix(in srgb, var(--ui-color-surface, #ffffff) 92%, transparent);
+    --ui-box-color: var(--ui-color-text, var(--ui-text, #0f172a));
+    --ui-box-border-color: color-mix(in srgb, var(--ui-box-accent) 30%, var(--ui-color-border, #cbd5e1));
+    --ui-box-shadow: none;
+  }
+
+  :host([variant="glass"]) {
+    --ui-box-bg:
+      linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--ui-color-surface, #ffffff) 84%, #ffffff 16%),
+        color-mix(in srgb, var(--ui-color-surface, #ffffff) 88%, transparent)
+      );
+    --ui-box-color: var(--ui-color-text, var(--ui-text, #0f172a));
+    --ui-box-border-color: color-mix(in srgb, #ffffff 68%, var(--ui-color-border, #cbd5e1));
+    --ui-box-shadow:
+      0 1px 2px rgba(2, 6, 23, 0.06),
+      0 26px 58px rgba(2, 6, 23, 0.14);
+    --ui-box-backdrop: blur(12px) saturate(1.08);
+  }
+
+  :host([variant="gradient"]) {
+    --ui-box-bg:
+      linear-gradient(
+        140deg,
+        color-mix(in srgb, var(--ui-box-accent) 14%, var(--ui-color-surface, #ffffff)),
+        color-mix(in srgb, var(--ui-box-accent) 6%, var(--ui-color-surface, #ffffff))
+      );
+    --ui-box-color: var(--ui-color-text, var(--ui-text, #0f172a));
+    --ui-box-border-color: color-mix(in srgb, var(--ui-box-accent) 24%, transparent);
+    --ui-box-shadow:
+      0 2px 10px rgba(2, 6, 23, 0.08),
+      0 16px 36px rgba(2, 6, 23, 0.1);
+  }
+
+  :host([variant="contrast"]) {
+    --ui-box-bg: #0f172a;
+    --ui-box-color: #e2e8f0;
+    --ui-box-border-color: #334155;
+    --ui-box-shadow:
+      0 2px 10px rgba(2, 6, 23, 0.22),
+      0 18px 42px rgba(2, 6, 23, 0.34);
+  }
+
+  :host([tone="brand"]) { --ui-box-accent: var(--ui-color-primary, var(--ui-primary, #2563eb)); }
+  :host([tone="success"]) { --ui-box-accent: #16a34a; }
+  :host([tone="warning"]) { --ui-box-accent: #d97706; }
+  :host([tone="danger"]) { --ui-box-accent: #dc2626; }
+
+  :host([elevation="none"]) { --ui-box-shadow: none; }
+  :host([elevation="low"]) {
+    --ui-box-shadow:
+      0 1px 3px rgba(2, 6, 23, 0.06),
+      0 10px 24px rgba(2, 6, 23, 0.08);
+  }
+  :host([elevation="high"]) {
+    --ui-box-shadow:
+      0 2px 12px rgba(2, 6, 23, 0.12),
+      0 34px 72px rgba(2, 6, 23, 0.18);
+  }
+
+  :host([radius="sm"]) { --ui-box-radius: 8px; }
+  :host([radius="lg"]) { --ui-box-radius: 18px; }
+  :host([radius="xl"]) { --ui-box-radius: 24px; }
+
+  :host([interactive]) { cursor: pointer; }
+  :host([interactive]:hover) {
+    transform: translateY(-1px);
+    box-shadow:
+      0 2px 8px rgba(2, 6, 23, 0.09),
+      0 22px 44px rgba(2, 6, 23, 0.14);
+  }
+  :host([interactive]:active) { transform: translateY(0); }
+
+  :host(:focus-within) {
+    box-shadow:
+      0 0 0 2px var(--ui-box-outline),
+      var(--ui-box-shadow);
+  }
+
+  :host([headless]) {
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    backdrop-filter: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    :host { transition: none !important; }
+  }
+
+  @media (forced-colors: active) {
+    :host {
+      --ui-box-bg: Canvas;
+      --ui-box-color: CanvasText;
+      --ui-box-border-color: CanvasText;
+      --ui-box-shadow: none;
+      --ui-box-backdrop: none;
+    }
+  }
+`;
+
+function parseResponsive(raw: string | null): ResponsiveMap | null {
+  if (!raw) return null;
+  const value = raw.trim();
+  if (!value.startsWith('{')) return null;
+  try {
+    const parsed = JSON.parse(value) as ResponsiveMap;
+    if (!parsed || typeof parsed !== 'object') return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function normalizeSpace(value: string): string {
+  const token = SPACE_TOKENS[value];
+  return token || value;
+}
+
+function mapAttrToStyles(attr: (typeof STYLE_ATTRS)[number], value: string): Record<string, string> {
+  switch (attr) {
+    case 'p': return { padding: normalizeSpace(value) };
+    case 'px': return { 'padding-left': normalizeSpace(value), 'padding-right': normalizeSpace(value) };
+    case 'py': return { 'padding-top': normalizeSpace(value), 'padding-bottom': normalizeSpace(value) };
+    case 'pt': return { 'padding-top': normalizeSpace(value) };
+    case 'pr': return { 'padding-right': normalizeSpace(value) };
+    case 'pb': return { 'padding-bottom': normalizeSpace(value) };
+    case 'pl': return { 'padding-left': normalizeSpace(value) };
+    case 'm': return { margin: normalizeSpace(value) };
+    case 'mx': return { 'margin-left': normalizeSpace(value), 'margin-right': normalizeSpace(value) };
+    case 'my': return { 'margin-top': normalizeSpace(value), 'margin-bottom': normalizeSpace(value) };
+    case 'mt': return { 'margin-top': normalizeSpace(value) };
+    case 'mr': return { 'margin-right': normalizeSpace(value) };
+    case 'mb': return { 'margin-bottom': normalizeSpace(value) };
+    case 'ml': return { 'margin-left': normalizeSpace(value) };
+    case 'background':
+    case 'bg':
+      return { background: value };
+    case 'w':
+    case 'width':
+      return { width: value };
+    case 'h':
+    case 'height':
+      return { height: value };
+    case 'minw':
+    case 'minwidth':
+      return { 'min-width': value };
+    case 'maxw':
+    case 'maxwidth':
+      return { 'max-width': value };
+    case 'minh':
+    case 'minheight':
+      return { 'min-height': value };
+    case 'maxh':
+    case 'maxheight':
+      return { 'max-height': value };
+    case 'align':
+      return { 'align-items': value };
+    case 'flexbasis':
+      return { 'flex-basis': value };
+    case 'flexgrow':
+      return { 'flex-grow': value };
+    case 'flexshrink':
+      return { 'flex-shrink': value };
+    case 'gridarea':
+      return { 'grid-area': value };
+    case 'gridcolumn':
+      return { 'grid-column': value };
+    case 'gridcolumnstart':
+      return { 'grid-column-start': value };
+    case 'gridcolumnend':
+      return { 'grid-column-end': value };
+    case 'gridrow':
+      return { 'grid-row': value };
+    case 'gridrowstart':
+      return { 'grid-row-start': value };
+    case 'gridrowend':
+      return { 'grid-row-end': value };
+    default:
+      return { [attr]: value };
+  }
+}
+
 export class UIBox extends ElementBase {
   static get observedAttributes() {
-    return [
-      'classname',
-      'p','px','py','pt','pr','pb','pl',
-      'm','mx','my','mt','mr','mb','ml',
-      'width','w','minwidth','minw','maxwidth','maxw','height','h','minheight','minh','maxheight','maxh',
-      'background','bg','color',
-      'display','position','inset','top','right','bottom','left','align',
-      'flexbasis','flexgrow','flexshrink',
-      'gridarea','gridcolumn','gridcolumnstart','gridcolumnend','gridrow','gridrowstart','gridrowend'
-    ];
+    return ['classname', 'headless', 'variant', 'tone', 'elevation', 'radius', 'interactive', ...STYLE_ATTRS];
   }
 
-  constructor() {
-    super();
-  }
+  private _lastClassname = '';
+  private _appliedInlineProps = new Set<string>();
 
-  // parse JSON-like responsive attribute; return null if not JSON
-  private parseResponsiveAttr(val: string | null) {
-    if (!val) return null;
-    const s = val.trim();
-    if (!s.startsWith('{')) return null;
-    try { return JSON.parse(s); } catch { return null; }
-  }
+  private _syncLegacyClassname(): void {
+    const next = this.getAttribute('classname') || '';
+    if (next === this._lastClassname) return;
 
-  private expandSpaceToken(val: string | null) {
-    if (!val) return '';
-    const map: Record<string,string> = { xs: 'var(--ui-space-xs, 4px)', sm: 'var(--ui-space-sm, 8px)', md: 'var(--ui-space-md, 12px)', lg: 'var(--ui-space-lg, 20px)' };
-    return map[val as keyof typeof map] ?? val;
-  }
-
-  private toKebab(s: string) { return s.replace(/[A-Z]/g, m => `-${m.toLowerCase()}`); }
-
-  private cssForProp(prop: string, value: string): Record<string,string> {
-    switch (prop) {
-      case 'p': return { padding: this.expandSpaceToken(value) };
-      case 'px': return { paddingLeft: this.expandSpaceToken(value), paddingRight: this.expandSpaceToken(value) };
-      case 'py': return { paddingTop: this.expandSpaceToken(value), paddingBottom: this.expandSpaceToken(value) };
-      case 'pt': return { paddingTop: this.expandSpaceToken(value) };
-      case 'pr': return { paddingRight: this.expandSpaceToken(value) };
-      case 'pb': return { paddingBottom: this.expandSpaceToken(value) };
-      case 'pl': return { paddingLeft: this.expandSpaceToken(value) };
-      case 'm': return { margin: this.expandSpaceToken(value) };
-      case 'mx': return { marginLeft: this.expandSpaceToken(value), marginRight: this.expandSpaceToken(value) };
-      case 'my': return { marginTop: this.expandSpaceToken(value), marginBottom: this.expandSpaceToken(value) };
-      case 'mt': return { marginTop: this.expandSpaceToken(value) };
-      case 'mr': return { marginRight: this.expandSpaceToken(value) };
-      case 'mb': return { marginBottom: this.expandSpaceToken(value) };
-      case 'ml': return { marginLeft: this.expandSpaceToken(value) };
-      case 'minwidth': return { minWidth: value };
-      case 'maxwidth': return { maxWidth: value };
-      case 'minheight': return { minHeight: value };
-      case 'maxheight': return { maxHeight: value };
-      case 'flexbasis': return { flexBasis: value };
-      case 'flexgrow': return { flexGrow: value };
-      case 'flexshrink': return { flexShrink: value };
-      case 'gridarea': return { gridArea: value };
-      case 'gridcolumn': return { gridColumn: value };
-      case 'gridcolumnstart': return { gridColumnStart: value };
-      case 'gridcolumnend': return { gridColumnEnd: value };
-      case 'gridrow': return { gridRow: value };
-      case 'gridrowstart': return { gridRowStart: value };
-      case 'gridrowend': return { gridRowEnd: value };
-      // shorthand / alias support
-      case 'bg':
-      case 'background':
-        return { background: value };
-      case 'color':
-        return { color: value };
-      case 'w':
-        return { width: value };
-      case 'h':
-        return { height: value };
-      case 'minw':
-        return { minWidth: value };
-      case 'maxw':
-        return { maxWidth: value };
-      case 'minh':
-        return { minHeight: value };
-      case 'maxh':
-        return { maxHeight: value };
-      case 'align':
-        return { alignItems: value };
-      default:
-        return { [this.toKebab(prop)]: value } as Record<string,string>;
-    }
-  }
-
-  protected render() {
-    // mirror legacy `classname` attribute into classList
-    const legacy = this.getAttribute('classname');
-    const snapshot = (this as any).__legacySnapshot as string | undefined;
-    if (legacy && legacy !== snapshot) {
-      if (snapshot) snapshot.split(/\s+/).forEach(c => this.classList.remove(c));
-      legacy.split(/\s+/).forEach(c => { if (c) this.classList.add(c); });
-      (this as any).__legacySnapshot = legacy;
-    } else if (!legacy && snapshot) {
-      snapshot.split(/\s+/).forEach(c => this.classList.remove(c));
-      (this as any).__legacySnapshot = undefined;
-    }
-
-    // collect responsive attributes (JSON)
-    const rspKeys = ['p','px','py','pt','pr','pb','pl','m','mx','my','mt','mr','mb','ml','width','w','minwidth','minw','maxwidth','maxw','height','h','minheight','minh','maxheight','maxh','bg','background','color','display','position','inset','top','right','bottom','left','align','flexbasis','flexgrow','flexshrink','gridarea','gridcolumn','gridcolumnstart','gridcolumnend','gridrow','gridrowstart','gridrowend'];
-    const responsive: Array<{ prop: string; map: Record<string,string> }> = [];
-    for (const k of rspKeys) {
-      const raw = this.getAttribute(k);
-      const parsed = this.parseResponsiveAttr(raw);
-      if (parsed && typeof parsed === 'object') responsive.push({ prop: k, map: parsed as any });
-    }
-
-    // inject/update responsive stylesheet when needed
-    if (responsive.length) {
-      if (!(this as any).__rspClass) {
-        (this as any).__rspClass = `ui-box-rsp-${Math.random().toString(36).slice(2,8)}`;
-        this.classList.add((this as any).__rspClass);
-      }
-      const rspClass = (this as any).__rspClass as string;
-      const rules: string[] = [];
-
-      // base (initial)
-      const baseStyles: Record<string,string> = {};
-      for (const r of responsive) {
-        if (typeof r.map.initial !== 'undefined') Object.assign(baseStyles, this.cssForProp(r.prop, r.map.initial));
-      }
-      if (Object.keys(baseStyles).length) {
-        rules.push(`.${rspClass} { ${Object.entries(baseStyles).map(([k,v]) => `${this.toKebab(k)}: ${v};`).join(' ')} }`);
-      }
-
-      // breakpoints
-      const bps = ['sm','md','lg','xl'];
-      const bpVars: Record<string,string> = { sm: '--ui-breakpoint-sm', md: '--ui-breakpoint-md', lg: '--ui-breakpoint-lg', xl: '--ui-breakpoint-lg' };
-      for (const bp of bps) {
-        const bpRules: string[] = [];
-        for (const r of responsive) {
-          if (typeof r.map[bp] !== 'undefined') {
-            const css = this.cssForProp(r.prop, r.map[bp]);
-            for (const [k, v] of Object.entries(css)) bpRules.push(`${this.toKebab(k)}: ${v};`);
-          }
-        }
-        if (bpRules.length) rules.push(`@media (min-width: var(${bpVars[bp]})) { .${rspClass} { ${bpRules.join(' ')} } }`);
-      }
-
-      let el = (this as any).__rspStyle as HTMLStyleElement | undefined;
-      if (!el) {
-        el = document.createElement('style');
-        el.dataset.uid = (this as any).__rspClass;
-        document.head.appendChild(el);
-        (this as any).__rspStyle = el;
-        (this as any)._cleanup = () => {
-          try { el?.parentElement?.removeChild(el); } catch (_) {}
-          (this as any).__rspStyle = undefined;
-          try { this.classList.remove((this as any).__rspClass); } catch (_) {}
-          (this as any).__rspClass = undefined;
-        };
-      }
-      el.textContent = rules.join('\n');
-    } else {
-      // remove responsive stylesheet if present
-      const el = (this as any).__rspStyle as HTMLStyleElement | undefined;
-      if (el) { try { el.parentElement?.removeChild(el); } catch(_) {} (this as any).__rspStyle = undefined; }
-      if ((this as any).__rspClass) { try { this.classList.remove((this as any).__rspClass); } catch(_) {} (this as any).__rspClass = undefined; }
-    }
-
-    // compute inline styles for single-value attributes (skip JSON attrs)
-    const inline: Record<string,string> = {};
-    const get = (n: string) => this.getAttribute(n) || null;
-
-    const applyIfNotJson = (name: string, transform?: (v: string) => string) => {
-      const raw = get(name);
-      if (!raw || this.parseResponsiveAttr(raw)) return;
-      const val = transform ? transform(raw) : raw;
-      Object.assign(inline, this.cssForProp(name, val));
-    };
-
-    ['p','px','py','pt','pr','pb','pl','m','mx','my','mt','mr','mb','ml'].forEach(n => applyIfNotJson(n));
-    ['width','w','minwidth','minw','maxwidth','maxw','height','h','minheight','minh','maxheight','maxh'].forEach(n => applyIfNotJson(n));
-    ['bg','background','color'].forEach(n => applyIfNotJson(n));
-    ['display','position','inset','top','right','bottom','left','align'].forEach(n => applyIfNotJson(n));
-    ['flexbasis','flexgrow','flexshrink','gridarea','gridcolumn','gridcolumnstart','gridcolumnend','gridrow','gridrowstart','gridrowend'].forEach(n => applyIfNotJson(n));
-
-    // preserve and merge any inline styles set by consumers (React `style` prop, etc.)
-    const existingCssText = this.style.cssText || '';
-    const parseCssText = (s: string) => {
-      const out: Record<string,string> = {};
-      s.split(';').map(p => p.trim()).filter(Boolean).forEach(pair => {
-        const idx = pair.indexOf(':');
-        if (idx > -1) {
-          const name = pair.slice(0, idx).trim();
-          const value = pair.slice(idx + 1).trim();
-          out[name] = value;
-        }
+    if (this._lastClassname) {
+      this._lastClassname.split(/\s+/).forEach((token) => {
+        if (token) this.classList.remove(token);
       });
-      return out;
+    }
+
+    if (next) {
+      next.split(/\s+/).forEach((token) => {
+        if (token) this.classList.add(token);
+      });
+    }
+
+    this._lastClassname = next;
+  }
+
+  private _applyInlineStyles(): void {
+    this._appliedInlineProps.forEach((prop) => this.style.removeProperty(prop));
+    this._appliedInlineProps.clear();
+
+    STYLE_ATTRS.forEach((attr) => {
+      const raw = this.getAttribute(attr);
+      if (!raw) return;
+      if (parseResponsive(raw)) return;
+
+      const mapped = mapAttrToStyles(attr, raw);
+      Object.entries(mapped).forEach(([prop, value]) => {
+        this.style.setProperty(prop, value);
+        this._appliedInlineProps.add(prop);
+      });
+    });
+  }
+
+  private _buildResponsiveCss(): string {
+    const initial: Record<string, string> = {};
+    const media: Record<Exclude<keyof ResponsiveMap, 'initial'>, Record<string, string>> = {
+      sm: {},
+      md: {},
+      lg: {},
+      xl: {}
     };
-    const existingMap = parseCssText(existingCssText);
 
-    // default display only when not provided by attribute, inline map, or existing styles
-    if (!this.getAttribute('display') && !inline['display'] && !existingMap['display']) inline['display'] = 'block';
+    STYLE_ATTRS.forEach((attr) => {
+      const raw = this.getAttribute(attr);
+      const responsive = parseResponsive(raw);
+      if (!responsive) return;
 
-    // default align-items: center unless explicitly provided (keeps layout centered by default)
-    const hasAlignProvided = !!(this.getAttribute('align') || inline['alignItems'] || existingMap['align-items']);
-    if (!hasAlignProvided) inline['alignItems'] = 'center';
+      const applyMap = (bucket: Record<string, string>, value: string) => {
+        const mapped = mapAttrToStyles(attr, value);
+        Object.assign(bucket, mapped);
+      };
 
-    // convert computed inline props to kebab-case and merge with existing (inline overrides existing)
-    const inlineKebab: Record<string,string> = {};
-    for (const [k, v] of Object.entries(inline)) inlineKebab[this.toKebab(k)] = v;
-    const merged = { ...existingMap, ...inlineKebab };
+      if (typeof responsive.initial === 'string') applyMap(initial, responsive.initial);
+      if (typeof responsive.sm === 'string') applyMap(media.sm, responsive.sm);
+      if (typeof responsive.md === 'string') applyMap(media.md, responsive.md);
+      if (typeof responsive.lg === 'string') applyMap(media.lg, responsive.lg);
+      if (typeof responsive.xl === 'string') applyMap(media.xl, responsive.xl);
+    });
 
-    this.style.cssText = Object.entries(merged).map(([k, v]) => `${k}: ${v};`).join(' ');
+    const ruleFor = (selector: string, values: Record<string, string>): string => {
+      const entries = Object.entries(values);
+      if (!entries.length) return '';
+      return `${selector} { ${entries.map(([k, v]) => `${k}: ${v};`).join(' ')} }`;
+    };
 
-    // render children
-    this.setContent('<slot></slot>');
+    const lines: string[] = [];
+    const base = ruleFor(':host', initial);
+    if (base) lines.push(base);
+
+    (Object.keys(media) as Array<Exclude<keyof ResponsiveMap, 'initial'>>).forEach((bp) => {
+      const body = ruleFor(':host', media[bp]);
+      if (body) lines.push(`@media (min-width: ${BREAKPOINTS[bp]}) { ${body} }`);
+    });
+
+    return lines.join('\n');
+  }
+
+  protected override render(): void {
+    this._syncLegacyClassname();
+    this._applyInlineStyles();
+
+    const responsiveCss = this._buildResponsiveCss();
+    this.setContent(`<style>${style}${responsiveCss ? `\n${responsiveCss}` : ''}</style><slot></slot>`);
   }
 }
 

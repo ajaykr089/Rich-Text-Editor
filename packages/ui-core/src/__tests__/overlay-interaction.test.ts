@@ -88,7 +88,7 @@ describe('overlay interaction (popover / dropdown / menu)', () => {
     expect(rootAfter?.querySelectorAll('.item').length).toBe(0);
   });
 
-  it('ui-context-menu: openAt(x,y) shows menu at coordinates (virtual anchor) and cleans up when anchor removed/hidden', () => {
+  it('ui-context-menu: openFor(anchorId) shows menu content and closes when anchor becomes hidden/removed', () => {
     const anchor = document.createElement('div');
     anchor.id = 'tmp-anchor';
     anchor.style.position = 'absolute';
@@ -106,28 +106,22 @@ describe('overlay interaction (popover / dropdown / menu)', () => {
     el.openFor && el.openFor('tmp-anchor');
     expect(el.hasAttribute('open')).toBe(true);
 
-    const root = document.getElementById('ui-portal-root')!;
-    let panel = root.querySelector('.context-menu') as HTMLElement | null;
-    expect(panel).toBeTruthy();
-    expect(panel!.textContent).toContain('A');
+    const surface = el.shadowRoot?.querySelector('.surface') as HTMLElement | null;
+    expect(surface).toBeTruthy();
+    expect(surface!.textContent).toContain('A');
 
-    // hide anchor (display:none) -> reposition should auto-clean
+    // hide anchor (display:none) -> reposition should close
     anchor.style.display = 'none';
+    el._positionMenu && el._positionMenu();
+    expect(el.hasAttribute('open')).toBe(false);
 
-    // give observers a tick
-    document.body.dispatchEvent(new Event('resize'));
-
-    panel = root.querySelector('.context-menu') as HTMLElement | null;
-    expect(panel).toBeNull();
-
-    // reopen and then remove anchor node entirely -> should also clean
+    // reopen and then remove anchor node entirely -> should also close
     el.close && el.close();
     el.openFor && el.openFor('tmp-anchor');
-    expect(root.querySelector('.context-menu')).toBeTruthy();
+    expect(el.hasAttribute('open')).toBe(true);
     document.body.removeChild(anchor);
-    // trigger another reposition
-    document.body.dispatchEvent(new Event('resize'));
-    expect(root.querySelector('.context-menu')).toBeNull();
+    el._positionMenu && el._positionMenu();
+    expect(el.hasAttribute('open')).toBe(false);
 
     el.remove();
   });

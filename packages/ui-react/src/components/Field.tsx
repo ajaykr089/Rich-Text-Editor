@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 
-type FieldProps = React.HTMLAttributes<HTMLElement> & {
+export type FieldProps = React.HTMLAttributes<HTMLElement> & {
   children?: React.ReactNode;
   label?: string;
   description?: string;
@@ -9,6 +9,12 @@ type FieldProps = React.HTMLAttributes<HTMLElement> & {
   required?: boolean;
   invalid?: boolean;
   orientation?: 'vertical' | 'horizontal';
+  variant?: 'default' | 'surface' | 'outline' | 'soft' | 'contrast' | 'minimal' | 'elevated';
+  tone?: 'default' | 'brand' | 'success' | 'warning' | 'danger';
+  density?: 'default' | 'compact' | 'comfortable';
+  shape?: 'default' | 'square' | 'soft';
+  labelWidth?: string;
+  headless?: boolean;
 };
 
 export function Field(props: FieldProps) {
@@ -21,6 +27,12 @@ export function Field(props: FieldProps) {
     required,
     invalid,
     orientation,
+    variant,
+    tone,
+    density,
+    shape,
+    labelWidth,
+    headless,
     ...rest
   } = props;
 
@@ -30,13 +42,13 @@ export function Field(props: FieldProps) {
     const el = ref.current;
     if (!el) return;
 
-    if (label) el.setAttribute('label', label);
+    if (label != null && label !== '') el.setAttribute('label', label);
     else el.removeAttribute('label');
 
-    if (description) el.setAttribute('description', description);
+    if (description != null && description !== '') el.setAttribute('description', description);
     else el.removeAttribute('description');
 
-    if (error) el.setAttribute('error', error);
+    if (error != null && error !== '') el.setAttribute('error', error);
     else el.removeAttribute('error');
 
     if (htmlFor) el.setAttribute('for', htmlFor);
@@ -50,7 +62,39 @@ export function Field(props: FieldProps) {
 
     if (orientation && orientation !== 'vertical') el.setAttribute('orientation', orientation);
     else el.removeAttribute('orientation');
-  }, [label, description, error, htmlFor, required, invalid, orientation]);
+
+    if (variant && variant !== 'default') el.setAttribute('variant', variant);
+    else el.removeAttribute('variant');
+
+    if (tone && tone !== 'default') el.setAttribute('tone', tone);
+    else el.removeAttribute('tone');
+
+    if (density && density !== 'default') el.setAttribute('density', density);
+    else el.removeAttribute('density');
+
+    if (shape && shape !== 'default') el.setAttribute('shape', shape);
+    else el.removeAttribute('shape');
+
+    if (labelWidth) el.setAttribute('label-width', labelWidth);
+    else el.removeAttribute('label-width');
+
+    if (headless) el.setAttribute('headless', '');
+    else el.removeAttribute('headless');
+  }, [
+    label,
+    description,
+    error,
+    htmlFor,
+    required,
+    invalid,
+    orientation,
+    variant,
+    tone,
+    density,
+    shape,
+    labelWidth,
+    headless
+  ]);
 
   return React.createElement('ui-field', { ref, ...rest }, children);
 }

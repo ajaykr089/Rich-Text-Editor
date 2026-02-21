@@ -1,7 +1,6 @@
 export { Button } from './Button';
 export { Tooltip } from './Tooltip';
 export { Alert } from './Alert';
-export { Modal } from './Modal';
 export { Dropdown } from './Dropdown';
 export { Input } from './Input';
 export { Textarea } from './Textarea';
@@ -38,6 +37,7 @@ export { Sidebar } from './Sidebar';
 export { Breadcrumb } from './Breadcrumb';
 export { AppHeader } from './AppHeader';
 export { Drawer } from './Drawer';
+export { Layout } from './Layout';
 
 export { ThemeProvider, useTheme } from './ThemeProvider';
 
@@ -59,7 +59,7 @@ export { Separator } from './Separator';
 export { Slot } from './Slot';
 export { Toolbar } from './Toolbar';
 export { VisuallyHidden } from './VisuallyHidden';
-export { Accordion } from './Accordion';
+export { Accordion, AccordionItem, AccordionTrigger, AccordionPanel } from './Accordion';
 export { DirectionProvider } from './DirectionProvider';
 export { HoverCard } from './HoverCard';
 export { Label } from './Label';

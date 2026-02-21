@@ -24,21 +24,14 @@ describe('layout primitives (ui-box / ui-flex / ui-grid / ui-section / ui-contai
     el.setAttribute('p', JSON.stringify({ initial: 'md', md: 'lg' }));
     document.body.appendChild(el);
 
-    // class added to host
-    const cls = Array.from(el.classList).find((c: string) => c.startsWith('ui-box-rsp-'));
-    expect(cls).toBeTruthy();
-
-    // style tag should exist in head with media query for md and mapped token
-    const style = Array.from(document.head.querySelectorAll('style')).find(s => s.textContent && s.textContent.includes(cls as string));
+    // style tag should exist in shadow with media query for md and mapped token
+    const style = el.shadowRoot?.querySelector('style');
     expect(style).toBeTruthy();
     expect(style?.textContent).toContain('@media (min-width: var(--ui-breakpoint-md)');
     // token 'md' should be expanded via tokenOrRaw mapping inside injected CSS
     expect(style?.textContent).toContain('padding: var(--ui-space-md');
 
     el.remove();
-    // cleanup should remove injected style element
-    const still = Array.from(document.head.querySelectorAll('style')).find(s => s === style);
-    expect(still).toBeUndefined();
   });
 
   it('ui-box mirrors legacy `classname` attribute into classList and cleans up', () => {
@@ -78,10 +71,7 @@ describe('layout primitives (ui-box / ui-flex / ui-grid / ui-section / ui-contai
     el.setAttribute('bg', JSON.stringify({ initial: 'red', md: 'blue' }));
     document.body.appendChild(el);
 
-    const cls = Array.from(el.classList).find((c: string) => c.startsWith('ui-box-rsp-'));
-    expect(cls).toBeTruthy();
-
-    const style = Array.from(document.head.querySelectorAll('style')).find(s => s.textContent && s.textContent.includes(cls as string));
+    const style = el.shadowRoot?.querySelector('style');
     expect(style).toBeTruthy();
     expect(style?.textContent).toContain('@media (min-width: var(--ui-breakpoint-md)');
     expect(style?.textContent).toContain('background:');
@@ -89,14 +79,13 @@ describe('layout primitives (ui-box / ui-flex / ui-grid / ui-section / ui-contai
     el.remove();
   });
 
-  it('ui-box defaults to align-items: center (unless overridden)', () => {
+  it('ui-box does not force align-items unless explicitly set', () => {
     const el = document.createElement('ui-box') as any;
     document.body.appendChild(el);
 
-    // inline style should include align-items: center
-    expect(el.style.alignItems).toBe('center');
+    expect(el.style.alignItems).toBe('');
 
-    // if user provides explicit align via style, it should be preserved
+    // explicit inline style remains untouched
     const el2 = document.createElement('ui-box') as any;
     el2.style.alignItems = 'flex-start';
     document.body.appendChild(el2);
@@ -116,10 +105,7 @@ describe('layout primitives (ui-box / ui-flex / ui-grid / ui-section / ui-contai
     el2.setAttribute('align', JSON.stringify({ initial: 'flex-start', md: 'center' }));
     document.body.appendChild(el2);
 
-    const cls = Array.from(el2.classList).find((c: string) => c.startsWith('ui-box-rsp-'));
-    expect(cls).toBeTruthy();
-
-    const style = Array.from(document.head.querySelectorAll('style')).find(s => s.textContent && s.textContent.includes(cls as string));
+    const style = el2.shadowRoot?.querySelector('style');
     expect(style).toBeTruthy();
     expect(style?.textContent).toContain('align-items: flex-start;');
     expect(style?.textContent).toContain('@media (min-width: var(--ui-breakpoint-md)');
@@ -127,13 +113,30 @@ describe('layout primitives (ui-box / ui-flex / ui-grid / ui-section / ui-contai
     el2.remove();
   });
 
-  it('ui-grid defaults to align-items: center', () => {
+  it('ui-box exposes pro visual modes via variant/tone/elevation/radius attributes', () => {
+    const el = document.createElement('ui-box') as any;
+    el.setAttribute('variant', 'glass');
+    el.setAttribute('tone', 'brand');
+    el.setAttribute('elevation', 'high');
+    el.setAttribute('radius', 'lg');
+    el.setAttribute('interactive', '');
+    document.body.appendChild(el);
+
+    const style = (el.shadowRoot?.querySelector('style') as HTMLStyleElement | null)?.textContent || '';
+    expect(style).toContain(':host([variant="glass"])');
+    expect(style).toContain(':host([tone="brand"])');
+    expect(style).toContain(':host([elevation="high"])');
+    expect(style).toContain(':host([radius="lg"])');
+    expect(style).toContain(':host([interactive])');
+
+    el.remove();
+  });
+
+  it('ui-grid defaults to grid layout on host', () => {
     const el = document.createElement('ui-grid') as any;
     document.body.appendChild(el);
 
-    const grid = el.querySelector('.grid') as HTMLElement | null;
-    expect(grid).toBeTruthy();
-    expect(getComputedStyle(grid!).alignItems).toBe('center');
+    expect(getComputedStyle(el).display).toBe('grid');
 
     el.remove();
   });
@@ -144,7 +147,7 @@ describe('layout primitives (ui-box / ui-flex / ui-grid / ui-section / ui-contai
     el.setAttribute('gap', '6px');
     document.body.appendChild(el);
 
-    expect(getComputedStyle(el.querySelector('.flex')).flexDirection).toBe('column');
+    expect(getComputedStyle(el).flexDirection).toBe('column');
 
     el.remove();
   });
@@ -155,17 +158,12 @@ describe('layout primitives (ui-box / ui-flex / ui-grid / ui-section / ui-contai
     el.setAttribute('direction', JSON.stringify({ initial: 'row', md: 'column' }));
     document.body.appendChild(el);
 
-    const cls = Array.from(el.classList).find((c: string) => c.startsWith('ui-flex-rsp-'));
-    expect(cls).toBeTruthy();
-
-    const style = Array.from(document.head.querySelectorAll('style')).find(s => s.textContent && s.textContent.includes(cls as string));
+    const style = el.shadowRoot?.querySelector('style');
     expect(style).toBeTruthy();
     expect(style?.textContent).toContain('@media (min-width: var(--ui-breakpoint-md)');
-    expect(style?.textContent).toContain('--ui-gap');
+    expect(style?.textContent).toContain('--ui-flex-gap');
 
     el.remove();
-    const still = Array.from(document.head.querySelectorAll('style')).find(s => s === style);
-    expect(still).toBeUndefined();
   });
 
   it('ui-flex mirrors legacy `classname` attribute into classList and cleans up', () => {
@@ -186,9 +184,7 @@ describe('layout primitives (ui-box / ui-flex / ui-grid / ui-section / ui-contai
     el.setAttribute('columns', '1fr 2fr');
     document.body.appendChild(el);
 
-    const grid = el.querySelector('.grid') as HTMLElement | null;
-    expect(grid).toBeTruthy();
-    expect(getComputedStyle(grid!).gridTemplateColumns).toContain('1fr');
+    expect(getComputedStyle(el).gridTemplateColumns).toContain('1fr');
 
     el.remove();
   });
@@ -199,17 +195,12 @@ describe('layout primitives (ui-box / ui-flex / ui-grid / ui-section / ui-contai
     el.setAttribute('gap', JSON.stringify({ initial: '8px', md: '16px' }));
     document.body.appendChild(el);
 
-    const cls = Array.from(el.classList).find((c: string) => c.startsWith('ui-grid-rsp-'));
-    expect(cls).toBeTruthy();
-
-    const style = Array.from(document.head.querySelectorAll('style')).find(s => s.textContent && s.textContent.includes(cls as string));
+    const style = el.shadowRoot?.querySelector('style');
     expect(style).toBeTruthy();
     expect(style?.textContent).toContain('@media (min-width: var(--ui-breakpoint-md)');
     expect(style?.textContent).toContain('--ui-grid-columns');
 
     el.remove();
-    const still = Array.from(document.head.querySelectorAll('style')).find(s => s === style);
-    expect(still).toBeUndefined();
   });
 
   it('ui-grid mirrors legacy `classname` attribute into classList and cleans up', () => {

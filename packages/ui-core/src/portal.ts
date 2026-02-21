@@ -135,6 +135,7 @@ export function showPortalFor(anchor: HTMLElement | VirtualElement, contentEl: H
   contentEl.style.position = 'absolute';
   contentEl.style.pointerEvents = 'auto';
   root.appendChild(contentEl);
+  let cleanupObservers: () => void = () => {};
 
   function positionArrow(finalTop: number, finalLeft: number, finalPlacement: Placement) {
     // find an arrow element inside the portal content (common pattern: .arrow)
@@ -207,7 +208,7 @@ export function showPortalFor(anchor: HTMLElement | VirtualElement, contentEl: H
   }
 
   reposition();
-  const cleanupObservers = autoUpdatePosition(anchor as HTMLElement, contentEl, reposition);
+  cleanupObservers = autoUpdatePosition(anchor as HTMLElement, contentEl, reposition);
 
   return () => {
     try { if (contentEl.parentElement) contentEl.parentElement.removeChild(contentEl); } catch (e) {}

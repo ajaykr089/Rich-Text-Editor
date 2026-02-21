@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Box, Grid, Textarea, ThemeProvider } from '@editora/ui-react';
 
 export default {
@@ -11,68 +11,108 @@ export default {
     debounce: { control: 'number' },
     validation: { control: { type: 'radio', options: ['none', 'error', 'success'] } },
     size: { control: { type: 'radio', options: ['1', '2', '3', 'sm', 'md', 'lg'] } },
-    rows: { control: { type: 'number', min: 2, max: 14, step: 1 } },
+    rows: { control: { type: 'number', min: 2, max: 12, step: 1 } },
     maxlength: { control: 'number' },
     resize: { control: { type: 'radio', options: ['none', 'vertical', 'horizontal', 'both'] } },
+    variant: { control: { type: 'radio', options: ['classic', 'surface', 'soft', 'filled', 'ghost', 'contrast'] } },
     disabled: { control: 'boolean' },
-    readOnly: { control: 'boolean' },
-    label: { control: 'text' },
-    description: { control: 'text' }
+    readOnly: { control: 'boolean' }
   }
 };
 
 const Template = (args: any) => <Textarea {...args} />;
 
-export const Default = Template.bind({});
-Default.args = {
+export const Playground = Template.bind({});
+Playground.args = {
   value: '',
-  placeholder: 'Write a detailed note...',
-  clearable: false,
+  placeholder: 'Write a release summary for stakeholders...',
+  clearable: true,
+  debounce: 250,
   validation: 'none',
   rows: 4,
-  resize: 'vertical'
+  resize: 'vertical',
+  variant: 'surface',
+  size: 'md'
 };
 
-export const ControlledWithEvents = () => {
-  const [value, setValue] = useState('Initial text');
-  const [debounced, setDebounced] = useState('Initial text');
+export const ControlledWithDebounce = () => {
+  const [value, setValue] = React.useState('Release candidate notes...');
+  const [debounced, setDebounced] = React.useState('Release candidate notes...');
 
   return (
-    <Grid style={{ display: 'grid', gap: 10, maxWidth: 520 }}>
+    <Grid gap="10px" style={{ maxWidth: 560 }}>
       <Textarea
         value={value}
         clearable
-        debounce={300}
+        debounce={320}
+        rows={5}
+        variant="soft"
+        label="Release notes"
+        description="Debounced output updates after 320ms"
         onInput={setValue}
         onDebouncedInput={setDebounced}
-        label="Release notes"
-        description="Debounced value updates after 300ms"
       />
 
-      <Box style={{ fontSize: 13, color: '#475569' }}>
-        <Box><strong>Live:</strong> {value || '(empty)'}</Box>
-        <Box><strong>Debounced:</strong> {debounced || '(empty)'}</Box>
+      <Box variant="surface" p="10px" style={{ fontSize: 13, color: '#475569' }}>
+        <div><strong>Live:</strong> {value || '(empty)'}</div>
+        <div><strong>Debounced:</strong> {debounced || '(empty)'}</div>
       </Box>
     </Grid>
   );
 };
 
-export const ValidationAndSlots = () => (
-  <Box style={{ maxWidth: 520 }}>
-    <Textarea validation="error" label="Change reason" description="Please explain what changed" placeholder="Add context for reviewers...">
-      <Box slot="error">This field is required for audit logs.</Box>
+export const ValidationAndCounter = () => (
+  <Grid gap="12px" style={{ maxWidth: 620 }}>
+    <Textarea
+      label="Change reason"
+      description="Required for audit trails"
+      maxlength={160}
+      showCount
+      validation="error"
+      value=""
+      placeholder="Describe what changed and why..."
+      clearable
+    >
+      <Box slot="error">Please provide a clear reason before publishing.</Box>
     </Textarea>
-  </Box>
+
+    <Textarea
+      label="Internal context"
+      description="Autosize grows up to 8 rows"
+      autosize
+      maxRows={8}
+      rows={3}
+      showCount
+      maxlength={600}
+      variant="filled"
+      tone="success"
+      placeholder="Add operational context for support and QA teams..."
+    />
+  </Grid>
 );
 
-export const ThemedByTokens = () => (
-  <ThemeProvider tokens={{ colors: { primary: '#0ea5e9', background: '#0f172a', text: '#e2e8f0' }, radius: '12px' }}>
-    <Box style={{ padding: 12, background: 'var(--ui-color-background)' }}>
+export const ContrastVariant = () => (
+  <ThemeProvider
+    tokens={{
+      colors: {
+        background: '#020617',
+        surface: '#0f172a',
+        text: '#e2e8f0',
+        primary: '#93c5fd',
+        border: 'rgba(148, 163, 184, 0.38)'
+      }
+    }}
+  >
+    <Box bg="var(--ui-color-background)" p="14px" radius="lg" style={{ maxWidth: 640 }}>
       <Textarea
-        label="Dark themed textarea"
-        description="Token-based colors and radius"
-        placeholder="Type something..."
-        style={{ ['--ui-textarea-bg' as any]: '#111827', ['--ui-textarea-color' as any]: '#e5e7eb', ['--ui-textarea-border' as any]: '1px solid #374151' }}
+        variant="contrast"
+        size="lg"
+        rows={4}
+        label="Command center note"
+        description="High-contrast operational annotation"
+        placeholder="Type a runtime directive..."
+        showCount
+        maxlength={220}
       />
     </Box>
   </ThemeProvider>

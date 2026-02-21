@@ -25,7 +25,7 @@ This checklist follows `.prompts/refactor.md` and `.prompts/editora-ui.2.0.md`.
 - `ui-dropdown.ts`: `done-baseline` (listener lifecycle hardened).
 - `ui-popover.ts`: `done-baseline` (listener lifecycle hardened).
 - `ui-menu.ts`: `done-baseline` (listener lifecycle hardened).
-- `ui-modal.ts`: `done-baseline` (listener lifecycle hardened).
+- `ui-modal.ts`: `removed` (replaced by `ui-dialog.ts` as the canonical modal dialog primitive).
 - `ui-tooltip.ts`: `done-baseline` (listener lifecycle cleanup, portal cleanup before re-show).
 - `ui-alert-dialog.ts`: `done-baseline` (idempotent open/headless state transitions).
 - `ui-hover-card.ts`: `done-baseline` (idempotent open/headless state transitions).

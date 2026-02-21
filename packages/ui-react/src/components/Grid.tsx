@@ -1,51 +1,84 @@
-import React, { useEffect, useRef } from 'react';
+import React from 'react';
 
 type BreakpointKey = 'initial' | 'sm' | 'md' | 'lg' | 'xl';
 type Responsive<T> = T | Partial<Record<BreakpointKey, T>>;
-type ResponsiveBreakpoint = Exclude<BreakpointKey, 'initial'>;
 
-type Props = React.HTMLAttributes<HTMLElement> & { columns?: Responsive<string>; gap?: Responsive<string> };
+type Props = React.HTMLAttributes<HTMLElement> & {
+  columns?: Responsive<string>;
+  rows?: Responsive<string>;
+  gap?: Responsive<string>;
+  rowGap?: Responsive<string>;
+  columnGap?: Responsive<string>;
+  autoFlow?: Responsive<string>;
+  autoRows?: Responsive<string>;
+  autoColumns?: Responsive<string>;
+  align?: Responsive<string>;
+  justify?: Responsive<string>;
+  place?: Responsive<string>;
+  alignContent?: Responsive<string>;
+  justifyContent?: Responsive<string>;
+  placeContent?: Responsive<string>;
+  display?: Responsive<'grid' | 'inline-grid' | string>;
+  headless?: boolean;
+};
 
-function isResponsiveValue(v: any) { return v && typeof v === 'object'; }
+function serializeResponsive(value: unknown): string | undefined {
+  if (value == null) return undefined;
+  if (typeof value === 'object') {
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return undefined;
+    }
+  }
+  return String(value);
+}
 
 export function Grid(props: Props) {
-  const { children, className, columns = '1fr', gap, ...rest } = props as any;
-  const uid = useRef(`ui-grid-rsp-${Math.random().toString(36).slice(2,8)}`);
-  const styleEl = useRef<HTMLStyleElement | null>(null);
+  const {
+    children,
+    className,
+    columns,
+    rows,
+    gap,
+    rowGap,
+    columnGap,
+    autoFlow,
+    autoRows,
+    autoColumns,
+    align,
+    justify,
+    place,
+    alignContent,
+    justifyContent,
+    placeContent,
+    display,
+    headless,
+    ...rest
+  } = props;
 
-  useEffect(() => {
-    if (!isResponsiveValue(columns) && !isResponsiveValue(gap)) return;
-    const cls = uid.current;
-    const lines: string[] = [];
+  const hostProps: Record<string, unknown> = {
+    className,
+    ...rest,
+    columns: serializeResponsive(columns),
+    rows: serializeResponsive(rows),
+    gap: serializeResponsive(gap),
+    rowgap: serializeResponsive(rowGap),
+    columngap: serializeResponsive(columnGap),
+    autoflow: serializeResponsive(autoFlow),
+    autorows: serializeResponsive(autoRows),
+    autocolumns: serializeResponsive(autoColumns),
+    align: serializeResponsive(align),
+    justify: serializeResponsive(justify),
+    place: serializeResponsive(place),
+    aligncontent: serializeResponsive(alignContent),
+    justifycontent: serializeResponsive(justifyContent),
+    placecontent: serializeResponsive(placeContent),
+    display: serializeResponsive(display),
+    headless: headless ? '' : undefined
+  };
 
-    const base: string[] = [];
-    if (!isResponsiveValue(columns)) base.push(`grid-template-columns: ${columns};`);
-    if (!isResponsiveValue(gap) && gap) base.push(`gap: ${gap};`);
-    if (base.length) lines.push(`.${cls} { ${base.join(' ')} }`);
-
-    const bpKeys: Array<ResponsiveBreakpoint> = ['sm','md','lg','xl'];
-    const bpVar: Record<ResponsiveBreakpoint,string> = { sm: '--ui-breakpoint-sm', md: '--ui-breakpoint-md', lg: '--ui-breakpoint-lg', xl: '--ui-breakpoint-lg' };
-    for (const bp of bpKeys) {
-      const rules: string[] = [];
-      if (isResponsiveValue(columns) && (columns as any)[bp]) rules.push(`grid-template-columns: ${(columns as any)[bp]};`);
-      if (isResponsiveValue(gap) && (gap as any)[bp]) rules.push(`gap: ${(gap as any)[bp]};`);
-      if (rules.length) lines.push(`@media (min-width: var(${bpVar[bp]})) { .${cls} { ${rules.join(' ')} } }`);
-    }
-
-    let el = styleEl.current;
-    if (!el) { el = document.createElement('style'); document.head.appendChild(el); styleEl.current = el; }
-    el.textContent = lines.join('\n');
-
-    return () => { if (styleEl.current) { try { styleEl.current.remove(); } catch (e) {} styleEl.current = null; } };
-  }, [JSON.stringify({ columns, gap })]);
-
-  const hostProps: Record<string, any> = {};
-  if (!isResponsiveValue(columns)) hostProps.columns = columns;
-  if (!isResponsiveValue(gap) && gap) hostProps.gap = gap;
-  Object.assign(hostProps, rest);
-
-  const combinedClass = `${className ? className + ' ' : ''}${uid.current}`.trim();
-  return React.createElement('ui-grid', { className: combinedClass, ...hostProps }, children);
+  return React.createElement('ui-grid', hostProps, children);
 }
 
 export default Grid;

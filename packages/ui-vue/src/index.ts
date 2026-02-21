@@ -23,7 +23,6 @@ function makeWrapper(tag: string, events: string[] = []) {
 
 export const Button = makeWrapper('ui-button', ['click']);
 export const Tooltip = makeWrapper('ui-tooltip', ['open','close']);
-export const Modal = makeWrapper('ui-modal', ['open','close']);
 export const Dropdown = makeWrapper('ui-dropdown', ['open','close']);
 export const Input = makeWrapper('ui-input', ['input','change']);
 export const Popover = makeWrapper('ui-popover', ['open','close']);
@@ -34,7 +33,6 @@ export const Icon = makeWrapper('ui-icon');
 export default {
   Button,
   Tooltip,
-  Modal,
   Dropdown,
   Input,
   Popover,

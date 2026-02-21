@@ -1,154 +1,220 @@
 import { ElementBase } from '../ElementBase';
 
+type ResponsiveMap = Partial<Record<'initial' | 'sm' | 'md' | 'lg' | 'xl', string>>;
+
+const BREAKPOINTS: Record<Exclude<keyof ResponsiveMap, 'initial'>, string> = {
+  sm: 'var(--ui-breakpoint-sm, 640px)',
+  md: 'var(--ui-breakpoint-md, 768px)',
+  lg: 'var(--ui-breakpoint-lg, 1024px)',
+  xl: 'var(--ui-breakpoint-xl, 1280px)'
+};
+
+const GRID_ATTRS = [
+  'display',
+  'columns',
+  'rows',
+  'gap',
+  'rowgap',
+  'columngap',
+  'autoflow',
+  'autorows',
+  'autocolumns',
+  'align',
+  'justify',
+  'place',
+  'aligncontent',
+  'justifycontent',
+  'placecontent'
+] as const;
+
+const SPACE_TOKENS: Record<string, string> = {
+  xs: 'var(--ui-space-xs, 4px)',
+  sm: 'var(--ui-space-sm, 8px)',
+  md: 'var(--ui-space-md, 12px)',
+  lg: 'var(--ui-space-lg, 20px)',
+  xl: 'var(--ui-space-xl, 28px)'
+};
+
 const style = `
   :host {
-    display: block;
-    --ui-gap: 12px;
+    --ui-grid-display: grid;
     --ui-grid-columns: 1fr;
+    --ui-grid-rows: none;
+    --ui-grid-gap: 0px;
+    --ui-grid-row-gap: var(--ui-grid-gap);
+    --ui-grid-column-gap: var(--ui-grid-gap);
+    --ui-grid-auto-flow: row;
+    --ui-grid-auto-rows: auto;
+    --ui-grid-auto-columns: auto;
+    --ui-grid-align-items: stretch;
+    --ui-grid-justify-items: stretch;
+    --ui-grid-place-items: initial;
+    --ui-grid-align-content: normal;
+    --ui-grid-justify-content: normal;
+    --ui-grid-place-content: initial;
+    color-scheme: light dark;
+    display: var(--ui-grid-display);
+    box-sizing: border-box;
+    min-inline-size: 0;
+    grid-template-columns: var(--ui-grid-columns);
+    grid-template-rows: var(--ui-grid-rows);
+    gap: var(--ui-grid-gap);
+    row-gap: var(--ui-grid-row-gap);
+    column-gap: var(--ui-grid-column-gap);
+    grid-auto-flow: var(--ui-grid-auto-flow);
+    grid-auto-rows: var(--ui-grid-auto-rows);
+    grid-auto-columns: var(--ui-grid-auto-columns);
+    align-items: var(--ui-grid-align-items);
+    justify-items: var(--ui-grid-justify-items);
+    place-items: var(--ui-grid-place-items);
+    align-content: var(--ui-grid-align-content);
+    justify-content: var(--ui-grid-justify-content);
+    place-content: var(--ui-grid-place-content);
   }
-  .grid {
-    display: grid;
-    gap: var(--ui-gap, 12px);
-    grid-template-columns: var(--ui-grid-columns, 1fr);
-    align-items: center;
-    width: 100%;
+
+  slot {
+    display: contents;
   }
-  :host([headless]) .grid { display: none; }
+
+  :host([headless]) {
+    display: none !important;
+  }
 `;
 
+function parseResponsive(raw: string | null): ResponsiveMap | null {
+  if (!raw) return null;
+  const value = raw.trim();
+  if (!value.startsWith('{')) return null;
+  try {
+    const parsed = JSON.parse(value) as ResponsiveMap;
+    if (!parsed || typeof parsed !== 'object') return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function normalizeSpace(value: string): string {
+  const token = SPACE_TOKENS[value];
+  return token || value;
+}
+
+function toCssVariable(attr: (typeof GRID_ATTRS)[number], value: string): Record<string, string> {
+  switch (attr) {
+    case 'display': return { '--ui-grid-display': value };
+    case 'columns': return { '--ui-grid-columns': value };
+    case 'rows': return { '--ui-grid-rows': value };
+    case 'gap': return { '--ui-grid-gap': normalizeSpace(value) };
+    case 'rowgap': return { '--ui-grid-row-gap': normalizeSpace(value) };
+    case 'columngap': return { '--ui-grid-column-gap': normalizeSpace(value) };
+    case 'autoflow': return { '--ui-grid-auto-flow': value };
+    case 'autorows': return { '--ui-grid-auto-rows': value };
+    case 'autocolumns': return { '--ui-grid-auto-columns': value };
+    case 'align': return { '--ui-grid-align-items': value };
+    case 'justify': return { '--ui-grid-justify-items': value };
+    case 'place': return { '--ui-grid-place-items': value };
+    case 'aligncontent': return { '--ui-grid-align-content': value };
+    case 'justifycontent': return { '--ui-grid-justify-content': value };
+    case 'placecontent': return { '--ui-grid-place-content': value };
+    default: return {};
+  }
+}
+
 export class UIGrid extends ElementBase {
-  static get observedAttributes() { return ['classname', 'headless']; }
-
-  private _headless = false;
-
-  constructor() {
-    super();
+  static get observedAttributes() {
+    return ['classname', 'headless', ...GRID_ATTRS];
   }
 
-  connectedCallback() {
-    super.connectedCallback();
-  }
+  private _lastClassname = '';
+  private _appliedInlineProps = new Set<string>();
 
-  disconnectedCallback() {
-    if ((this as any)._cleanup) (this as any)._cleanup();
-    super.disconnectedCallback();
-  }
+  private _syncLegacyClassname(): void {
+    const next = this.getAttribute('classname') || '';
+    if (next === this._lastClassname) return;
 
-  attributeChangedCallback(name: string, oldValue: string | null, newValue: string | null) {
-    if (name === 'headless') {
-      this._headless = this.hasAttribute('headless');
-      this.render();
+    if (this._lastClassname) {
+      this._lastClassname.split(/\s+/).forEach((token) => {
+        if (token) this.classList.remove(token);
+      });
     }
-    if (name === 'classname') {
-      this.render();
+
+    if (next) {
+      next.split(/\s+/).forEach((token) => {
+        if (token) this.classList.add(token);
+      });
     }
+
+    this._lastClassname = next;
   }
 
-  protected render() {
-    const parseJson = (v: string | null) => {
-      if (!v) return null;
-      const t = v.trim();
-      if (!t.startsWith('{')) return null;
-      try { return JSON.parse(t); } catch (e) { return null; }
+  private _applyInlineStyles(): void {
+    this._appliedInlineProps.forEach((prop) => this.style.removeProperty(prop));
+    this._appliedInlineProps.clear();
+
+    GRID_ATTRS.forEach((attr) => {
+      const raw = this.getAttribute(attr);
+      if (!raw) return;
+      if (parseResponsive(raw)) return;
+
+      const mapped = toCssVariable(attr, raw);
+      Object.entries(mapped).forEach(([prop, value]) => {
+        this.style.setProperty(prop, value);
+        this._appliedInlineProps.add(prop);
+      });
+    });
+  }
+
+  private _buildResponsiveCss(): string {
+    const initial: Record<string, string> = {};
+    const media: Record<Exclude<keyof ResponsiveMap, 'initial'>, Record<string, string>> = {
+      sm: {},
+      md: {},
+      lg: {},
+      xl: {}
     };
 
-    // mirror legacy `classname` attribute into classList
-    const legacyClassAttr = this.getAttribute('classname');
-    const prevLegacy = (this as any).__legacyClassName;
-    if (legacyClassAttr && legacyClassAttr !== prevLegacy) {
-      if (prevLegacy) prevLegacy.split(/\s+/).forEach((c: string) => { if (c) this.classList.remove(c); });
-      legacyClassAttr.split(/\s+/).forEach((c: string) => { if (c) this.classList.add(c); });
-      (this as any).__legacyClassName = legacyClassAttr;
-    } else if (!legacyClassAttr && prevLegacy) {
-      prevLegacy.split(/\s+/).forEach((c: string) => { if (c) this.classList.remove(c); });
-      (this as any).__legacyClassName = undefined;
-    }
+    GRID_ATTRS.forEach((attr) => {
+      const raw = this.getAttribute(attr);
+      const responsive = parseResponsive(raw);
+      if (!responsive) return;
 
-    const tokenOrRaw = (v: string | null): string => {
-      if (!v) return '';
-      const map: Record<string,string> = { xs: 'var(--ui-space-xs, 4px)', sm: 'var(--ui-space-sm, 8px)', md: 'var(--ui-space-md, 12px)', lg: 'var(--ui-space-lg, 20px)' };
-      return (v in map) ? map[v as keyof typeof map] : v;
+      const applyMap = (bucket: Record<string, string>, value: string) => {
+        Object.assign(bucket, toCssVariable(attr, value));
+      };
+
+      if (typeof responsive.initial === 'string') applyMap(initial, responsive.initial);
+      if (typeof responsive.sm === 'string') applyMap(media.sm, responsive.sm);
+      if (typeof responsive.md === 'string') applyMap(media.md, responsive.md);
+      if (typeof responsive.lg === 'string') applyMap(media.lg, responsive.lg);
+      if (typeof responsive.xl === 'string') applyMap(media.xl, responsive.xl);
+    });
+
+    const ruleFor = (selector: string, values: Record<string, string>): string => {
+      const entries = Object.entries(values);
+      if (!entries.length) return '';
+      return `${selector} { ${entries.map(([k, v]) => `${k}: ${v};`).join(' ')} }`;
     };
 
-    const rspKeys = ['columns','gap'];
-    const responsiveEntries: Array<{ prop: string; map: any }> = [];
-    for (const k of rspKeys) {
-      const raw = this.getAttribute(k);
-      const parsed = parseJson(raw);
-      if (parsed && typeof parsed === 'object') responsiveEntries.push({ prop: k, map: parsed });
-    }
+    const lines: string[] = [];
+    const base = ruleFor(':host', initial);
+    if (base) lines.push(base);
 
-    if (responsiveEntries.length) {
-      if (!(this as any).__rspUid) {
-        (this as any).__rspUid = `ui-grid-rsp-${Math.random().toString(36).slice(2,8)}`;
-        this.classList.add((this as any).__rspUid);
-      }
-      const uid = (this as any).__rspUid as string;
-      const lines: string[] = [];
+    (Object.keys(media) as Array<Exclude<keyof ResponsiveMap, 'initial'>>).forEach((bp) => {
+      const body = ruleFor(':host', media[bp]);
+      if (body) lines.push(`@media (min-width: ${BREAKPOINTS[bp]}) { ${body} }`);
+    });
 
-      const baseVars: Record<string,string> = {};
-      for (const ent of responsiveEntries) {
-        const initial = ent.map.initial;
-        if (typeof initial !== 'undefined') {
-          if (ent.prop === 'columns') baseVars['--ui-grid-columns'] = initial;
-          if (ent.prop === 'gap') baseVars['--ui-gap'] = tokenOrRaw(initial);
-        }
-      }
-      if (Object.keys(baseVars).length) {
-        const rule = Object.entries(baseVars).map(([k,v]) => `${k}: ${v};`).join(' ');
-        lines.push(`.${uid} { ${rule} }`);
-      }
+    return lines.join('\n');
+  }
 
-      const bpKeys = ['sm','md','lg','xl'];
-      const bpVar: Record<string,string> = { sm: '--ui-breakpoint-sm', md: '--ui-breakpoint-md', lg: '--ui-breakpoint-lg', xl: '--ui-breakpoint-lg' };
-      for (const bp of bpKeys) {
-        const setVars: string[] = [];
-        for (const ent of responsiveEntries) {
-          const v = ent.map[bp];
-          if (typeof v !== 'undefined') {
-            if (ent.prop === 'columns') setVars.push(`--ui-grid-columns: ${v};`);
-            if (ent.prop === 'gap') setVars.push(`--ui-gap: ${tokenOrRaw(v)};`);
-          }
-        }
-        if (setVars.length) lines.push(`@media (min-width: var(${bpVar[bp]})) { .${uid} { ${setVars.join(' ')} } }`);
-      }
+  protected override render(): void {
+    this._syncLegacyClassname();
+    this._applyInlineStyles();
 
-      let styleEl = (this as any).__rspStyleEl as HTMLStyleElement | null | undefined;
-      if (!styleEl) {
-        styleEl = document.createElement('style');
-        styleEl.dataset['uid'] = uid;
-        document.head.appendChild(styleEl);
-        (this as any).__rspStyleEl = styleEl;
-        (this as any)._cleanup = () => {
-          try { styleEl?.parentElement?.removeChild(styleEl); } catch (e) {}
-          (this as any).__rspStyleEl = null;
-          try { this.classList.remove(uid); } catch (e) {}
-        };
-      }
-      styleEl.textContent = lines.join('\n');
-    } else {
-      if ((this as any).__rspStyleEl) {
-        try { (this as any).__rspStyleEl.parentElement?.removeChild((this as any).__rspStyleEl); } catch (e) {}
-        (this as any).__rspStyleEl = null;
-      }
-      if ((this as any).__rspUid) {
-        try { this.classList.remove((this as any).__rspUid); } catch (e) {}
-        (this as any).__rspUid = undefined;
-      }
-    }
+    const responsiveCss = this._buildResponsiveCss();
+    this.setContent(`<style>${style}${responsiveCss ? `\n${responsiveCss}` : ''}</style><slot></slot>`);
 
-    // single-value attributes -> set CSS variables on host
-    const columns = parseJson(this.getAttribute('columns')) ? undefined : (this.getAttribute('columns') || undefined);
-    const gap = parseJson(this.getAttribute('gap')) ? undefined : (this.getAttribute('gap') || undefined);
-    if (columns) this.style.setProperty('--ui-grid-columns', columns);
-    if (gap) this.style.setProperty('--ui-gap', tokenOrRaw(gap));
-
-    if (this._headless) {
-      this.setContent('');
-      return;
-    }
-    this.setContent(`<style>${style}</style><div class="grid" role="group" aria-label="Grid layout"><slot></slot></div>`);
-    this.dispatchEvent(new CustomEvent('layoutchange', { bubbles: true }));
+    this.dispatchEvent(new CustomEvent('layoutchange', { bubbles: true, composed: true }));
   }
 }
 

@@ -6,8 +6,15 @@ export default {
   component: Drawer,
   argTypes: {
     open: { control: 'boolean' },
-    side: { control: 'select', options: ['left', 'right', 'top', 'bottom'] },
-    dismissible: { control: 'boolean' }
+    side: { control: 'select', options: ['left', 'right', 'top', 'bottom', 'start', 'end'] },
+    dismissible: { control: 'boolean' },
+    variant: { control: 'select', options: ['default', 'solid', 'flat', 'line', 'glass', 'contrast'] },
+    density: { control: 'select', options: ['default', 'compact', 'comfortable'] },
+    shape: { control: 'select', options: ['default', 'square', 'soft'] },
+    elevation: { control: 'select', options: ['default', 'none', 'low', 'high'] },
+    tone: { control: 'select', options: ['default', 'brand', 'danger', 'success', 'warning'] },
+    size: { control: 'select', options: ['default', 'sm', 'lg'] },
+    inset: { control: 'boolean' }
   }
 };
 
@@ -22,6 +29,13 @@ export const Controlled = (args: any) => {
         open={open}
         side={args.side}
         dismissible={args.dismissible}
+        variant={args.variant}
+        density={args.density}
+        shape={args.shape}
+        elevation={args.elevation}
+        tone={args.tone}
+        size={args.size}
+        inset={args.inset}
         onChange={setOpen}
       >
         <Box slot="header" style={{ fontWeight: 700 }}>Filters</Box>
@@ -38,7 +52,71 @@ export const Controlled = (args: any) => {
     </Box>
   );
 };
-Controlled.args = { open: false, side: 'left', dismissible: true };
+Controlled.args = {
+  open: false,
+  side: 'left',
+  dismissible: true,
+  variant: 'default',
+  density: 'default',
+  shape: 'default',
+  elevation: 'default',
+  tone: 'default',
+  size: 'default',
+  inset: false
+};
+
+export const VisualVariants = () => {
+  const [open, setOpen] = useState<string | null>('default');
+
+  return (
+    <Grid style={{ display: 'grid', gap: 12 }}>
+      <Flex style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <Button size="sm" onClick={() => setOpen('default')}>Default</Button>
+        <Button size="sm" onClick={() => setOpen('square')}>Square Flat</Button>
+        <Button size="sm" onClick={() => setOpen('line')}>Line Inset</Button>
+        <Button size="sm" onClick={() => setOpen('comfortable')}>Comfortable</Button>
+        <Button size="sm" onClick={() => setOpen('glass')}>Glass</Button>
+        <Button size="sm" onClick={() => setOpen('contrast')}>Contrast</Button>
+      </Flex>
+
+      <Drawer open={open === 'default'} side="left" dismissible onChange={(next) => !next && setOpen(null)}>
+        <Box slot="header">Default / Soft</Box>
+        <p style={{ margin: 0 }}>Balanced admin panel style.</p>
+        <Box slot="footer"><Button size="sm" onClick={() => setOpen(null)}>Close</Button></Box>
+      </Drawer>
+
+      <Drawer open={open === 'square'} side="right" dismissible variant="flat" elevation="none" shape="square" density="compact" onChange={(next) => !next && setOpen(null)}>
+        <Box slot="header">Square / Flat / Compact</Box>
+        <p style={{ margin: 0 }}>Sharp, low-ornament variant.</p>
+        <Box slot="footer"><Button size="sm" variant="secondary" onClick={() => setOpen(null)}>Close</Button></Box>
+      </Drawer>
+
+      <Drawer open={open === 'line'} side="right" dismissible variant="line" tone="warning" shape="square" density="compact" inset onChange={(next) => !next && setOpen(null)}>
+        <Box slot="header">Line / Warning / Inset</Box>
+        <p style={{ margin: 0 }}>Floating side panel with crisp borders and no heavy shadows.</p>
+        <Box slot="footer"><Button size="sm" variant="secondary" onClick={() => setOpen(null)}>Close</Button></Box>
+      </Drawer>
+
+      <Drawer open={open === 'comfortable'} side="left" dismissible density="comfortable" elevation="high" size="lg" onChange={(next) => !next && setOpen(null)}>
+        <Box slot="header">Comfortable / Large</Box>
+        <p style={{ margin: 0 }}>Roomier spacing for content-dense workflows.</p>
+        <Box slot="footer"><Button size="sm" onClick={() => setOpen(null)}>Done</Button></Box>
+      </Drawer>
+
+      <Drawer open={open === 'glass'} side="left" dismissible variant="glass" shape="soft" elevation="high" inset onChange={(next) => !next && setOpen(null)}>
+        <Box slot="header">Glass / Soft / Inset</Box>
+        <p style={{ margin: 0 }}>High-polish floating drawer for analytics and detail views.</p>
+        <Box slot="footer"><Button size="sm" onClick={() => setOpen(null)}>Done</Button></Box>
+      </Drawer>
+
+      <Drawer open={open === 'contrast'} side="right" dismissible variant="contrast" tone="danger" onChange={(next) => !next && setOpen(null)}>
+        <Box slot="header">Contrast / Danger Tone</Box>
+        <p style={{ margin: 0 }}>High-contrast critical action panel.</p>
+        <Box slot="footer"><Button size="sm" variant="secondary" onClick={() => setOpen(null)}>Dismiss</Button></Box>
+      </Drawer>
+    </Grid>
+  );
+};
 
 export const SideVariants = () => {
   const [openSide, setOpenSide] = useState<string | null>(null);
