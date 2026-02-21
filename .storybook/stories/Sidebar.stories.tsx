@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Badge, Box, Button, Flex, Grid, Sidebar } from '@editora/ui-react';
+import { Badge, Box, Button, CommandPalette, Flex, Grid, Sidebar } from '@editora/ui-react';
 
 export default {
   title: 'UI/Sidebar',
@@ -147,3 +147,57 @@ export const VisualModes = () => (
     </Sidebar>
   </Grid>
 );
+
+export const MegaNavigationAndQuickActions = () => {
+  const [value, setValue] = useState('overview');
+  const [openPalette, setOpenPalette] = useState(false);
+
+  const commands = [
+    'Create patient profile',
+    'Schedule consultation',
+    'Open billing queue',
+    'Jump to admissions',
+    'Run attendance sync',
+    'Generate monthly report'
+  ];
+
+  return (
+    <Grid columns="auto 1fr" style={{ minHeight: 520, border: '1px solid #e2e8f0', borderRadius: 16, overflow: 'hidden' }}>
+      <Sidebar value={value} collapsible variant="floating" density="compact" onSelect={(detail) => setValue(detail.value)}>
+        <Box slot="header" style={{ fontWeight: 700 }}>Operations Hub</Box>
+        <Box slot="search" variant="outline" radius="lg" p="8px" style={{ fontSize: 12, color: '#64748b' }}>
+          Cmd + K for command palette
+        </Box>
+
+        <Box slot="item" data-section="Overview" data-value="overview" data-icon="🧭" data-active>Overview</Box>
+        <Box slot="item" data-section="Overview" data-value="alerts" data-icon="🚨" data-badge="5" data-tone="danger">Live alerts</Box>
+        <Box slot="item" data-section="Clinical" data-value="appointments" data-icon="🩺" data-badge="18">Appointments</Box>
+        <Box slot="item" data-section="Clinical" data-value="patients" data-icon="🏥">Patients</Box>
+        <Box slot="item" data-section="Academic" data-value="classes" data-icon="🏫">Classes</Box>
+        <Box slot="item" data-section="Academic" data-value="attendance" data-icon="🗓" data-badge="9" data-tone="warning">Attendance</Box>
+        <Box slot="item" data-section="Finance" data-value="billing" data-icon="💳">Billing</Box>
+        <Box slot="item" data-section="Finance" data-value="reports" data-icon="📊">Reports</Box>
+      </Sidebar>
+
+      <Box p="18px" style={{ background: '#f8fafc', display: 'grid', gap: 12, alignContent: 'start' }}>
+        <Flex style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <Box style={{ fontSize: 20, fontWeight: 700 }}>Module: {value}</Box>
+          <Flex style={{ display: 'flex', gap: 8 }}>
+            <Button size="sm" onClick={() => setOpenPalette(true)}>Open command palette</Button>
+            <Button size="sm" variant="secondary">Create ticket</Button>
+            <Button size="sm" variant="ghost">Quick export</Button>
+          </Flex>
+        </Flex>
+        <Box style={{ color: '#475569', fontSize: 13 }}>
+          Dense navigation pattern with grouped modules, fast actions, and command-palette jump workflow for admin-heavy apps.
+        </Box>
+      </Box>
+
+      <CommandPalette open={openPalette} onSelect={() => setOpenPalette(false)}>
+        {commands.map((command) => (
+          <Box key={command} slot="command">{command}</Box>
+        ))}
+      </CommandPalette>
+    </Grid>
+  );
+};

@@ -170,4 +170,66 @@ describe('ui-data-table accessibility + keyboard behavior', () => {
     expect(empty?.hasAttribute('hidden')).toBe(false);
     expect((empty?.textContent || '').toLowerCase()).toContain('no matching records');
   });
+
+  it('supports rule-based filters and pinned columns', () => {
+    const el = createDataTable(`
+      <table>
+        <thead><tr><th data-key="name">Name</th><th data-key="role">Role</th><th data-key="status">Status</th></tr></thead>
+        <tbody>
+          <tr><td>Ava</td><td>Admin</td><td>Active</td></tr>
+          <tr><td>Liam</td><td>Editor</td><td>Invited</td></tr>
+          <tr><td>Mia</td><td>Admin</td><td>Suspended</td></tr>
+        </tbody>
+      </table>
+    `, {
+      filters: JSON.stringify([{ column: 'role', op: 'equals', value: 'Admin' }]),
+      'pin-columns': 'left:name;right:status'
+    });
+
+    const rows = Array.from(el.querySelectorAll('tbody tr')) as HTMLTableRowElement[];
+    expect(rows[0].hidden).toBe(false);
+    expect(rows[1].hidden).toBe(true);
+    expect(rows[2].hidden).toBe(false);
+
+    const headers = Array.from(el.querySelectorAll('thead th')) as HTMLTableCellElement[];
+    expect(headers[0].getAttribute('data-pinned')).toBe('left');
+    expect(headers[2].getAttribute('data-pinned')).toBe('right');
+  });
+
+  it('shows bulk actions on selection and emits bulk-clear event', () => {
+    const el = createDataTable(`
+      <table>
+        <thead><tr><th data-key="name">Name</th><th data-key="role">Role</th></tr></thead>
+        <tbody>
+          <tr><td>Ava</td><td>Admin</td></tr>
+          <tr><td>Liam</td><td>Editor</td></tr>
+        </tbody>
+      </table>
+    `, {
+      selectable: true,
+      'multi-select': true
+    });
+
+    const rows = Array.from(el.querySelectorAll('tbody tr')) as HTMLTableRowElement[];
+    rows[0].dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    rows[1].dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    const bulk = el.shadowRoot?.querySelector('.bulk') as HTMLElement | null;
+    expect(bulk).toBeTruthy();
+    expect(bulk?.hasAttribute('hidden')).toBe(false);
+
+    let detail: any = null;
+    el.addEventListener('bulk-clear', (event: Event) => {
+      detail = (event as CustomEvent).detail;
+    });
+
+    const clearButton = el.shadowRoot?.querySelector('.bulk-clear') as HTMLButtonElement | null;
+    expect(clearButton).toBeTruthy();
+    clearButton?.click();
+
+    expect(detail).toBeTruthy();
+    expect(detail.count).toBe(2);
+    expect(rows[0].getAttribute('data-selected')).toBeNull();
+    expect(rows[1].getAttribute('data-selected')).toBeNull();
+  });
 });

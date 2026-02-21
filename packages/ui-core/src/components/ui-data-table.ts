@@ -37,6 +37,58 @@ const style = `
     max-height: var(--ui-data-table-virtual-height, 420px);
   }
 
+  .bulk {
+    margin-top: 10px;
+    border: var(--ui-data-table-border);
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--ui-color-surface, #ffffff) 95%, transparent);
+    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+    padding: 8px 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--ui-data-table-summary-color);
+  }
+
+  .bulk[hidden] {
+    display: none;
+  }
+
+  .bulk-count {
+    font-weight: 600;
+    color: var(--ui-data-table-text);
+  }
+
+  .bulk-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .bulk-clear {
+    border: 1px solid color-mix(in srgb, var(--ui-data-table-border-color) 76%, transparent);
+    background: color-mix(in srgb, var(--ui-color-surface, #ffffff) 92%, transparent);
+    color: var(--ui-data-table-text);
+    border-radius: 999px;
+    padding: 4px 10px;
+    font-size: 12px;
+    line-height: 1.2;
+    cursor: pointer;
+    transition: border-color 130ms ease, background-color 130ms ease;
+  }
+
+  .bulk-clear:hover {
+    border-color: color-mix(in srgb, var(--ui-color-primary, #2563eb) 38%, var(--ui-data-table-border-color));
+    background: color-mix(in srgb, var(--ui-color-primary, #2563eb) 11%, transparent);
+  }
+
+  .bulk-clear:focus-visible {
+    outline: 2px solid var(--ui-color-focus-ring, #2563eb);
+    outline-offset: 1px;
+  }
+
   .empty {
     padding: 24px 16px;
     text-align: center;
@@ -67,6 +119,10 @@ const style = `
   }
 
   :host([headless]) .meta {
+    display: none;
+  }
+
+  :host([headless]) .bulk {
     display: none;
   }
 
@@ -246,6 +302,27 @@ const lightDomStyle = `
     background: var(--ui-data-table-resize-handle-active, rgba(37, 99, 235, 0.72));
   }
 
+  ui-data-table:not([headless]) table[data-ui-data-table] [data-pinned="left"],
+  ui-data-table:not([headless]) table[data-ui-data-table] [data-pinned="right"] {
+    position: sticky;
+    z-index: 3;
+    background: var(--ui-data-table-bg, #fff);
+  }
+
+  ui-data-table:not([headless]) table[data-ui-data-table] thead [data-pinned="left"],
+  ui-data-table:not([headless]) table[data-ui-data-table] thead [data-pinned="right"] {
+    z-index: 4;
+    background: var(--ui-data-table-header-bg, #f8fafc);
+  }
+
+  ui-data-table:not([headless]) table[data-ui-data-table] [data-pinned="left"][data-pin-edge="true"] {
+    box-shadow: 1px 0 0 var(--ui-data-table-cell-border, rgba(15, 23, 42, 0.08)), 8px 0 14px rgba(15, 23, 42, 0.08);
+  }
+
+  ui-data-table:not([headless]) table[data-ui-data-table] [data-pinned="right"][data-pin-edge="true"] {
+    box-shadow: -1px 0 0 var(--ui-data-table-cell-border, rgba(15, 23, 42, 0.08)), -8px 0 14px rgba(15, 23, 42, 0.08);
+  }
+
   ui-data-table:not([headless]) table[data-ui-data-table] thead th:focus-visible,
   ui-data-table:not([headless]) table[data-ui-data-table] tbody tr[tabindex="0"]:focus-visible {
     outline: 2px solid var(--ui-color-focus-ring, #2563eb);
@@ -316,9 +393,13 @@ export class UIDataTable extends ElementBase {
       'loading',
       'filter-query',
       'filter-column',
+      'filters',
+      'pin-columns',
       'column-order',
       'draggable-columns',
       'resizable-columns',
+      'bulk-actions-label',
+      'bulk-clear-label',
       'virtualize',
       'row-height',
       'overscan',
@@ -430,7 +511,7 @@ export class UIDataTable extends ElementBase {
       return;
     }
     this._syncStructure();
-    if (name === 'filter-query' || name === 'filter-column') {
+    if (name === 'filter-query' || name === 'filter-column' || name === 'filters') {
       this._dispatchFilterChange();
     }
   }
@@ -452,6 +533,13 @@ export class UIDataTable extends ElementBase {
       <div class="meta" part="meta">
         <span class="summary" part="summary" aria-live="polite"></span>
         <slot name="meta"></slot>
+      </div>
+      <div class="bulk" part="bulk" hidden>
+        <span class="bulk-count" part="bulk-count" aria-live="polite"></span>
+        <div class="bulk-actions" part="bulk-actions">
+          <slot name="bulk-actions"></slot>
+          <button type="button" class="bulk-clear" part="bulk-clear"></button>
+        </div>
       </div>
     `);
 
@@ -545,6 +633,93 @@ export class UIDataTable extends ElementBase {
     return -1;
   }
 
+  private _resolveColumnIndex(headers: HTMLTableCellElement[], raw: string | number): number {
+    if (typeof raw === 'number' && Number.isInteger(raw) && raw >= 0 && raw < headers.length) return raw;
+    const token = String(raw || '').trim();
+    if (!token) return -1;
+    const numeric = Number(token);
+    if (Number.isInteger(numeric) && numeric >= 0 && numeric < headers.length) return numeric;
+    const lowered = token.toLowerCase();
+    for (let i = 0; i < headers.length; i += 1) {
+      const th = headers[i];
+      const key = (th.getAttribute('data-key') || '').toLowerCase();
+      const text = getCellText(th).toLowerCase();
+      if (key === lowered || text === lowered || this._headerKey(th, i) === lowered) return i;
+    }
+    return -1;
+  }
+
+  private _parseFilters(headers: HTMLTableCellElement[]): Array<{ columnIndex: number; op: string; value: any }> {
+    const raw = this.getAttribute('filters');
+    if (!raw) return [];
+
+    try {
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return [];
+      const normalized: Array<{ columnIndex: number; op: string; value: any }> = [];
+      parsed.forEach((entry) => {
+        if (!entry || typeof entry !== 'object') return;
+        const columnInput = (entry as any).column ?? (entry as any).field ?? (entry as any).key;
+        const columnIndex = this._resolveColumnIndex(headers, columnInput);
+        if (columnIndex < 0) return;
+        const op = String((entry as any).op || (entry as any).operator || 'contains').trim().toLowerCase();
+        normalized.push({ columnIndex, op, value: (entry as any).value });
+      });
+      return normalized;
+    } catch {
+      return [];
+    }
+  }
+
+  private _normalizePinTokens(value: unknown): string[] {
+    if (Array.isArray(value)) return value.map((item) => String(item).trim()).filter(Boolean);
+    if (value == null) return [];
+    return String(value)
+      .split(',')
+      .map((token) => token.trim())
+      .filter(Boolean);
+  }
+
+  private _parsePinColumns(headers: HTMLTableCellElement[]): { left: number[]; right: number[] } {
+    const raw = this.getAttribute('pin-columns');
+    if (!raw) return { left: [], right: [] };
+
+    const left = new Set<number>();
+    const right = new Set<number>();
+    const assign = (target: Set<number>, values: string[]) => {
+      values.forEach((value) => {
+        const index = this._resolveColumnIndex(headers, value);
+        if (index >= 0) target.add(index);
+      });
+    };
+
+    try {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object') {
+        assign(left, this._normalizePinTokens((parsed as any).left));
+        assign(right, this._normalizePinTokens((parsed as any).right));
+        const leftArr = Array.from(left).sort((a, b) => a - b);
+        const rightArr = Array.from(right).filter((index) => !left.has(index)).sort((a, b) => b - a);
+        return { left: leftArr, right: rightArr };
+      }
+    } catch {
+      // fallback to string parser below
+    }
+
+    const segments = raw.split(';').map((segment) => segment.trim()).filter(Boolean);
+    segments.forEach((segment) => {
+      const [sideRaw, valuesRaw] = segment.split(':');
+      const side = (sideRaw || '').trim().toLowerCase();
+      const values = this._normalizePinTokens(valuesRaw || '');
+      if (side === 'left') assign(left, values);
+      if (side === 'right') assign(right, values);
+    });
+
+    const leftArr = Array.from(left).sort((a, b) => a - b);
+    const rightArr = Array.from(right).filter((index) => !left.has(index)).sort((a, b) => b - a);
+    return { left: leftArr, right: rightArr };
+  }
+
   private _setPageAttribute(page: number) {
     const normalized = Math.max(1, page);
     const current = this.getAttribute('page');
@@ -568,6 +743,75 @@ export class UIDataTable extends ElementBase {
       return Array.from(firstHeaderRow.cells).filter((cell) => cell.tagName.toLowerCase() === 'th') as HTMLTableCellElement[];
     }
     return Array.from(this._table.querySelectorAll('th')) as HTMLTableCellElement[];
+  }
+
+  private _clearPinnedColumns() {
+    if (!this._table) return;
+    this._table.querySelectorAll('[data-pinned]').forEach((cell) => {
+      const el = cell as HTMLElement;
+      el.removeAttribute('data-pinned');
+      el.removeAttribute('data-pin-edge');
+      el.style.left = '';
+      el.style.right = '';
+      el.style.zIndex = '';
+    });
+  }
+
+  private _resolveColumnWidth(columnIndex: number, header: HTMLTableCellElement | undefined): number {
+    const cached = this._columnWidths.get(columnIndex);
+    if (typeof cached === 'number' && Number.isFinite(cached)) return Math.max(1, cached);
+    const width = header?.getBoundingClientRect().width || header?.offsetWidth || 0;
+    if (Number.isFinite(width) && width > 0) return width;
+    return 120;
+  }
+
+  private _pinCell(cell: HTMLTableCellElement | undefined, side: 'left' | 'right', offsetPx: number, edge: boolean, header: boolean) {
+    if (!cell) return;
+    cell.setAttribute('data-pinned', side);
+    if (edge) cell.setAttribute('data-pin-edge', 'true');
+    else cell.removeAttribute('data-pin-edge');
+    if (side === 'left') {
+      cell.style.left = `${Math.max(0, Math.round(offsetPx))}px`;
+      cell.style.right = '';
+    } else {
+      cell.style.right = `${Math.max(0, Math.round(offsetPx))}px`;
+      cell.style.left = '';
+    }
+    cell.style.zIndex = header ? '4' : '3';
+  }
+
+  private _applyPinnedColumns() {
+    if (!this._table) return;
+    this._clearPinnedColumns();
+
+    const headers = this._headerCells();
+    if (!headers.length) return;
+    const { left, right } = this._parsePinColumns(headers);
+    if (!left.length && !right.length) return;
+
+    const allRows = Array.from(this._table.rows).filter((row) => !this._isVirtualSpacerRow(row as HTMLTableRowElement));
+
+    let leftOffset = 0;
+    left.forEach((columnIndex, idx) => {
+      const width = this._resolveColumnWidth(columnIndex, headers[columnIndex]);
+      const edge = idx === left.length - 1;
+      allRows.forEach((row, rowIndex) => {
+        const cell = row.cells[columnIndex] as HTMLTableCellElement | undefined;
+        this._pinCell(cell, 'left', leftOffset, edge, rowIndex === 0);
+      });
+      leftOffset += width;
+    });
+
+    let rightOffset = 0;
+    right.forEach((columnIndex, idx) => {
+      const width = this._resolveColumnWidth(columnIndex, headers[columnIndex]);
+      const edge = idx === right.length - 1;
+      allRows.forEach((row, rowIndex) => {
+        const cell = row.cells[columnIndex] as HTMLTableCellElement | undefined;
+        this._pinCell(cell, 'right', rightOffset, edge, rowIndex === 0);
+      });
+      rightOffset += width;
+    });
   }
 
   private _applyColumnOrder() {
@@ -667,6 +911,7 @@ export class UIDataTable extends ElementBase {
     }
 
     this._syncHeaderState();
+    this._applyPinnedColumns();
     this._syncRowSelectionState();
 
     return true;
@@ -760,6 +1005,7 @@ export class UIDataTable extends ElementBase {
 
       this._applyColumnOrder();
       this._syncHeaderState();
+      this._applyPinnedColumns();
       this._table.setAttribute('aria-colcount', String(this._headerCells().length || 0));
       this._applyPagination(false);
       if (emptyEl) {
@@ -773,6 +1019,7 @@ export class UIDataTable extends ElementBase {
       }
       this._applyVirtualization(false);
       this._syncRowSelectionState();
+      this._updateBulkActions();
       this._updateSummary();
       this._syncPaginationElement();
     } finally {
@@ -857,7 +1104,8 @@ export class UIDataTable extends ElementBase {
     const query = this._parseFilterQuery();
     const headers = this._headerCells();
     const filterColumnIndex = this._resolveFilterColumnIndex(headers);
-    const filteredRows = rows.filter((row) => this._rowMatchesFilter(row, query, filterColumnIndex));
+    const filterRules = this._parseFilters(headers);
+    const filteredRows = rows.filter((row) => this._rowMatchesFilter(row, query, filterColumnIndex, filterRules));
     this._filteredRows = filteredRows.length;
     this._table?.setAttribute('aria-rowcount', String(this._filteredRows));
 
@@ -1047,6 +1295,7 @@ export class UIDataTable extends ElementBase {
       new CustomEvent('filter-change', {
         detail: {
           query: this.getAttribute('filter-query') || '',
+          filters: this.getAttribute('filters') || '',
           total: this._totalRows,
           filtered: this._filteredRows,
           page: this._page,
@@ -1057,17 +1306,77 @@ export class UIDataTable extends ElementBase {
     );
   }
 
-  private _rowMatchesFilter(row: HTMLTableRowElement, query: string, columnIndex: number): boolean {
-    if (!query) return true;
-    const haystack = columnIndex >= 0
-      ? getCellText(row.cells[columnIndex])
-      : Array.from(row.cells).map((cell) => getCellText(cell)).join(' ');
-    if (!haystack) return false;
+  private _parseComparable(value: string): string | number {
+    const compact = value.replace(/,/g, '').trim();
+    if (/^-?\d+(\.\d+)?$/.test(compact)) return Number(compact);
+    return value.toLowerCase();
+  }
 
-    const value = haystack.toLowerCase();
-    const tokens = query.split(/\s+/).filter(Boolean);
-    if (!tokens.length) return true;
-    return tokens.every((token) => value.includes(token));
+  private _rulePasses(cellText: string, rule: { op: string; value: any }): boolean {
+    const op = rule.op;
+    const value = rule.value;
+    const normalized = cellText.trim();
+    const lower = normalized.toLowerCase();
+    if (op === 'empty') return normalized.length === 0;
+    if (op === 'notempty' || op === 'not-empty') return normalized.length > 0;
+
+    if (op === 'equals' || op === 'eq') return lower === String(value ?? '').toLowerCase();
+    if (op === 'neq' || op === 'not-equals') return lower !== String(value ?? '').toLowerCase();
+    if (op === 'startswith' || op === 'starts-with') return lower.startsWith(String(value ?? '').toLowerCase());
+    if (op === 'endswith' || op === 'ends-with') return lower.endsWith(String(value ?? '').toLowerCase());
+    if (op === 'in') {
+      const list = Array.isArray(value)
+        ? value.map((item) => String(item).toLowerCase())
+        : String(value ?? '')
+            .split(',')
+            .map((item) => item.trim().toLowerCase())
+            .filter(Boolean);
+      return list.includes(lower);
+    }
+
+    if (op === 'gt' || op === 'gte' || op === 'lt' || op === 'lte' || op === 'between') {
+      const subject = this._parseComparable(normalized);
+      if (typeof subject !== 'number') return false;
+      if (op === 'between') {
+        const range = Array.isArray(value) ? value : String(value ?? '').split(',');
+        const min = Number(range[0]);
+        const max = Number(range[1]);
+        if (!Number.isFinite(min) || !Number.isFinite(max)) return false;
+        return subject >= Math.min(min, max) && subject <= Math.max(min, max);
+      }
+      const target = Number(value);
+      if (!Number.isFinite(target)) return false;
+      if (op === 'gt') return subject > target;
+      if (op === 'gte') return subject >= target;
+      if (op === 'lt') return subject < target;
+      return subject <= target;
+    }
+
+    return lower.includes(String(value ?? '').toLowerCase());
+  }
+
+  private _rowMatchesFilter(
+    row: HTMLTableRowElement,
+    query: string,
+    columnIndex: number,
+    rules: Array<{ columnIndex: number; op: string; value: any }>
+  ): boolean {
+    if (query) {
+      const haystack = columnIndex >= 0
+        ? getCellText(row.cells[columnIndex])
+        : Array.from(row.cells).map((cell) => getCellText(cell)).join(' ');
+      if (!haystack) return false;
+
+      const value = haystack.toLowerCase();
+      const tokens = query.split(/\s+/).filter(Boolean);
+      if (tokens.length && !tokens.every((token) => value.includes(token))) return false;
+    }
+
+    if (!rules.length) return true;
+    return rules.every((rule) => {
+      const cell = row.cells[rule.columnIndex];
+      return this._rulePasses(getCellText(cell), rule);
+    });
   }
 
   private _setColumnWidth(columnIndex: number, width: number, emitEvent = true) {
@@ -1086,6 +1395,7 @@ export class UIDataTable extends ElementBase {
     });
 
     if (!emitEvent) return;
+    this._applyPinnedColumns();
     const header = this._headerCells()[columnIndex];
     this.dispatchEvent(
       new CustomEvent('column-resize', {
@@ -1276,6 +1586,7 @@ export class UIDataTable extends ElementBase {
     else this._selectedRows.add(row);
 
     this._syncRowSelectionState();
+    this._updateBulkActions();
 
     const rows = this._bodyRows();
     const selectedIndices = rows.flatMap((r, index) => (this._selectedRows.has(r) ? [index] : []));
@@ -1385,6 +1696,18 @@ export class UIDataTable extends ElementBase {
   private _onClick(event: MouseEvent) {
     if (!this._table) return;
     const target = event.target as HTMLElement;
+    const clearBtn = target.closest('.bulk-clear');
+    if (clearBtn) {
+      const count = this._selectedRows.size;
+      if (count > 0) {
+        this._selectedRows.clear();
+        this._syncRowSelectionState();
+        this._updateBulkActions();
+        this.dispatchEvent(new CustomEvent('bulk-clear', { detail: { count, page: this._page }, bubbles: true }));
+      }
+      return;
+    }
+
     if (target.closest('.resize-handle')) return;
     if (target.closest('th') && Date.now() < this._ignoreHeaderClickUntil) return;
 
@@ -1412,6 +1735,15 @@ export class UIDataTable extends ElementBase {
     if (!this._table) return;
     const key = event.key;
     const target = event.target as HTMLElement;
+
+    if (key === 'Escape' && this._selectedRows.size) {
+      const count = this._selectedRows.size;
+      this._selectedRows.clear();
+      this._syncRowSelectionState();
+      this._updateBulkActions();
+      this.dispatchEvent(new CustomEvent('bulk-clear', { detail: { count, page: this._page }, bubbles: true }));
+      return;
+    }
 
     const th = target.closest('th') as HTMLTableCellElement | null;
     if (th && this._table.contains(th)) {
@@ -1477,6 +1809,29 @@ export class UIDataTable extends ElementBase {
         }
       }
     }
+  }
+
+  private _updateBulkActions() {
+    const bulk = this.root.querySelector('.bulk') as HTMLElement | null;
+    if (!bulk) return;
+
+    const selectable = this.hasAttribute('selectable');
+    const selectedCount = this._selectedRows.size;
+    const shouldShow = selectable && selectedCount > 0;
+    if (!shouldShow) {
+      bulk.setAttribute('hidden', '');
+      return;
+    }
+
+    bulk.removeAttribute('hidden');
+    const label = this.getAttribute('bulk-actions-label') || '{count} selected';
+    const clearLabel = this.getAttribute('bulk-clear-label') || 'Clear selection';
+
+    const countNode = bulk.querySelector('.bulk-count') as HTMLElement | null;
+    if (countNode) countNode.textContent = label.replace('{count}', String(selectedCount));
+
+    const clearButton = bulk.querySelector('.bulk-clear') as HTMLButtonElement | null;
+    if (clearButton) clearButton.textContent = clearLabel;
   }
 }
 

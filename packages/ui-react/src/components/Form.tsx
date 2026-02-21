@@ -15,7 +15,12 @@ export type FormProps = React.HTMLAttributes<HTMLElement> & {
   onSubmit?: (values: Record<string, any>) => void;
   onInvalid?: (errors: Record<string, string | undefined>, values: Record<string, any>) => void;
   onValidate?: (result: { valid: boolean; errors: Record<string, string | undefined> }) => void;
+  onAutosave?: (values: Record<string, any>) => void;
+  onDirtyChange?: (dirty: boolean, values: Record<string, any>) => void;
   novalidate?: boolean;
+  autosave?: boolean;
+  autosaveDelay?: number;
+  guardUnsaved?: boolean;
   variant?: 'default' | 'surface' | 'outline' | 'soft' | 'contrast' | 'minimal' | 'elevated';
   tone?: 'default' | 'brand' | 'success' | 'warning' | 'danger';
   density?: 'default' | 'compact' | 'comfortable';
@@ -32,7 +37,12 @@ export const Form = React.forwardRef<HTMLElement, FormProps>(function Form(props
     onSubmit,
     onInvalid,
     onValidate,
+    onAutosave,
+    onDirtyChange,
     novalidate,
+    autosave,
+    autosaveDelay,
+    guardUnsaved,
     variant,
     tone,
     density,
@@ -67,16 +77,30 @@ export const Form = React.forwardRef<HTMLElement, FormProps>(function Form(props
       onValidate?.({ valid: !!detail.valid, errors: detail.errors || {} });
     };
 
+    const handleAutosave = (event: Event) => {
+      const detail = (event as CustomEvent<{ values?: Record<string, any> }>).detail || {};
+      onAutosave?.(detail.values || {});
+    };
+
+    const handleDirty = (event: Event) => {
+      const detail = (event as CustomEvent<{ dirty?: boolean; values?: Record<string, any> }>).detail || {};
+      onDirtyChange?.(!!detail.dirty, detail.values || {});
+    };
+
     el.addEventListener('submit', handleSubmit as EventListener);
     el.addEventListener('invalid', handleInvalid as EventListener);
     el.addEventListener('validate', handleValidate as EventListener);
+    el.addEventListener('autosave', handleAutosave as EventListener);
+    el.addEventListener('dirty-change', handleDirty as EventListener);
 
     return () => {
       el.removeEventListener('submit', handleSubmit as EventListener);
       el.removeEventListener('invalid', handleInvalid as EventListener);
       el.removeEventListener('validate', handleValidate as EventListener);
+      el.removeEventListener('autosave', handleAutosave as EventListener);
+      el.removeEventListener('dirty-change', handleDirty as EventListener);
     };
-  }, [onSubmit, onInvalid, onValidate]);
+  }, [onSubmit, onInvalid, onValidate, onAutosave, onDirtyChange]);
 
   useEffect(() => {
     const el = ref.current;
@@ -84,6 +108,18 @@ export const Form = React.forwardRef<HTMLElement, FormProps>(function Form(props
 
     if (novalidate) el.setAttribute('novalidate', '');
     else el.removeAttribute('novalidate');
+
+    if (autosave) el.setAttribute('autosave', '');
+    else el.removeAttribute('autosave');
+
+    if (typeof autosaveDelay === 'number' && Number.isFinite(autosaveDelay)) {
+      el.setAttribute('autosave-delay', String(autosaveDelay));
+    } else {
+      el.removeAttribute('autosave-delay');
+    }
+
+    if (guardUnsaved) el.setAttribute('guard-unsaved', '');
+    else el.removeAttribute('guard-unsaved');
 
     if (variant && variant !== 'default') el.setAttribute('variant', variant);
     else el.removeAttribute('variant');
@@ -108,7 +144,7 @@ export const Form = React.forwardRef<HTMLElement, FormProps>(function Form(props
 
     if (loading) el.setAttribute('loading', '');
     else el.removeAttribute('loading');
-  }, [novalidate, variant, tone, density, shape, elevation, gap, headless, loading]);
+  }, [novalidate, autosave, autosaveDelay, guardUnsaved, variant, tone, density, shape, elevation, gap, headless, loading]);
 
   return React.createElement('ui-form', { ref, ...rest }, children);
 });

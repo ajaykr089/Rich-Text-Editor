@@ -8,7 +8,9 @@ import {
   EmptyState,
   Flex,
   Grid,
+  Input,
   Pagination,
+  Select,
   Skeleton
 } from '@editora/ui-react';
 
@@ -452,3 +454,143 @@ export const LoadingErrorEmptyMatrix = () => (
     </Box>
   </Grid>
 );
+
+export const PinnedFilterBuilderBulkActions = () => {
+  const [query, setQuery] = React.useState('');
+  const [role, setRole] = React.useState('all');
+  const [status, setStatus] = React.useState('all');
+  const [minSignups, setMinSignups] = React.useState('0');
+  const [page, setPage] = React.useState(1);
+  const [selected, setSelected] = React.useState<number[]>([]);
+  const [pinMode, setPinMode] = React.useState<'default' | 'analytics'>('default');
+  const [message, setMessage] = React.useState('');
+
+  const filterRules = React.useMemo(() => {
+    const rules: Array<{ column: string; op: 'equals' | 'gte'; value: string | number }> = [];
+    if (role !== 'all') rules.push({ column: 'role', op: 'equals', value: role });
+    if (status !== 'all') rules.push({ column: 'status', op: 'equals', value: status });
+    const min = Number(minSignups);
+    if (Number.isFinite(min) && min > 0) rules.push({ column: 'signups', op: 'gte', value: min });
+    return rules;
+  }, [role, status, minSignups]);
+
+  const pinColumns = pinMode === 'analytics'
+    ? { left: ['status'], right: ['signups'] }
+    : { left: ['name'], right: ['signups'] };
+
+  return (
+    <Grid style={{ display: 'grid', gap: 10, maxWidth: 1020 }}>
+      <Flex style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+        <Input
+          value={query}
+          onChange={(next) => {
+            setQuery(next);
+            setPage(1);
+          }}
+          placeholder="Search by token..."
+          style={{ minWidth: 200 }}
+        />
+        <Select value={role} onChange={(next) => setRole(next)}>
+          <option value="all">Any role</option>
+          <option value="Admin">Admin</option>
+          <option value="Manager">Manager</option>
+          <option value="Editor">Editor</option>
+          <option value="Analyst">Analyst</option>
+        </Select>
+        <Select value={status} onChange={(next) => setStatus(next)}>
+          <option value="all">Any status</option>
+          <option value="Active">Active</option>
+          <option value="Invited">Invited</option>
+          <option value="Suspended">Suspended</option>
+        </Select>
+        <Input
+          type="number"
+          value={minSignups}
+          onChange={(next) => setMinSignups(next)}
+          placeholder="Min signups"
+          style={{ width: 110 }}
+        />
+        <Button size="sm" variant="secondary" onClick={() => setPinMode((mode) => (mode === 'default' ? 'analytics' : 'default'))}>
+          Pin mode: {pinMode}
+        </Button>
+      </Flex>
+
+      <DataTable
+        sortable
+        selectable
+        multiSelect
+        striped
+        hover
+        stickyHeader
+        draggableColumns
+        resizableColumns
+        page={page}
+        pageSize={6}
+        paginationId="pinned-pagination"
+        filterQuery={query}
+        filterRules={filterRules}
+        pinColumns={pinColumns}
+        bulkActionsLabel="{count} rows selected"
+        bulkClearLabel="Clear"
+        onPageChange={(detail) => setPage(detail.page)}
+        onRowSelect={(detail) => setSelected(detail.indices)}
+        onBulkClear={() => {
+          setSelected([]);
+          setMessage('Selection cleared');
+          window.setTimeout(() => setMessage(''), 1000);
+        }}
+      >
+        <Button
+          slot="bulk-actions"
+          size="sm"
+          variant="secondary"
+          onClick={() => setMessage(`Exporting ${selected.length || 0} selected rows`)}
+        >
+          Export selected
+        </Button>
+        <Button
+          slot="bulk-actions"
+          size="sm"
+          variant="ghost"
+          onClick={() => setMessage(`Assigning ${selected.length || 0} users to campaign`)}
+        >
+          Assign campaign
+        </Button>
+
+        <table>
+          <thead>
+            <tr>
+              <th data-key="name">Name</th>
+              <th data-key="email">Email</th>
+              <th data-key="role">Role</th>
+              <th data-key="status">Status</th>
+              <th data-key="signups">Signups</th>
+            </tr>
+          </thead>
+          <tbody>
+            {users.map((row) => (
+              <tr key={row.email}>
+                <td>{row.name}</td>
+                <td>{row.email}</td>
+                <td>{row.role}</td>
+                <td>
+                  <Badge tone={statusTone(row.status)} variant="soft" size="sm">
+                    {row.status}
+                  </Badge>
+                </td>
+                <td>{row.signups}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </DataTable>
+
+      <Flex style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        <Box style={{ fontSize: 13, color: '#475569' }}>
+          Selected rows: <strong>{selected.length}</strong> {message ? `• ${message}` : ''}
+        </Box>
+        <Pagination id="pinned-pagination" page={String(page)} />
+      </Flex>
+    </Grid>
+  );
+};

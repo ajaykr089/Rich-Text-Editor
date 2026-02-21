@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Box, Button, Field, Form, Grid, Input, Textarea, useForm } from '@editora/ui-react';
+import { Box, Button, Field, Flex, Form, Grid, Input, Progress, Select, Textarea, useForm } from '@editora/ui-react';
 
 export default {
   title: 'UI/Form',
@@ -136,5 +136,92 @@ export const ProVisualModes = () => {
         <Button>Save</Button>
       </Form>
     </Grid>
+  );
+};
+
+export const AdvancedAdminFlow = () => {
+  const { ref, submit } = useForm();
+  const [step, setStep] = useState(1);
+  const [dirty, setDirty] = useState(false);
+  const [autosaveAt, setAutosaveAt] = useState('never');
+  const [status, setStatus] = useState('idle');
+
+  const progress = step === 1 ? 34 : step === 2 ? 68 : 100;
+
+  return (
+    <Box style={{ maxWidth: 760, display: 'grid', gap: 12 }}>
+      <Progress value={progress} max={100} shape="round" />
+      <Flex style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        <Box style={{ fontSize: 13, color: '#475569' }}>
+          Step {step} of 3 • Dirty: <strong>{String(dirty)}</strong> • Autosave: <strong>{autosaveAt}</strong>
+        </Box>
+        <Box style={{ fontSize: 12, color: '#64748b' }}>Unsaved-change guard is enabled on this story.</Box>
+      </Flex>
+
+      <Form
+        ref={ref}
+        variant="elevated"
+        tone="brand"
+        autosave
+        autosaveDelay={700}
+        guardUnsaved
+        onAutosave={() => setAutosaveAt(new Date().toLocaleTimeString())}
+        onDirtyChange={(nextDirty) => setDirty(nextDirty)}
+        onSubmit={() => setStatus('submitted')}
+        onInvalid={() => setStatus('invalid')}
+      >
+        <Grid style={{ display: 'grid', gap: 12 }}>
+          {step === 1 && (
+            <>
+              <Field label="Organization name" htmlFor="wizard-org" required variant="outline">
+                <Input id="wizard-org" name="organization" required placeholder="Northstar Health" />
+              </Field>
+              <Field label="Primary admin email" htmlFor="wizard-email" required variant="outline">
+                <Input id="wizard-email" name="adminEmail" type="email" required placeholder="admin@northstar.health" />
+              </Field>
+            </>
+          )}
+
+          {step === 2 && (
+            <>
+              <Field label="Module type" htmlFor="wizard-module" required variant="soft">
+                <Select id="wizard-module" name="moduleType" required>
+                  <option value="">Choose module</option>
+                  <option value="hospital">Hospital</option>
+                  <option value="school">School</option>
+                  <option value="enterprise">Enterprise shared</option>
+                </Select>
+              </Field>
+              <Field label="Record retention policy" htmlFor="wizard-policy" required description="Use uppercase code format." variant="soft">
+                <Input id="wizard-policy" name="policyCode" required pattern="[A-Z]{3}-[0-9]{2}" placeholder="MED-07" />
+              </Field>
+            </>
+          )}
+
+          {step === 3 && (
+            <Field label="Launch notes" htmlFor="wizard-notes" description="Inline validation remains consistent across steps." variant="elevated">
+              <Textarea id="wizard-notes" name="notes" rows={4} placeholder="Team onboarding checklist and runbook notes..." />
+            </Field>
+          )}
+        </Grid>
+
+        <Flex style={{ display: 'flex', justifyContent: 'space-between', marginTop: 12, gap: 8 }}>
+          <Button variant="ghost" onClick={() => setStep((current) => Math.max(1, current - 1))} disabled={step === 1}>
+            Previous
+          </Button>
+          <Flex style={{ display: 'flex', gap: 8 }}>
+            {step < 3 ? (
+              <Button variant="secondary" onClick={() => setStep((current) => Math.min(3, current + 1))}>
+                Next
+              </Button>
+            ) : (
+              <Button onClick={() => submit()}>Submit setup</Button>
+            )}
+          </Flex>
+        </Flex>
+      </Form>
+
+      <Box style={{ fontSize: 13, color: '#334155' }}>Validation state: <strong>{status}</strong></Box>
+    </Box>
   );
 };

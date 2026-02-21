@@ -57,6 +57,10 @@ import './components/ui-alert';
 import './components/ui-skeleton';
 import './components/ui-empty-state';
 import './components/ui-data-table';
+import './components/ui-chart';
+import './components/ui-timeline';
+import './components/ui-calendar';
+import './components/ui-gantt';
 
 
 // layout primitives
@@ -138,3 +142,7 @@ export { UIAlert } from './components/ui-alert';
 export { UISkeleton } from './components/ui-skeleton';
 export { UIEmptyState } from './components/ui-empty-state';
 export { UIDataTable } from './components/ui-data-table';
+export { UIChart } from './components/ui-chart';
+export { UITimeline } from './components/ui-timeline';
+export { UICalendar } from './components/ui-calendar';
+export { UIGantt } from './components/ui-gantt';

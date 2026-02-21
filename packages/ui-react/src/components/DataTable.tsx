@@ -28,6 +28,7 @@ export type DataTablePageChangeDetail = {
 
 export type DataTableFilterChangeDetail = {
   query: string;
+  filters: string;
   total: number;
   filtered: number;
   page: number;
@@ -54,6 +55,30 @@ export type DataTableColumnOrderChangeDetail = {
   keys: string[];
 };
 
+export type DataTableFilterRule = {
+  column: string | number;
+  op?:
+    | 'contains'
+    | 'equals'
+    | 'neq'
+    | 'startsWith'
+    | 'endsWith'
+    | 'in'
+    | 'gt'
+    | 'gte'
+    | 'lt'
+    | 'lte'
+    | 'between'
+    | 'empty'
+    | 'notEmpty';
+  value?: string | number | Array<string | number>;
+};
+
+export type DataTableBulkClearDetail = {
+  count: number;
+  page: number;
+};
+
 export type DataTableProps = React.HTMLAttributes<HTMLElement> & {
   children?: React.ReactNode;
   sortable?: boolean;
@@ -72,9 +97,13 @@ export type DataTableProps = React.HTMLAttributes<HTMLElement> & {
   paginationId?: string;
   filterQuery?: string;
   filterColumn?: string | number;
+  filterRules?: DataTableFilterRule[];
   columnOrder?: string;
+  pinColumns?: string | { left?: Array<string | number>; right?: Array<string | number> };
   draggableColumns?: boolean;
   resizableColumns?: boolean;
+  bulkActionsLabel?: string;
+  bulkClearLabel?: string;
   virtualize?: boolean;
   rowHeight?: number;
   overscan?: number;
@@ -85,6 +114,7 @@ export type DataTableProps = React.HTMLAttributes<HTMLElement> & {
   onColumnResize?: (detail: DataTableColumnResizeDetail) => void;
   onVirtualRangeChange?: (detail: DataTableVirtualRangeChangeDetail) => void;
   onColumnOrderChange?: (detail: DataTableColumnOrderChangeDetail) => void;
+  onBulkClear?: (detail: DataTableBulkClearDetail) => void;
 };
 
 export function DataTable(props: DataTableProps) {
@@ -105,9 +135,13 @@ export function DataTable(props: DataTableProps) {
     paginationId,
     filterQuery,
     filterColumn,
+    filterRules,
     columnOrder,
+    pinColumns,
     draggableColumns,
     resizableColumns,
+    bulkActionsLabel,
+    bulkClearLabel,
     virtualize,
     rowHeight,
     overscan,
@@ -118,6 +152,7 @@ export function DataTable(props: DataTableProps) {
     onColumnResize,
     onVirtualRangeChange,
     onColumnOrderChange,
+    onBulkClear,
     children,
     ...rest
   } = props;
@@ -163,6 +198,11 @@ export function DataTable(props: DataTableProps) {
       if (detail) onColumnOrderChange?.(detail);
     };
 
+    const onBulkClearHandler = (event: Event) => {
+      const detail = (event as CustomEvent<DataTableBulkClearDetail>).detail;
+      if (detail) onBulkClear?.(detail);
+    };
+
     el.addEventListener('sort-change', onSortHandler as EventListener);
     el.addEventListener('row-select', onRowHandler as EventListener);
     el.addEventListener('page-change', onPageHandler as EventListener);
@@ -170,6 +210,7 @@ export function DataTable(props: DataTableProps) {
     el.addEventListener('column-resize', onColumnResizeHandler as EventListener);
     el.addEventListener('virtual-range-change', onVirtualRangeHandler as EventListener);
     el.addEventListener('column-order-change', onColumnOrderHandler as EventListener);
+    el.addEventListener('bulk-clear', onBulkClearHandler as EventListener);
     return () => {
       el.removeEventListener('sort-change', onSortHandler as EventListener);
       el.removeEventListener('row-select', onRowHandler as EventListener);
@@ -178,6 +219,7 @@ export function DataTable(props: DataTableProps) {
       el.removeEventListener('column-resize', onColumnResizeHandler as EventListener);
       el.removeEventListener('virtual-range-change', onVirtualRangeHandler as EventListener);
       el.removeEventListener('column-order-change', onColumnOrderHandler as EventListener);
+      el.removeEventListener('bulk-clear', onBulkClearHandler as EventListener);
     };
   }, [
     onSortChange,
@@ -186,7 +228,8 @@ export function DataTable(props: DataTableProps) {
     onFilterChange,
     onColumnResize,
     onVirtualRangeChange,
-    onColumnOrderChange
+    onColumnOrderChange,
+    onBulkClear
   ]);
 
   useEffect(() => {
@@ -246,14 +289,42 @@ export function DataTable(props: DataTableProps) {
       el.removeAttribute('filter-column');
     }
 
+    if (filterRules && filterRules.length) {
+      try {
+        el.setAttribute('filters', JSON.stringify(filterRules));
+      } catch {
+        el.removeAttribute('filters');
+      }
+    } else {
+      el.removeAttribute('filters');
+    }
+
     if (columnOrder) el.setAttribute('column-order', columnOrder);
     else el.removeAttribute('column-order');
+
+    if (typeof pinColumns === 'string' && pinColumns.trim()) {
+      el.setAttribute('pin-columns', pinColumns);
+    } else if (pinColumns && typeof pinColumns === 'object') {
+      try {
+        el.setAttribute('pin-columns', JSON.stringify(pinColumns));
+      } catch {
+        el.removeAttribute('pin-columns');
+      }
+    } else {
+      el.removeAttribute('pin-columns');
+    }
 
     if (draggableColumns) el.setAttribute('draggable-columns', '');
     else el.removeAttribute('draggable-columns');
 
     if (resizableColumns) el.setAttribute('resizable-columns', '');
     else el.removeAttribute('resizable-columns');
+
+    if (bulkActionsLabel) el.setAttribute('bulk-actions-label', bulkActionsLabel);
+    else el.removeAttribute('bulk-actions-label');
+
+    if (bulkClearLabel) el.setAttribute('bulk-clear-label', bulkClearLabel);
+    else el.removeAttribute('bulk-clear-label');
 
     if (virtualize) el.setAttribute('virtualize', '');
     else el.removeAttribute('virtualize');
@@ -280,9 +351,13 @@ export function DataTable(props: DataTableProps) {
     paginationId,
     filterQuery,
     filterColumn,
+    filterRules,
     columnOrder,
+    pinColumns,
     draggableColumns,
     resizableColumns,
+    bulkActionsLabel,
+    bulkClearLabel,
     virtualize,
     rowHeight,
     overscan

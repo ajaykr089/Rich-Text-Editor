@@ -139,6 +139,10 @@ const style = `
     pointer-events: none;
   }
 
+  :host([dirty]) .form {
+    border-color: color-mix(in srgb, var(--ui-form-accent) 38%, var(--ui-form-border-color));
+  }
+
   :host(:focus-within) .form {
     border-color: color-mix(in srgb, var(--ui-form-focus-ring) 52%, var(--ui-form-border-color));
     box-shadow:
@@ -197,25 +201,56 @@ export class UIForm extends ElementBase {
       'elevation',
       'gap',
       'headless',
-      'loading'
+      'loading',
+      'autosave',
+      'autosave-delay',
+      'guard-unsaved',
+      'dirty'
     ];
   }
 
   private _controller = new FormController();
   private _submitting = false;
+  private _autosaveTimer: ReturnType<typeof setTimeout> | null = null;
+  private _initTimer: ReturnType<typeof setTimeout> | null = null;
+  private _initialSnapshot = '';
+  private _dirty = false;
 
   constructor() {
     super();
     this._onNativeSubmit = this._onNativeSubmit.bind(this);
+    this._onValueEvent = this._onValueEvent.bind(this);
+    this._onBeforeUnload = this._onBeforeUnload.bind(this);
   }
 
   override connectedCallback(): void {
     super.connectedCallback();
     this.root.addEventListener('submit', this._onNativeSubmit as EventListener);
+    this.addEventListener('input', this._onValueEvent as EventListener);
+    this.addEventListener('change', this._onValueEvent as EventListener);
+    if (this.hasAttribute('guard-unsaved')) {
+      window.addEventListener('beforeunload', this._onBeforeUnload as EventListener);
+    }
+    this._initTimer = setTimeout(() => {
+      this._initialSnapshot = this._snapshot();
+      this._setDirty(false, false);
+      this._initTimer = null;
+    }, 0);
   }
 
   override disconnectedCallback(): void {
     this.root.removeEventListener('submit', this._onNativeSubmit as EventListener);
+    this.removeEventListener('input', this._onValueEvent as EventListener);
+    this.removeEventListener('change', this._onValueEvent as EventListener);
+    if (this._initTimer) {
+      clearTimeout(this._initTimer);
+      this._initTimer = null;
+    }
+    if (this._autosaveTimer) {
+      clearTimeout(this._autosaveTimer);
+      this._autosaveTimer = null;
+    }
+    window.removeEventListener('beforeunload', this._onBeforeUnload as EventListener);
     super.disconnectedCallback();
   }
 
@@ -234,6 +269,7 @@ export class UIForm extends ElementBase {
 
   setValue(name: string, value: any): void {
     this._controller.setValue(name, value);
+    this._refreshDirtyState();
   }
 
   setValues(values: Record<string, any>): void {
@@ -242,6 +278,7 @@ export class UIForm extends ElementBase {
     Object.entries(values).forEach(([name, value]) => {
       this._controller.setValue(name, value);
     });
+    this._refreshDirtyState();
   }
 
   getValues() {
@@ -292,6 +329,7 @@ export class UIForm extends ElementBase {
           detail: { values }
         })
       );
+      this.markClean(values);
       return true;
     } finally {
       this._submitting = false;
@@ -306,6 +344,7 @@ export class UIForm extends ElementBase {
   reset(values?: Record<string, any>): void {
     if (values && typeof values === 'object') {
       this.setValues(values);
+      this.markClean(values);
       return;
     }
 
@@ -313,6 +352,102 @@ export class UIForm extends ElementBase {
     Object.keys(current).forEach((name) => {
       this._controller.setValue(name, '');
     });
+    this.markClean();
+  }
+
+  get dirty(): boolean {
+    return this._dirty;
+  }
+
+  isDirty(): boolean {
+    return this._dirty;
+  }
+
+  markClean(values?: Record<string, any>): void {
+    if (values && typeof values === 'object') {
+      this._initialSnapshot = this._snapshot(values);
+    } else {
+      this._initialSnapshot = this._snapshot();
+    }
+    this._setDirty(false);
+  }
+
+  private _snapshot(values?: Record<string, any>): string {
+    const source = values && typeof values === 'object' ? values : this._controller.getValues();
+    try {
+      return JSON.stringify(source || {});
+    } catch {
+      return '';
+    }
+  }
+
+  private _setDirty(next: boolean, emit = true): void {
+    if (this._dirty === next) return;
+    this._dirty = next;
+    if (next) this.setAttribute('dirty', '');
+    else if (this.hasAttribute('dirty')) this.removeAttribute('dirty');
+
+    if (emit) {
+      this.dispatchEvent(
+        new CustomEvent('dirty-change', {
+          bubbles: true,
+          composed: true,
+          detail: { dirty: next, values: this.getValues() }
+        })
+      );
+    }
+  }
+
+  private _refreshDirtyState(): void {
+    const next = this._snapshot() !== this._initialSnapshot;
+    this._setDirty(next);
+
+    if (!this.hasAttribute('autosave')) return;
+    if (!next) {
+      if (this._autosaveTimer) {
+        clearTimeout(this._autosaveTimer);
+        this._autosaveTimer = null;
+      }
+      return;
+    }
+
+    const delayRaw = Number(this.getAttribute('autosave-delay') || 800);
+    const delay = Number.isFinite(delayRaw) && delayRaw >= 0 ? delayRaw : 800;
+    if (this._autosaveTimer) clearTimeout(this._autosaveTimer);
+    this._autosaveTimer = setTimeout(() => {
+      this._autosaveTimer = null;
+      const values = this.getValues();
+      this.dispatchEvent(
+        new CustomEvent('autosave', {
+          bubbles: true,
+          composed: true,
+          detail: { values, dirty: this._dirty }
+        })
+      );
+    }, delay);
+  }
+
+  private _onValueEvent(event: Event): void {
+    const target = event.target;
+    if (!target) return;
+    if (target === this || target === this.root) return;
+    this._refreshDirtyState();
+  }
+
+  private _onBeforeUnload(event: BeforeUnloadEvent): void {
+    if (!this.hasAttribute('guard-unsaved') || !this._dirty) return;
+    event.preventDefault();
+    event.returnValue = '';
+  }
+
+  override attributeChangedCallback(name: string, oldValue: string | null, newValue: string | null): void {
+    super.attributeChangedCallback(name, oldValue, newValue);
+    if (name !== 'guard-unsaved' || oldValue === newValue) return;
+    if (this.hasAttribute('guard-unsaved')) {
+      window.addEventListener('beforeunload', this._onBeforeUnload as EventListener);
+    } else {
+      window.removeEventListener('beforeunload', this._onBeforeUnload as EventListener);
+    }
   }
 
   protected override render(): void {
