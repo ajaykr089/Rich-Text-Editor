@@ -75,6 +75,8 @@ import './components/ui-container';
 import { showToast } from './toast';
 
 export { showToast };
+export * from './alert-dialog-manager';
+export * from './dialog-manager';
 
 export * from './theme';
 export * from './portal';
@@ -108,6 +110,14 @@ export { UISelect } from './components/ui-select';
 export { UIToggle } from './components/ui-toggle';
 export { UIToggleGroup } from './components/ui-toggle-group';
 export { UIAlertDialog } from './components/ui-alert-dialog';
+export type {
+  UIAlertDialogTemplateOptions,
+  UIAlertDialogOpenDetail,
+  UIAlertDialogConfirmDetail,
+  UIAlertDialogCancelDetail,
+  UIAlertDialogDismissDetail,
+  UIAlertDialogCloseDetail
+} from './components/ui-alert-dialog';
 export { UIAspectRatio } from './components/ui-aspect-ratio';
 export { UIAvatar } from './components/ui-avatar';
 export { UIBadge } from './components/ui-badge';
@@ -133,6 +143,15 @@ export { UISidebar } from './components/ui-sidebar';
 export { UIAppHeader } from './components/ui-app-header';
 export { UIDrawer } from './components/ui-drawer';
 export { UIDialog } from './components/ui-dialog';
+export type {
+  UIDialogTemplateOptions,
+  UIDialogOpenDetail,
+  UIDialogSubmitDetail,
+  UIDialogCancelDetail,
+  UIDialogDismissDetail,
+  UIDialogCloseDetail,
+  UIDialogRequestCloseReason
+} from './components/ui-dialog';
 export { UILayout } from './components/ui-layout';
 export { UIBlockControls } from './components/ui-block-controls';
 export { UIPluginPanel } from './components/ui-plugin-panel';

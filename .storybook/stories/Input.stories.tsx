@@ -29,7 +29,7 @@ export default {
 };
 
 export const Playground = (args: any) => (
-  <Box style={{ maxWidth: 460 }}>
+  <Box style={{ inlineSize: 'min(460px, 100%)' }}>
     <Input
       value={args.value}
       placeholder={args.placeholder}
@@ -86,7 +86,7 @@ Playground.args = {
 };
 
 export const WithSlots = () => (
-  <Box style={{ maxWidth: 480 }}>
+  <Box style={{ inlineSize: 'min(480px, 100%)' }}>
     <Input label="Search users" description="Prefix, suffix, and custom error slot." clearable variant="outlined" placeholder="Find by name or email">
       <span slot="prefix">🔍</span>
       <button slot="suffix" style={{ border: 'none', background: 'transparent', cursor: 'pointer' }}>Go</button>
@@ -118,7 +118,7 @@ export const DesignDirections = () => (
 );
 
 export const ValidationAndCounter = () => (
-  <Grid style={{ display: 'grid', gap: 12, maxWidth: 480 }}>
+  <Grid style={{ display: 'grid', gap: 12, inlineSize: 'min(480px, 100%)' }}>
     <Input label="Release note" description="Validation + counter mode." validation="error" counter maxlength={48} value="Need update" clearable>
       <span slot="error">Please include the ticket reference.</span>
     </Input>
@@ -137,7 +137,7 @@ export const ThemedByTokens = () => (
       radius: '12px'
     }}
   >
-    <Box style={{ padding: 12, background: 'var(--ui-color-background)', borderRadius: 12, maxWidth: 460 }}>
+    <Box style={{ padding: 12, background: 'var(--ui-color-background)', borderRadius: 12, inlineSize: 'min(460px, 100%)' }}>
       <Input label="Token-driven input" placeholder="Uses theme provider tokens" variant="elevated" />
     </Box>
   </ThemeProvider>

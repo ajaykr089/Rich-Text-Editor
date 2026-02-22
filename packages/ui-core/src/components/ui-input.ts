@@ -7,7 +7,7 @@ const style = `
     --ui-input-border: var(--ui-border, 1px solid var(--ui-input-border-color));
     --ui-input-border-radius: var(--ui-radius, 10px);
     --ui-input-min-height: var(--ui-min-height, 40px);
-    --ui-input-width: var(--ui-width, 100%);
+    --ui-input-width: 100%;
     --ui-input-bg: var(--ui-color-surface, var(--ui-surface, #ffffff));
     --ui-input-color: var(--ui-color-text, var(--ui-text, #0f172a));
     --ui-label-color: var(--ui-color-muted, var(--ui-muted, #64748b));
@@ -23,13 +23,15 @@ const style = `
     --ui-input-shell-gap: 8px;
     --ui-input-placeholder: color-mix(in srgb, var(--ui-input-color) 40%, transparent);
     color-scheme: light dark;
-    display: inline-grid;
+    display: block;
     inline-size: var(--ui-input-width);
-    min-inline-size: min(220px, 100%);
+    max-inline-size: 100%;
+    min-inline-size: 0;
     font-family: "Inter", "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   }
 
   .root {
+    inline-size: 100%;
     min-inline-size: 0;
     display: grid;
     gap: var(--ui-input-gap);
@@ -81,9 +83,9 @@ const style = `
 
   .shell {
     position: relative;
+    inline-size: 100%;
     min-inline-size: 0;
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    display: flex;
     align-items: center;
     gap: var(--ui-input-shell-gap);
     box-sizing: border-box;
@@ -112,7 +114,32 @@ const style = `
     line-height: 1;
   }
 
+  .prefix {
+    flex: 0 0 auto;
+  }
+
+  .suffix {
+    flex: 0 0 auto;
+    min-inline-size: max-content;
+  }
+
+  .suffix ::slotted(*) {
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .suffix ::slotted(button) {
+    display: inline-flex;
+    inline-size: auto;
+    max-inline-size: max-content;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+  }
+
   .control {
+    flex: 1 1 auto;
+    inline-size: 100%;
     min-inline-size: 0;
     position: relative;
     display: grid;
@@ -162,6 +189,7 @@ const style = `
   }
 
   .clear-btn {
+    flex: 0 0 auto;
     border: none;
     outline: none;
     cursor: pointer;

@@ -6,7 +6,7 @@ export default {
   component: Dialog,
   argTypes: {
     open: { control: 'boolean' },
-    closable: { control: 'boolean' },
+    dismissible: { control: 'boolean' },
     closeOnOverlay: { control: 'boolean' },
     closeOnEsc: { control: 'boolean' },
     size: { control: { type: 'radio', options: ['1', '2', '3', 'sm', 'md', 'lg'] } }
@@ -15,35 +15,55 @@ export default {
 
 export const Default = (args: any) => {
   const [open, setOpen] = React.useState(Boolean(args.open));
+  const [requestReason, setRequestReason] = React.useState('none');
+  const [result, setResult] = React.useState('none');
+
+  React.useEffect(() => {
+    setOpen(Boolean(args.open));
+  }, [args.open]);
+
   return (
-    <Box>
-      <Button onClick={() => setOpen(true)}>Open dialog</Button>
+    <Grid gap="12px">
+      <Flex gap="8px" wrap="wrap">
+        <Button onClick={() => setOpen(true)}>Open Dialog</Button>
+        <Button variant="secondary" onClick={() => { setRequestReason('none'); setResult('none'); }}>
+          Reset Event Log
+        </Button>
+      </Flex>
+
       <Dialog
         {...args}
         open={open}
         title="Publish changes"
         description="Review details before publishing this version."
-        onClose={() => setOpen(false)}
-        onRequestClose={() => setOpen(false)}
+        submitText="Publish"
+        cancelText="Cancel"
+        onRequestClose={(detail) => setRequestReason(detail.reason)}
+        onDialogClose={(detail) => {
+          setResult(`${detail.action}${detail.source ? `:${detail.source}` : ''}`);
+          setOpen(false);
+        }}
       >
-        <Grid style={{ display: 'grid', gap: 10 }}>
-          <p style={{ margin: 0, color: '#475569', fontSize: 14 }}>
-            This action will update the shared workspace for all collaborators.
-          </p>
-          <Flex style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-            <Button variant="secondary" onClick={() => setOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={() => setOpen(false)}>Publish</Button>
-          </Flex>
+        <Grid gap="10px">
+          <Box variant="surface" p="10px" radius="sm" color="#475569">
+            This action updates the shared workspace for all collaborators.
+          </Box>
+          <Box variant="outline" p="10px" radius="sm" color="#475569">
+            Press <strong>Tab</strong> / <strong>Shift+Tab</strong> to verify focus trapping.
+          </Box>
         </Grid>
       </Dialog>
-    </Box>
+
+      <Box variant="surface" p="10px" radius="sm" color="#475569">
+        Request reason: <strong>{requestReason}</strong> | Close result: <strong>{result}</strong>
+      </Box>
+    </Grid>
   );
 };
+
 Default.args = {
   open: false,
-  closable: true,
+  dismissible: true,
   closeOnOverlay: true,
   closeOnEsc: true,
   size: 'md'
@@ -51,48 +71,77 @@ Default.args = {
 
 export const Large = () => {
   const [open, setOpen] = React.useState(false);
+  const [submittedData, setSubmittedData] = React.useState<Record<string, string | string[]> | null>(null);
+
   return (
-    <Box>
-      <Button onClick={() => setOpen(true)}>Open large dialog</Button>
+    <Grid gap="12px">
+      <Button onClick={() => setOpen(true)}>Open Large Dialog</Button>
+
       <Dialog
         open={open}
         size="lg"
         title="Team activity report"
         description="Weekly summary across all editors."
-        onClose={() => setOpen(false)}
-        onRequestClose={() => setOpen(false)}
+        submitText="Apply Filters"
+        onDialogSubmit={(detail) => {
+          setSubmittedData(detail.formData || null);
+        }}
+        onDialogClose={() => setOpen(false)}
       >
-        <Grid style={{ display: 'grid', gap: 8 }}>
-          <Box style={{ padding: 10, borderRadius: 10, background: '#f8fafc' }}>Documents created: 42</Box>
-          <Box style={{ padding: 10, borderRadius: 10, background: '#f8fafc' }}>Comments resolved: 128</Box>
-          <Box style={{ padding: 10, borderRadius: 10, background: '#f8fafc' }}>Pending approvals: 6</Box>
+        <Grid gap="10px">
+          <form>
+            <Grid gap="8px" columns={{ initial: '1fr', md: '1fr 1fr' }}>
+              <label>
+                <span>Owner</span>
+                <input name="owner" defaultValue="Operations" />
+              </label>
+              <label>
+                <span>Window</span>
+                <input name="window" defaultValue="Last 7 days" />
+              </label>
+            </Grid>
+          </form>
+
+          <Grid gap="8px" columns={{ initial: '1fr', md: '1fr 1fr 1fr' }}>
+            <Box variant="surface" p="10px" radius="sm">Documents created: 42</Box>
+            <Box variant="surface" p="10px" radius="sm">Comments resolved: 128</Box>
+            <Box variant="surface" p="10px" radius="sm">Pending approvals: 6</Box>
+          </Grid>
         </Grid>
       </Dialog>
-    </Box>
+
+      <Box variant="surface" p="10px" radius="sm" color="#475569">
+        Last form data: {submittedData ? JSON.stringify(submittedData) : 'none'}
+      </Box>
+    </Grid>
   );
 };
 
 export const NonDismissable = () => {
   const [open, setOpen] = React.useState(false);
+
   return (
-    <Box>
-      <Button onClick={() => setOpen(true)}>Open strict dialog</Button>
+    <Grid gap="12px">
+      <Button onClick={() => setOpen(true)}>Open Strict Dialog</Button>
       <Dialog
         open={open}
         title="Security confirmation"
-        description="This dialog can only close via button action."
-        closable={false}
+        description="This dialog can only close via submit action."
+        dismissible={false}
         closeOnOverlay={false}
         closeOnEsc={false}
+        config={{
+          showCancel: false,
+          showClose: false
+        }}
+        submitText="I Understand"
+        onDialogClose={() => setOpen(false)}
       >
-        <Grid style={{ display: 'grid', gap: 10 }}>
-          <p style={{ margin: 0, color: '#475569', fontSize: 14 }}>Confirm to continue with protected operation.</p>
-          <Flex style={{ display: 'flex', justifyContent: 'flex-end' }}>
-            <Button onClick={() => setOpen(false)}>I Understand</Button>
-          </Flex>
-        </Grid>
+        <Box variant="outline" p="10px" radius="sm" color="#475569">
+          Confirm to continue with protected operation.
+        </Box>
       </Dialog>
-    </Box>
+    </Grid>
   );
 };
 
@@ -101,24 +150,14 @@ export const AccessibilityKeyboardMap = () => {
   const [openRtl, setOpenRtl] = React.useState(false);
 
   return (
-    <Grid style={{ display: 'grid', gap: 12 }}>
-      <Box
-        style={{
-          border: '1px solid #dbeafe',
-          borderRadius: 12,
-          background: '#f8fbff',
-          color: '#1e3a8a',
-          fontSize: 13,
-          padding: 12,
-          lineHeight: 1.5
-        }}
-      >
-        Focus trap keys: <strong>Tab / Shift+Tab</strong> cycle focus inside dialog.
-        Dismiss keys: <strong>Escape</strong> and overlay click (when enabled).
-        RTL note: use <code>dir="rtl"</code> to verify mirrored close control + reading direction.
+    <Grid gap="12px">
+      <Box variant="outline" tone="brand" p="12px" radius="lg" color="#1e3a8a">
+        Focus trap keys: <strong>Tab / Shift+Tab</strong>.
+        Dismiss keys: <strong>Escape</strong> and overlay click (if enabled).
+        RTL: verify mirrored layout with <code>dir="rtl"</code>.
       </Box>
 
-      <Flex style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+      <Flex gap="8px" wrap="wrap">
         <Button onClick={() => setOpen(true)}>Open LTR Dialog</Button>
         <Button variant="secondary" onClick={() => setOpenRtl(true)}>Open RTL Dialog</Button>
       </Flex>
@@ -126,11 +165,10 @@ export const AccessibilityKeyboardMap = () => {
       <Dialog
         open={open}
         title="Accessibility map"
-        description="Use keyboard only to confirm trap behavior."
-        onClose={() => setOpen(false)}
-        onRequestClose={() => setOpen(false)}
+        description="Use keyboard only to validate trap behavior."
+        onDialogClose={() => setOpen(false)}
       >
-        <Grid style={{ display: 'grid', gap: 8 }}>
+        <Grid gap="8px">
           <Button size="sm">Primary</Button>
           <Button size="sm" variant="secondary">Secondary</Button>
         </Grid>
@@ -140,11 +178,10 @@ export const AccessibilityKeyboardMap = () => {
         <Dialog
           open={openRtl}
           title="RTL Dialog"
-          description="Dialog controls should mirror with logical CSS properties."
-          onClose={() => setOpenRtl(false)}
-          onRequestClose={() => setOpenRtl(false)}
+          description="Controls should mirror with logical CSS properties."
+          onDialogClose={() => setOpenRtl(false)}
         >
-          <Grid style={{ display: 'grid', gap: 8 }}>
+          <Grid gap="8px">
             <Button size="sm">Approve</Button>
             <Button size="sm" variant="secondary">Dismiss</Button>
           </Grid>
