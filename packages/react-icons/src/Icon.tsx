@@ -82,7 +82,8 @@ function normalizeNodeAttrs(node: IconNode, options: NodeRenderOptions): Record<
     if (attrs.stroke === 'currentColor') attrs.stroke = options.secondaryColor;
   }
 
-  if (attrs.stroke == null && attrs.fill == null && node.tag !== 'g') {
+  const hasNoVisibleFill = attrs.fill == null || attrs.fill === 'none' || attrs.fill === 'transparent';
+  if (attrs.stroke == null && hasNoVisibleFill && node.tag !== 'g') {
     attrs.stroke = 'currentColor';
     attrs.fill = 'none';
   }

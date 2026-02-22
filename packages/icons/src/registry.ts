@@ -12,21 +12,48 @@ function normalizeName(input: string): string {
     .replace(/_/g, '-');
 }
 
-function registerDefinition(definition: IconDefinition): void {
+type RegisterOptions = {
+  strict?: boolean;
+  source?: string;
+};
+
+function registerDefinition(definition: IconDefinition, options: RegisterOptions = {}): void {
   const name = normalizeName(definition.name);
   if (!name) return;
+
+  if (options.strict && iconMap.has(name)) {
+    throw new Error(`Duplicate icon name "${name}" detected in ${options.source || 'registry'}.`);
+  }
+
   iconMap.set(name, { ...definition, name });
 
   const aliases = definition.aliases || [];
   for (const alias of aliases) {
     const normalized = normalizeName(alias);
     if (!normalized || normalized === name) continue;
+
+    if (options.strict) {
+      const existingAliasTarget = aliasMap.get(normalized);
+      if (existingAliasTarget && existingAliasTarget !== name) {
+        throw new Error(
+          `Alias collision "${normalized}" -> "${existingAliasTarget}" and "${name}" in ${options.source || 'registry'}.`
+        );
+      }
+
+      const iconWithAliasName = iconMap.get(normalized);
+      if (iconWithAliasName && iconWithAliasName.name !== name) {
+        throw new Error(
+          `Alias "${normalized}" for "${name}" conflicts with existing icon name "${iconWithAliasName.name}" in ${options.source || 'registry'}.`
+        );
+      }
+    }
+
     aliasMap.set(normalized, name);
   }
 }
 
 for (const definition of iconDefinitions) {
-  registerDefinition(definition);
+  registerDefinition(definition, { strict: true, source: 'iconDefinitions' });
 }
 
 export function getIcon(name: string): IconDefinition | undefined {
@@ -59,7 +86,7 @@ export function registerIcon(definition: IconDefinition): void {
 }
 
 export function registerIcons(definitions: IconDefinition[]): void {
-  definitions.forEach(registerDefinition);
+  definitions.forEach((definition) => registerDefinition(definition));
 }
 
 export function resolveIcon(name: string, variant: IconVariant = 'outline'): ResolvedIcon | undefined {
