@@ -1,11 +1,6 @@
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {
-    "baseUrl": ".",
-    "paths": {
-      "@editora/icons": ["../icons/dist/index"],
-      "@editora/icons/*": ["../icons/dist/*"]
-    },
     "outDir": "dist",
     "rootDir": "src",
     "declaration": true,

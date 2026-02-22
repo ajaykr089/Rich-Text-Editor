@@ -81,6 +81,7 @@ export * from './portal';
 export * from './focusManager';
 export * from './overlayManager';
 export * from './plugin';
+export * from './icons';
 
 // Re-export custom element types for TS consumers
 export { UIButton } from './components/ui-button';

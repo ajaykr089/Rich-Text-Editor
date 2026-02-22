@@ -50,7 +50,8 @@ const style = `
     block-size: 100%;
     display: block;
     fill: currentColor;
-    stroke-width: var(--ui-icon-stroke-width, 2);
+    stroke-width: var(--ui-icon-stroke-width, 1.5);
+    shape-rendering: geometricPrecision;
   }
 
   .fallback {
@@ -216,6 +217,12 @@ function normalizeSize(size: string | null): string | null {
   return value;
 }
 
+function parseNumber(value: string | null): number | undefined {
+  if (!value) return undefined;
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : undefined;
+}
+
 export class UIIcon extends ElementBase {
   static get observedAttributes() {
     return [
@@ -223,6 +230,8 @@ export class UIIcon extends ElementBase {
       'size',
       'color',
       'variant',
+      'icon-variant',
+      'secondary-color',
       'tone',
       'shape',
       'spin',
@@ -231,6 +240,12 @@ export class UIIcon extends ElementBase {
       'label',
       'decorative',
       'stroke-width',
+      'absolute-stroke-width',
+      'stroke-linecap',
+      'stroke-linejoin',
+      'rotate',
+      'flip',
+      'rtl',
       'headless'
     ];
   }
@@ -266,7 +281,19 @@ export class UIIcon extends ElementBase {
     const name = this.getAttribute('name') || '';
     const customLabel = this.getAttribute('label') || '';
     const decorative = this.hasAttribute('decorative');
-    const iconMarkup = name ? getIcon(name) : '';
+    const iconMarkup = name
+      ? getIcon(name, {
+          variant: (this.getAttribute('icon-variant') as 'outline' | 'solid' | 'duotone' | null) || undefined,
+          secondaryColor: this.getAttribute('secondary-color') || undefined,
+          strokeWidth: parseNumber(this.getAttribute('stroke-width')),
+          absoluteStrokeWidth: this.hasAttribute('absolute-stroke-width'),
+          strokeLinecap: (this.getAttribute('stroke-linecap') as 'butt' | 'round' | 'square' | null) || undefined,
+          strokeLinejoin: (this.getAttribute('stroke-linejoin') as 'miter' | 'round' | 'bevel' | null) || undefined,
+          rotate: parseNumber(this.getAttribute('rotate')),
+          flip: (this.getAttribute('flip') as 'horizontal' | 'vertical' | 'both' | null) || undefined,
+          rtl: this.hasAttribute('rtl')
+        })
+      : '';
     const hasIcon = !!iconMarkup;
 
     const ariaAttrs = decorative
