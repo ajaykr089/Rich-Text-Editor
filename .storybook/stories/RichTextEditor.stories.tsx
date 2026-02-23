@@ -1,7 +1,8 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { useEffect, useRef, useState } from "react";
 import { EditoraEditor } from "@editora/react";
-// import "@editora/themes/themes/default.css";
+import "@editora/themes/themes/default.css";
+import "@editora/themes/themes/dark.css";
 
 // Import the Web Component build
 // import "../../packages/core/dist/webcomponent.esm.js";
@@ -378,6 +379,150 @@ export const ReadonlyMode: Story = {
 };
 
 /**
+ * Test 6: Placeholder
+ * Shows multiple placeholder examples in editor instances
+ */
+export const Test6Placeholder: Story = {
+  render: () => {
+    return (
+      <div>
+        <Box
+          style={{
+            marginBottom: "20px",
+            padding: "15px",
+            background: "#e3f2fd",
+            borderRadius: "4px",
+          }}
+        >
+          <h4 style={{ margin: "0 0 10px 0" }}>🧪 Test 6: Placeholder</h4>
+          <p style={{ margin: 0, fontSize: "14px" }}>
+            Three placeholder examples: simple, detailed guidance, and
+            prefilled-content fallback.
+          </p>
+        </Box>
+
+        <Grid
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+            gap: "16px",
+          }}
+        >
+          <div>
+            <h4 style={{ margin: "0 0 8px 0" }}>Simple Placeholder</h4>
+            <EditoraEditor
+              plugins={[BoldPlugin(), ItalicPlugin()]}
+              toolbar={{ items: "bold italic", showMoreOptions: false }}
+              statusbar={{ enabled: true }}
+              placeholder="Type something here..."
+            />
+          </div>
+
+          <div>
+            <h4 style={{ margin: "0 0 8px 0" }}>Detailed Placeholder</h4>
+            <EditoraEditor
+              plugins={[BoldPlugin(), ItalicPlugin(), UnderlinePlugin()]}
+              toolbar={{
+                items: "bold italic underline",
+                showMoreOptions: false,
+              }}
+              statusbar={{ enabled: true }}
+              placeholder="Draft release notes: summary, impact, migration steps, and rollback plan."
+            />
+          </div>
+
+          <div>
+            <h4 style={{ margin: "0 0 8px 0" }}>Prefilled Then Clear</h4>
+            <EditoraEditor
+              plugins={[BoldPlugin(), ItalicPlugin()]}
+              toolbar={{ items: "bold italic", showMoreOptions: false }}
+              statusbar={{ enabled: true }}
+              placeholder="Delete all content to show this placeholder."
+              defaultValue="<p>This editor starts with content. Clear it to reveal placeholder.</p>"
+            />
+          </div>
+        </Grid>
+      </div>
+    );
+  },
+};
+
+/**
+ * Test 7: Theme Switcher (Editor Only)
+ * Toggles theme on editor wrappers without changing Storybook page theme
+ */
+export const Test7ThemeSwitcherEditorOnly: Story = {
+  render: () => {
+    const [themeA, setThemeA] = useState<"default" | "dark">("default");
+    const [themeB, setThemeB] = useState<"default" | "dark">("dark");
+
+    const toggleTheme = (theme: "default" | "dark") => (theme === "dark" ? "default" : "dark");
+
+    return (
+      <div>
+        <Box style={{ marginBottom: "20px", padding: "15px", background: "#ede7f6", borderRadius: "4px" }}>
+          <h4 style={{ margin: "0 0 10px 0" }}>🎨 Test 7: Theme Switcher (Editor Only)</h4>
+          <p style={{ margin: "0 0 12px 0", fontSize: "14px" }}>
+            Switches only editor themes using wrapper-level attributes (`data-theme`).
+          </p>
+          <Flex style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+            <button onClick={() => setThemeA(toggleTheme(themeA))} style={{ padding: "8px 16px" }}>
+              Toggle Editor A
+            </button>
+            <button onClick={() => setThemeB(toggleTheme(themeB))} style={{ padding: "8px 16px" }}>
+              Toggle Editor B
+            </button>
+            <button
+              onClick={() => {
+                setThemeA("dark");
+                setThemeB("dark");
+              }}
+              style={{ padding: "8px 16px" }}
+            >
+              Set Both Dark
+            </button>
+            <button
+              onClick={() => {
+                setThemeA("default");
+                setThemeB("default");
+              }}
+              style={{ padding: "8px 16px" }}
+            >
+              Set Both Default
+            </button>
+          </Flex>
+          <p style={{ margin: "12px 0 0 0", fontSize: "13px" }}>
+            Current themes: <strong>Editor A = {themeA}</strong>, <strong>Editor B = {themeB}</strong>
+          </p>
+        </Box>
+
+        <Grid style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+          <div data-theme={themeA} style={{ padding: "10px", borderRadius: "8px", background: themeA === "dark" ? "#0b1220" : "#ffffff" }}>
+            <h4 style={{ margin: "0 0 8px 0", color: themeA === "dark" ? "#f8fafc" : "#111827" }}>Editor A</h4>
+            <EditoraEditor
+              plugins={allNativePlugins}
+              toolbar={{ showMoreOptions: false }}
+              statusbar={{ enabled: true }}
+              defaultValue="<p>Editor A theme is controlled independently.</p>"
+            />
+          </div>
+
+          <div data-theme={themeB} style={{ padding: "10px", borderRadius: "8px", background: themeB === "dark" ? "#0b1220" : "#ffffff" }}>
+            <h4 style={{ margin: "0 0 8px 0", color: themeB === "dark" ? "#f8fafc" : "#111827" }}>Editor B</h4>
+            <EditoraEditor
+              plugins={allNativePlugins}
+              toolbar={{ showMoreOptions: false }}
+              statusbar={{ enabled: true }}
+              defaultValue="<p>Editor B can use a different theme from Editor A.</p>"
+            />
+          </div>
+        </Grid>
+      </div>
+    );
+  },
+};
+
+/**
  * Event Handling
  * Demonstrates onChange events and content tracking
  */
@@ -585,6 +730,7 @@ export const MultipleEditors: Story = {
             <h4>Editor A</h4>
             <EditoraEditor
               plugins={allNativePlugins}
+              toolbar={{ showMoreOptions: false }}
               statusbar={{ enabled: true }}
               onChange={setContentA}
               defaultValue="<h3>Editor A</h3><p>Type here...</p>"
@@ -594,6 +740,7 @@ export const MultipleEditors: Story = {
             <h4>Editor B</h4>
             <EditoraEditor
               plugins={allNativePlugins}
+              toolbar={{ showMoreOptions: false }}
               statusbar={{ enabled: true }}
               value={contentB}
               onChange={setContentB}

@@ -228,6 +228,10 @@
   line-height: 1.6;
 }
 
+.editora-theme-dark .editora-content {
+  color: #fff;
+}
+
 .editora-content:empty::before {
   content: attr(data-placeholder);
   color: #999;

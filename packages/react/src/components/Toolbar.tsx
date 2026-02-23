@@ -9,13 +9,15 @@ interface ToolbarProps {
   position?: 'top' | 'bottom';
   sticky?: boolean;
   floating?: boolean;
+  showMoreOptions?: boolean;
 }
 
 export const Toolbar: React.FC<ToolbarProps> = ({
   editor,
   position = 'top',
   sticky = false,
-  floating = false
+  floating = false,
+  showMoreOptions = true
 }) => {
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [openInlineMenu, setOpenInlineMenu] = useState<string | null>(null);
@@ -23,6 +25,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   const [visibleCount, setVisibleCount] = useState<number | null>(null);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const buttonRefs = useRef<Record<string, React.RefObject<HTMLButtonElement>>>({});
+  const itemWidthCacheRef = useRef<number[]>([]);
   const toolbarRef = useRef<HTMLDivElement>(null);
   const itemsContainerRef = useRef<HTMLDivElement>(null);
   const moreButtonRef = useRef<HTMLButtonElement>(null);
@@ -30,6 +33,15 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 
   // Calculate visible items based on available space
   useEffect(() => {
+    if (!showMoreOptions) {
+      setVisibleCount(null);
+      setShowMoreMenu(false);
+      itemWidthCacheRef.current = [];
+      return;
+    }
+
+    let rafId: number | null = null;
+
     const calculateVisibleItems = () => {
       if (!toolbarRef.current || !itemsContainerRef.current) return;
 
@@ -37,7 +49,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
       const padding = 16; // 8px on each side
       const moreButtonWidth = 40; // Width of more button
       const gap = 4; // Gap between items
-      const availableWidth = toolbarWidth - padding - moreButtonWidth - gap;
+      const availableWidth = Math.max(0, toolbarWidth - padding - moreButtonWidth - gap);
 
       let accumulatedWidth = 0;
       let count = 0;
@@ -45,7 +57,15 @@ export const Toolbar: React.FC<ToolbarProps> = ({
       const itemElements = itemsContainerRef.current.children;
       for (let i = 0; i < itemElements.length; i++) {
         const element = itemElements[i] as HTMLElement;
-        const itemWidth = element.offsetWidth + gap;
+        const measuredWidth = element.getBoundingClientRect().width;
+
+        // Cache the non-zero width so hidden items keep a stable width estimate.
+        if (measuredWidth > 0) {
+          itemWidthCacheRef.current[i] = measuredWidth;
+        }
+
+        const stableWidth = itemWidthCacheRef.current[i] ?? measuredWidth;
+        const itemWidth = (stableWidth > 0 ? stableWidth : 40) + gap;
 
         if (accumulatedWidth + itemWidth <= availableWidth) {
           accumulatedWidth += itemWidth;
@@ -56,41 +76,47 @@ export const Toolbar: React.FC<ToolbarProps> = ({
       }
 
       // Ensure at least one item is visible
-      setVisibleCount(Math.max(1, count));
+      const nextVisibleCount = Math.max(1, Math.min(count, itemElements.length));
+      setVisibleCount((prev) => (prev === nextVisibleCount ? prev : nextVisibleCount));
     };
 
-    // Use requestAnimationFrame to ensure DOM is ready
-    const rafId = requestAnimationFrame(() => {
-      calculateVisibleItems();
-    });
+    const scheduleCalculation = () => {
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+      }
+      rafId = requestAnimationFrame(calculateVisibleItems);
+    };
+
+    itemWidthCacheRef.current = [];
+    scheduleCalculation();
 
     // Recalculate on window/container resize
     const resizeObserver = new ResizeObserver(() => {
-      calculateVisibleItems();
+      scheduleCalculation();
     });
     
     if (toolbarRef.current) {
       resizeObserver.observe(toolbarRef.current);
     }
 
-    // Watch for DOM changes (new items added)
-    const mutationObserver = new MutationObserver(() => {
-      calculateVisibleItems();
-    });
-
     if (itemsContainerRef.current) {
-      mutationObserver.observe(itemsContainerRef.current, {
-        childList: true,
-        subtree: true
-      });
+      resizeObserver.observe(itemsContainerRef.current);
     }
 
     return () => {
-      cancelAnimationFrame(rafId);
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+      }
       resizeObserver.disconnect();
-      mutationObserver.disconnect();
     };
-  }, [items.length]);
+  }, [items.length, showMoreOptions]);
+
+  // Auto-close expanded row when all items fit again.
+  useEffect(() => {
+    if (showMoreMenu && visibleCount !== null && visibleCount >= items.length) {
+      setShowMoreMenu(false);
+    }
+  }, [showMoreMenu, visibleCount, items.length]);
 
   const getButtonRef = (command: string) => {
     if (!buttonRefs.current[command]) {
@@ -196,6 +222,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
       order: 2, // Move to bottom in flex container
     })
   };
+  const hasOverflow = showMoreOptions && visibleCount !== null && visibleCount < items.length;
 
   const renderToolbarItems = (items: ToolbarItem[]) => {
     {
@@ -205,7 +232,9 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           className="rte-toolbar-item"
           style={{
             display:
-              visibleCount !== null && idx >= visibleCount ? "none" : "flex",
+              showMoreOptions && visibleCount !== null && idx >= visibleCount
+                ? "none"
+                : "flex",
           }}
         >
           {item.type === "dropdown" ? (
@@ -290,12 +319,16 @@ export const Toolbar: React.FC<ToolbarProps> = ({
       <div className="rte-toolbar-wrapper" style={toolbarStyle}>
         {/* Main toolbar row */}
         <div className="rte-toolbar" ref={toolbarRef}>
-          <div className="rte-toolbar-items-container" ref={itemsContainerRef}>
+          <div
+            className="rte-toolbar-items-container"
+            ref={itemsContainerRef}
+            style={showMoreOptions ? undefined : { flexWrap: "wrap" }}
+          >
             {renderToolbarItems(items)}
           </div>
 
           {/* More button - only show if there are hidden items */}
-          {visibleCount !== null && visibleCount < items.length && (
+          {hasOverflow && (
             <button
               ref={moreButtonRef}
               className={`rte-toolbar-more-button ${showMoreMenu ? "active" : ""}`}
@@ -309,7 +342,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         </div>
 
         {/* Hidden items expansion row - slides down inline */}
-        {visibleCount !== null && visibleCount < items.length && (
+        {hasOverflow && (
           <div
             className={`rte-toolbar-expanded-row ${showMoreMenu ? "show" : ""}`}
           >

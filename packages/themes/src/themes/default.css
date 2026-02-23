@@ -172,6 +172,13 @@
   line-height: 1.6;
 }
 
+.rte-content.rte-content-empty::before,
+.rte-content:empty::before {
+  content: attr(data-placeholder);
+  color: var(--rte-color-text-muted, #6b7280);
+  pointer-events: none;
+}
+
 .rte-content p {
   margin: 0 0 1em 0;
 }
@@ -600,4 +607,15 @@
 
 .editora-theme-dark .editora-statusbar-separator {
   color: #3c3c3c;
+}
+
+/* Dark theme editor content readability */
+.editora-theme-dark .rte-content,
+.editora-theme-dark .rte-content h1,
+.editora-theme-dark .rte-content h2,
+.editora-theme-dark .rte-content h3,
+.editora-theme-dark .rte-content h4,
+.editora-theme-dark .rte-content h5,
+.editora-theme-dark .rte-content h6 {
+  color: #fff;
 }

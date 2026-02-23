@@ -7,7 +7,7 @@
 @import './styles.css';
 
 /* Import theme styles */
-@import '../themes/src/index.css';
+@import '../../../themes/src/index.css';
 
 /* Import plugin styles */
 @import '../../../plugins/dist/plugins.css';

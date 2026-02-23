@@ -3,10 +3,25 @@ import { Editor, KeyboardShortcutManager } from '@editora/core';
 import { useAutosave } from '../hooks/useAutosave';
 import { sanitizePastedHTML, sanitizeInputHTML } from '../utils/sanitizeHTML';
 
+const isStructurallyEmpty = (el: HTMLElement): boolean => {
+  const text = (el.textContent || '').replace(/\u200B/g, '').trim();
+  if (text.length > 0) return false;
+
+  // If there is embedded/media content, treat as non-empty.
+  return !el.querySelector('img, video, table, iframe, hr, pre, blockquote, ul, ol');
+};
+
+const setPlaceholderVisualState = (el: HTMLElement, placeholder?: string): void => {
+  const hasPlaceholder = Boolean(placeholder);
+  const shouldShowPlaceholder = hasPlaceholder && isStructurallyEmpty(el);
+  el.classList.toggle('rte-content-empty', shouldShowPlaceholder);
+};
+
 interface EditorContentProps {
   editor: Editor;
   defaultValue?: string;
   value?: string;
+  placeholder?: string;
   onChange?: (html: string) => void;
   pasteConfig?: {
     clean?: boolean;
@@ -39,6 +54,7 @@ export const EditorContent: React.FC<EditorContentProps> = ({
   editor, 
   defaultValue,
   value,
+  placeholder,
   onChange,
   pasteConfig,
   contentConfig,
@@ -62,15 +78,25 @@ export const EditorContent: React.FC<EditorContentProps> = ({
     
     // Try to restore autosaved content first
     const restoredContent = restore();
-    const initialContent = restoredContent || value || defaultValue;
-    
-    if (initialContent && contentRef.current.innerHTML !== initialContent) {
-      contentRef.current.innerHTML = initialContent;
-      
-      if (restoredContent && onChange) {
-        // Notify parent of restored content
-        onChange(restoredContent);
+    const initialContent = restoredContent ?? value ?? defaultValue ?? '';
+    const trimmedInitialContent = initialContent.trim();
+
+    if (trimmedInitialContent) {
+      if (contentRef.current.innerHTML !== initialContent) {
+        contentRef.current.innerHTML = initialContent;
       }
+    } else if (placeholder) {
+      // Keep truly empty so CSS placeholder can render.
+      contentRef.current.innerHTML = '';
+    } else if (!contentRef.current.innerHTML.trim()) {
+      contentRef.current.innerHTML = '<p><br></p>';
+    }
+    
+    setPlaceholderVisualState(contentRef.current, placeholder);
+
+    if (restoredContent && onChange) {
+      // Notify parent of restored content
+      onChange(restoredContent);
     }
   }, []); // Only run on mount
 
@@ -81,13 +107,37 @@ export const EditorContent: React.FC<EditorContentProps> = ({
     if (value !== contentRef.current.innerHTML) {
       contentRef.current.innerHTML = value;
     }
+    setPlaceholderVisualState(contentRef.current, placeholder);
   }, [value, isControlled]);
 
   useEffect(() => {
     if (!contentRef.current) return;
 
+    const el = contentRef.current;
+    if (placeholder) {
+      el.setAttribute('data-placeholder', placeholder);
+
+      // Convert structural empty markup (<p><br></p>) to real empty content so placeholder shows.
+      if (isStructurallyEmpty(el)) {
+        el.innerHTML = '';
+      }
+      setPlaceholderVisualState(el, placeholder);
+      return;
+    }
+
+    el.removeAttribute('data-placeholder');
+    setPlaceholderVisualState(el, placeholder);
+  }, [placeholder]);
+
+  useEffect(() => {
+    if (!contentRef.current) return;
+
     const handleInput = () => {
-      if (!contentRef.current || !onChange) return;
+      if (!contentRef.current) return;
+
+      if (placeholder && isStructurallyEmpty(contentRef.current)) {
+        contentRef.current.innerHTML = '';
+      }
       
       let html = contentRef.current.innerHTML;
       
@@ -114,6 +164,10 @@ export const EditorContent: React.FC<EditorContentProps> = ({
           }
         }
       }
+
+      setPlaceholderVisualState(contentRef.current, placeholder);
+
+      if (!onChange) return;
       
       // Debounce onChange if performance config specified
       if (performanceConfig?.debounceInputMs) {
@@ -182,11 +236,21 @@ export const EditorContent: React.FC<EditorContentProps> = ({
         target.style.display = 'inline-block';
       }
     };
+    
+    const handleFocusOrBlur = () => {
+      if (!contentRef.current) return;
+      if (placeholder && isStructurallyEmpty(contentRef.current)) {
+        contentRef.current.innerHTML = '';
+      }
+      setPlaceholderVisualState(contentRef.current, placeholder);
+    };
 
     const el = contentRef.current;
     el.addEventListener('input', handleInput);
     el.addEventListener('paste', handlePaste);
     el.addEventListener('click', handleClick);
+    el.addEventListener('focus', handleFocusOrBlur);
+    el.addEventListener('blur', handleFocusOrBlur);
 
     // Set focus to editor
     el.focus();
@@ -198,8 +262,10 @@ export const EditorContent: React.FC<EditorContentProps> = ({
       el.removeEventListener('input', handleInput);
       el.removeEventListener('paste', handlePaste);
       el.removeEventListener('click', handleClick);
+      el.removeEventListener('focus', handleFocusOrBlur);
+      el.removeEventListener('blur', handleFocusOrBlur);
     };
-  }, [editor, onChange, pasteConfig, contentConfig, securityConfig, performanceConfig]);
+  }, [editor, onChange, pasteConfig, contentConfig, securityConfig, performanceConfig, placeholder]);
 
   useEffect(() => {
     if (!contentRef.current || typeof window === 'undefined') return;
@@ -243,10 +309,6 @@ export const EditorContent: React.FC<EditorContentProps> = ({
         wordWrap: "break-word",
         overflowWrap: "break-word",
       }}
-    >
-      <p>
-        <br />
-      </p>
-    </div>
+    />
   );
 };

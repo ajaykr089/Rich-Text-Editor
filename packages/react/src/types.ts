@@ -60,6 +60,7 @@ export interface RichTextEditorProps {
   // Content control
   value?: string;
   defaultValue?: string;
+  placeholder?: string;
   onChange?: (html: string) => void;
   onInit?: (editor: EditorAPI) => void;
   onDestroy?: () => void;
@@ -73,6 +74,7 @@ export interface RichTextEditorProps {
     items?: string[] | any[]; // Support both string refs and full item objects
     floating?: boolean;
     sticky?: boolean;
+    showMoreOptions?: boolean;
   };
 
   // Status bar

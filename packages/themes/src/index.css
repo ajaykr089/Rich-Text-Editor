@@ -321,7 +321,8 @@
 }
 
 /* Placeholder Styles */
-.rte-content:empty:before {
+.rte-content:empty:before,
+.rte-content.rte-content-empty:before {
   content: attr(data-placeholder);
   color: var(--rte-color-text-muted);
   pointer-events: none;

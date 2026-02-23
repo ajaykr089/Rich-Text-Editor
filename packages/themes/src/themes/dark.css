@@ -145,6 +145,8 @@
 }
 
 [data-theme="dark"] .rte-content:empty:before,
-.dark .rte-content:empty:before {
+.dark .rte-content:empty:before,
+[data-theme="dark"] .rte-content.rte-content-empty:before,
+.dark .rte-content.rte-content-empty:before {
   color: var(--rte-color-text-muted);
 }

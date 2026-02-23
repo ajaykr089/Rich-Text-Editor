@@ -70,6 +70,7 @@ export class RichTextEditorElement extends HTMLElement {
   private contentElement?: HTMLElement;
   private toolbarElement?: HTMLElement;
   private statusBarElement?: HTMLElement;
+  private selectionChangeHandler?: () => void;
   private jsConfig?: EditorConfigDefaults;
   private isInitialized = false;
 
@@ -526,19 +527,48 @@ export class RichTextEditorElement extends HTMLElement {
     // Focus/blur
     this.contentElement.addEventListener('focus', () => {
       this.dispatchEvent(new Event('editor-focus', { bubbles: true }));
+      this.updateStatusBar();
     });
     
     this.contentElement.addEventListener('blur', () => {
       this.dispatchEvent(new Event('editor-blur', { bubbles: true }));
+      this.updateFloatingToolbar();
+      this.updateStatusBar();
     });
     
     // Selection change for floating toolbar and status bar
     const updateSelectionInfo = () => {
+      const rangeInEditor = this.getSelectionRangeInEditor();
+      const activeElement = document.activeElement;
+      const hasFocusWithinEditor =
+        !!activeElement &&
+        !!this.contentElement &&
+        (activeElement === this.contentElement || this.contentElement.contains(activeElement));
+
+      // Ignore selection changes that belong to other editors/DOM areas.
+      if (!rangeInEditor && !hasFocusWithinEditor) {
+        return;
+      }
+
       this.updateFloatingToolbar();
       this.updateStatusBar();
     };
 
-    document.addEventListener('selectionchange', updateSelectionInfo);
+    this.selectionChangeHandler = updateSelectionInfo;
+    document.addEventListener('selectionchange', this.selectionChangeHandler);
+  }
+
+  private getSelectionRangeInEditor(): Range | null {
+    if (!this.contentElement) return null;
+
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) {
+      return null;
+    }
+
+    const range = selection.getRangeAt(0);
+    const commonAncestor = range.commonAncestorContainer;
+    return this.contentElement.contains(commonAncestor) ? range : null;
   }
 
   /**
@@ -547,13 +577,12 @@ export class RichTextEditorElement extends HTMLElement {
   private updateFloatingToolbar(): void {
     if (!this.floatingToolbar) return;
     
-    const selection = window.getSelection();
-    if (!selection || selection.rangeCount === 0) {
+    const range = this.getSelectionRangeInEditor();
+    if (!range) {
       this.floatingToolbar.hide();
       return;
     }
-    
-    const range = selection.getRangeAt(0);
+
     if (range.collapsed) {
       this.floatingToolbar.hide();
       return;
@@ -576,11 +605,10 @@ export class RichTextEditorElement extends HTMLElement {
     const { words, chars } = calculateTextStats(text);
     const lineCount = countLines(this.contentElement);
 
-    const selection = window.getSelection();
     let cursorPosition, selectionInfo;
 
-    if (selection && selection.rangeCount > 0) {
-      const range = selection.getRangeAt(0);
+    const range = this.getSelectionRangeInEditor();
+    if (range) {
       cursorPosition = getCursorPosition(this.contentElement, range);
 
       if (!range.collapsed) {
@@ -714,6 +742,11 @@ export class RichTextEditorElement extends HTMLElement {
    * Destroy the editor
    */
   private destroy(): void {
+    if (this.selectionChangeHandler) {
+      document.removeEventListener('selectionchange', this.selectionChangeHandler);
+      this.selectionChangeHandler = undefined;
+    }
+
     this.engine?.destroy();
     this.toolbar?.destroy();
     this.floatingToolbar?.destroy();

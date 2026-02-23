@@ -10,10 +10,12 @@ import { Plugin } from '@editora/core';
  * Default configuration - production-ready defaults
  */
 const DEFAULT_CONFIG: Omit<EditorConfig, 'id' | 'className' | 'value' | 'defaultValue' | 'onChange' | 'onInit' | 'onDestroy' | 'plugins' | 'pluginConfig'> = {
+  placeholder: '',
   toolbar: {
     items: [],
     floating: false,
     sticky: false,
+    showMoreOptions: true,
   },
   statusbar: {
     enabled: false,
@@ -116,6 +118,7 @@ function deepMerge<T>(target: T, source: Partial<T>): T {
 export function mergeConfig(props: RichTextEditorProps): EditorConfig {
   // Start with defaults
   const config = deepMerge(DEFAULT_CONFIG, {
+    placeholder: props.placeholder,
     toolbar: props.toolbar,
     statusbar: props.statusbar,
     menubar: props.menubar,
