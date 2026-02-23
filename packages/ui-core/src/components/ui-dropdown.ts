@@ -480,6 +480,7 @@ export class UIDropdown extends ElementBase {
   private _restoreFocusEl: HTMLElement | null = null;
   private _typeaheadBuffer = '';
   private _typeaheadTimer: number | null = null;
+  private _globalListenersBound = false;
 
   constructor() {
     super();
@@ -492,16 +493,13 @@ export class UIDropdown extends ElementBase {
   override connectedCallback(): void {
     super.connectedCallback();
     this.addEventListener('click', this._onHostClick);
-    document.addEventListener('pointerdown', this._onDocumentPointerDown, true);
-    document.addEventListener('keydown', this._onDocumentKeyDown);
     this._syncOpenState();
     this._syncTriggerA11y();
   }
 
   override disconnectedCallback(): void {
     this.removeEventListener('click', this._onHostClick);
-    document.removeEventListener('pointerdown', this._onDocumentPointerDown, true);
-    document.removeEventListener('keydown', this._onDocumentKeyDown);
+    this._unbindGlobalListeners();
     this._teardownPortal();
     super.disconnectedCallback();
   }
@@ -599,6 +597,8 @@ export class UIDropdown extends ElementBase {
   private _syncOpenState(): void {
     const nowOpen = this.hasAttribute('open') && !this.hasAttribute('disabled');
     if (nowOpen === this._isOpen) {
+      if (nowOpen) this._bindGlobalListeners();
+      else this._unbindGlobalListeners();
       if (nowOpen) this._rebuildPortal();
       this._syncTriggerA11y();
       return;
@@ -608,6 +608,7 @@ export class UIDropdown extends ElementBase {
     this._syncTriggerA11y();
 
     if (nowOpen) {
+      this._bindGlobalListeners();
       this._restoreFocusEl = document.activeElement as HTMLElement | null;
       this._rebuildPortal();
       this.dispatchEvent(new CustomEvent('open', { bubbles: true }));
@@ -616,6 +617,7 @@ export class UIDropdown extends ElementBase {
       return;
     }
 
+    this._unbindGlobalListeners();
     this._teardownPortal();
     this.dispatchEvent(new CustomEvent('close', { bubbles: true }));
     this.dispatchEvent(new CustomEvent('change', { bubbles: true, detail: { open: false } }));
@@ -638,6 +640,20 @@ export class UIDropdown extends ElementBase {
       }
     }
     this._restoreFocusEl = null;
+  }
+
+  private _bindGlobalListeners(): void {
+    if (this._globalListenersBound) return;
+    document.addEventListener('pointerdown', this._onDocumentPointerDown, true);
+    document.addEventListener('keydown', this._onDocumentKeyDown);
+    this._globalListenersBound = true;
+  }
+
+  private _unbindGlobalListeners(): void {
+    if (!this._globalListenersBound) return;
+    document.removeEventListener('pointerdown', this._onDocumentPointerDown, true);
+    document.removeEventListener('keydown', this._onDocumentKeyDown);
+    this._globalListenersBound = false;
   }
 
   private _buildPortalContent(): HTMLElement {

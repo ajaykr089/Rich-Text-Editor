@@ -251,6 +251,7 @@ export class UIWizard extends ElementBase {
 
   private _observer: MutationObserver | null = null;
   private readonly _instanceId = ++wizardInstanceId;
+  private _isSyncingValueAttribute = false;
 
   constructor() {
     super();
@@ -284,6 +285,19 @@ export class UIWizard extends ElementBase {
       this._observer = null;
     }
     super.disconnectedCallback();
+  }
+
+  override attributeChangedCallback(name: string, oldValue: string | null, newValue: string | null): void {
+    if (oldValue === newValue) return;
+
+    if (name === 'value') {
+      if (!this._isSyncingValueAttribute) {
+        this._syncValueUi();
+      }
+      return;
+    }
+
+    super.attributeChangedCallback(name, oldValue, newValue);
   }
 
   get value(): string {
@@ -478,6 +492,48 @@ export class UIWizard extends ElementBase {
     if (event.key === ' ' || event.key === 'Enter') {
       event.preventDefault();
       step.click();
+    }
+  }
+
+  private _syncValueUi(): void {
+    if (!this.isConnected) return;
+    if (!this.root.querySelector('.frame')) {
+      this.requestRender();
+      return;
+    }
+
+    const steps = this._steps();
+    if (!steps.length) return;
+
+    this._isSyncingValueAttribute = true;
+    let active = -1;
+    try {
+      active = this._activeIndex(steps);
+    } finally {
+      this._isSyncingValueAttribute = false;
+    }
+
+    this._syncPanels(steps, active);
+
+    const stepButtons = Array.from(this.root.querySelectorAll<HTMLButtonElement>('.step'));
+    stepButtons.forEach((button, index) => {
+      const selected = index === active;
+      button.setAttribute('data-active', selected ? 'true' : 'false');
+      button.setAttribute('aria-selected', selected ? 'true' : 'false');
+      button.setAttribute('tabindex', selected ? '0' : '-1');
+    });
+
+    const prev = this.root.querySelector('.btn-prev') as HTMLButtonElement | null;
+    if (prev) {
+      prev.disabled = active <= 0;
+    }
+
+    const next = this.root.querySelector('.btn-next') as HTMLButtonElement | null;
+    if (next) {
+      const atLast = active >= steps.length - 1;
+      const nextLabel = this.getAttribute('next-label') || 'Next';
+      const finishLabel = this.getAttribute('finish-label') || 'Finish';
+      next.textContent = atLast ? finishLabel : nextLabel;
     }
   }
 

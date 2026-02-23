@@ -465,6 +465,7 @@ export class UIDrawer extends ElementBase {
   private _trap: { release: () => void } | null = null;
   private _trapContainer: HTMLElement | null = null;
   private _restoreFocusEl: HTMLElement | null = null;
+  private _globalListenersBound = false;
 
   constructor() {
     super();
@@ -475,13 +476,12 @@ export class UIDrawer extends ElementBase {
   override connectedCallback(): void {
     super.connectedCallback();
     this.root.addEventListener('click', this._onRootClick as EventListener);
-    document.addEventListener('keydown', this._onDocumentKeyDown);
     this._syncOpenState();
   }
 
   override disconnectedCallback(): void {
     this.root.removeEventListener('click', this._onRootClick as EventListener);
-    document.removeEventListener('keydown', this._onDocumentKeyDown);
+    this._unbindGlobalListeners();
     this._releaseOpenResources();
     super.disconnectedCallback();
   }
@@ -581,13 +581,19 @@ export class UIDrawer extends ElementBase {
   private _syncOpenState(): void {
     const nowOpen = this.hasAttribute('open');
     if (nowOpen === this._isOpen) {
-      if (nowOpen) this._ensureFocusTrap();
+      if (nowOpen) {
+        this._bindGlobalListeners();
+        this._ensureFocusTrap();
+      } else {
+        this._unbindGlobalListeners();
+      }
       return;
     }
 
     this._isOpen = nowOpen;
 
     if (nowOpen) {
+      this._bindGlobalListeners();
       this._restoreFocusEl = document.activeElement as HTMLElement | null;
 
       try {
@@ -605,6 +611,7 @@ export class UIDrawer extends ElementBase {
       return;
     }
 
+    this._unbindGlobalListeners();
     this._releaseOpenResources();
 
     this.dispatchEvent(new CustomEvent('close', { bubbles: true }));
@@ -677,6 +684,18 @@ export class UIDrawer extends ElementBase {
     if (this._isOpen) {
       this._ensureFocusTrap();
     }
+  }
+
+  private _bindGlobalListeners(): void {
+    if (this._globalListenersBound) return;
+    document.addEventListener('keydown', this._onDocumentKeyDown);
+    this._globalListenersBound = true;
+  }
+
+  private _unbindGlobalListeners(): void {
+    if (!this._globalListenersBound) return;
+    document.removeEventListener('keydown', this._onDocumentKeyDown);
+    this._globalListenersBound = false;
   }
 }
 

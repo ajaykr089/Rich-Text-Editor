@@ -177,6 +177,7 @@ export class UICommandPalette extends ElementBase {
   private _input: HTMLInputElement | null = null;
   private _slot: HTMLSlotElement | null = null;
   private _query = '';
+  private _globalListenersBound = false;
 
   constructor() {
     super();
@@ -189,7 +190,6 @@ export class UICommandPalette extends ElementBase {
   connectedCallback() {
     super.connectedCallback();
     this.root.addEventListener('click', this._onClick as EventListener);
-    document.addEventListener('keydown', this._onKeyDown as EventListener);
     this._syncSlotListener();
     this._collectCommands();
     this._syncOpenState();
@@ -197,7 +197,9 @@ export class UICommandPalette extends ElementBase {
 
   disconnectedCallback() {
     this.root.removeEventListener('click', this._onClick as EventListener);
-    document.removeEventListener('keydown', this._onKeyDown as EventListener);
+    this._unbindGlobalListeners();
+    this._input?.removeEventListener('input', this._onInput);
+    this._input = null;
     if (this._slot) this._slot.removeEventListener('slotchange', this._onSlotChange as EventListener);
     this._slot = null;
     try {
@@ -208,11 +210,22 @@ export class UICommandPalette extends ElementBase {
   }
 
   attributeChangedCallback(name: string, oldValue: string | null, newValue: string | null) {
-    super.attributeChangedCallback(name, oldValue, newValue);
-    if (name === 'open' && oldValue !== newValue) {
+    if (oldValue === newValue) return;
+    if (name === 'open') {
       this._syncOpenState();
       this.dispatchEvent(new CustomEvent(newValue != null ? 'open' : 'close', { bubbles: true }));
+      return;
     }
+    if (name === 'placeholder') {
+      if (this._input) this._input.placeholder = newValue || 'Search commands...';
+      return;
+    }
+    if (name === 'empty-text') {
+      const empty = this.root.querySelector('.empty') as HTMLElement | null;
+      if (empty) empty.textContent = newValue || 'No commands found.';
+      return;
+    }
+    super.attributeChangedCallback(name, oldValue, newValue);
   }
 
   openPalette() {
@@ -225,6 +238,7 @@ export class UICommandPalette extends ElementBase {
 
   private _syncOpenState() {
     if (this.hasAttribute('open')) {
+      this._bindGlobalListeners();
       try {
         OverlayManager.register(this as unknown as HTMLElement);
         OverlayManager.acquireLock();
@@ -233,6 +247,7 @@ export class UICommandPalette extends ElementBase {
         this._input?.focus();
       }, 0);
     } else {
+      this._unbindGlobalListeners();
       try {
         OverlayManager.unregister(this as unknown as HTMLElement);
         OverlayManager.releaseLock();
@@ -242,6 +257,10 @@ export class UICommandPalette extends ElementBase {
   }
 
   protected render() {
+    if (this._input) {
+      this._input.removeEventListener('input', this._onInput);
+    }
+
     const placeholder = this.getAttribute('placeholder') || 'Search commands...';
     const emptyText = this.getAttribute('empty-text') || 'No commands found.';
     this.setContent(`
@@ -261,6 +280,18 @@ export class UICommandPalette extends ElementBase {
     this._syncSlotListener();
     this._collectCommands();
     this._applyFilter();
+  }
+
+  private _bindGlobalListeners() {
+    if (this._globalListenersBound) return;
+    document.addEventListener('keydown', this._onKeyDown as EventListener);
+    this._globalListenersBound = true;
+  }
+
+  private _unbindGlobalListeners() {
+    if (!this._globalListenersBound) return;
+    document.removeEventListener('keydown', this._onKeyDown as EventListener);
+    this._globalListenersBound = false;
   }
 
   private _syncSlotListener() {

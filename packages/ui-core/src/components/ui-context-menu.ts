@@ -571,6 +571,7 @@ export class UIContextMenu extends ElementBase {
   private _restoreFocusEl: HTMLElement | null = null;
   private _typeaheadBuffer = '';
   private _typeaheadTimer: number | null = null;
+  private _globalListenersBound = false;
 
   constructor() {
     super();
@@ -588,9 +589,6 @@ export class UIContextMenu extends ElementBase {
     this.root.addEventListener('click', this._onRootClick as EventListener);
     this.root.addEventListener('keydown', this._onRootKeyDown as EventListener);
     this.addEventListener('contextmenu', this._onContextMenu as EventListener);
-    document.addEventListener('pointerdown', this._onDocumentPointerDown, true);
-    window.addEventListener('resize', this._onViewportChange);
-    window.addEventListener('scroll', this._onViewportChange, true);
 
     this._syncOpenState();
   }
@@ -599,9 +597,7 @@ export class UIContextMenu extends ElementBase {
     this.root.removeEventListener('click', this._onRootClick as EventListener);
     this.root.removeEventListener('keydown', this._onRootKeyDown as EventListener);
     this.removeEventListener('contextmenu', this._onContextMenu as EventListener);
-    document.removeEventListener('pointerdown', this._onDocumentPointerDown, true);
-    window.removeEventListener('resize', this._onViewportChange);
-    window.removeEventListener('scroll', this._onViewportChange, true);
+    this._unbindGlobalListeners();
 
     this._cancelScheduledWork();
     super.disconnectedCallback();
@@ -712,6 +708,8 @@ export class UIContextMenu extends ElementBase {
   private _syncOpenState(): void {
     const nowOpen = this.hasAttribute('open');
     if (nowOpen === this._isOpen) {
+      if (nowOpen) this._bindGlobalListeners();
+      else this._unbindGlobalListeners();
       if (nowOpen) {
         this._schedulePosition();
         this._scheduleSubmenuLayout();
@@ -722,6 +720,7 @@ export class UIContextMenu extends ElementBase {
     this._isOpen = nowOpen;
 
     if (nowOpen) {
+      this._bindGlobalListeners();
       this._restoreFocusEl = document.activeElement as HTMLElement | null;
       this.dispatchEvent(new CustomEvent('open', { bubbles: true }));
       this.dispatchEvent(new CustomEvent('change', { bubbles: true, detail: { open: true } }));
@@ -733,6 +732,7 @@ export class UIContextMenu extends ElementBase {
       return;
     }
 
+    this._unbindGlobalListeners();
     this._clearSubmenuOpenState();
     this._cancelScheduledWork();
     this._anchorEl = null;
@@ -748,6 +748,22 @@ export class UIContextMenu extends ElementBase {
       }
     }
     this._restoreFocusEl = null;
+  }
+
+  private _bindGlobalListeners(): void {
+    if (this._globalListenersBound) return;
+    document.addEventListener('pointerdown', this._onDocumentPointerDown, true);
+    window.addEventListener('resize', this._onViewportChange);
+    window.addEventListener('scroll', this._onViewportChange, true);
+    this._globalListenersBound = true;
+  }
+
+  private _unbindGlobalListeners(): void {
+    if (!this._globalListenersBound) return;
+    document.removeEventListener('pointerdown', this._onDocumentPointerDown, true);
+    window.removeEventListener('resize', this._onViewportChange);
+    window.removeEventListener('scroll', this._onViewportChange, true);
+    this._globalListenersBound = false;
   }
 
   private _getSurface(): HTMLElement | null {

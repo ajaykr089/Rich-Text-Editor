@@ -92,20 +92,17 @@ export class UIFloatingToolbar extends ElementBase {
   private _raf: number | null = null;
   private _onWindowChangeBound = this._onWindowChange.bind(this);
   private _onDocumentPointerDownBound = this._onDocumentPointerDown.bind(this);
+  private _globalListenersBound = false;
 
   connectedCallback() {
     super.connectedCallback();
-    window.addEventListener('scroll', this._onWindowChangeBound, true);
-    window.addEventListener('resize', this._onWindowChangeBound);
-    document.addEventListener('pointerdown', this._onDocumentPointerDownBound, true);
     this._syncAnchorFromAttribute();
+    this._syncOpenState();
     this._schedulePosition();
   }
 
   disconnectedCallback() {
-    window.removeEventListener('scroll', this._onWindowChangeBound, true);
-    window.removeEventListener('resize', this._onWindowChangeBound);
-    document.removeEventListener('pointerdown', this._onDocumentPointerDownBound, true);
+    this._unbindGlobalListeners();
     if (this._raf != null) {
       cancelAnimationFrame(this._raf);
       this._raf = null;
@@ -114,11 +111,20 @@ export class UIFloatingToolbar extends ElementBase {
   }
 
   attributeChangedCallback(name: string, oldValue: string | null, newValue: string | null) {
-    super.attributeChangedCallback(name, oldValue, newValue);
+    if (oldValue === newValue) return;
     if (name === 'anchor-id') this._syncAnchorFromAttribute();
-    if (name === 'open' && oldValue !== newValue) {
+    if (name === 'open') {
+      this._syncOpenState();
       this.dispatchEvent(new CustomEvent(newValue != null ? 'open' : 'close', { bubbles: true }));
+      this._schedulePosition();
+      return;
     }
+    if (name === 'headless') {
+      this._syncOpenState();
+      this._schedulePosition();
+      return;
+    }
+    super.attributeChangedCallback(name, oldValue, newValue);
     this._schedulePosition();
   }
 
@@ -135,6 +141,14 @@ export class UIFloatingToolbar extends ElementBase {
     this.removeAttribute('open');
   }
 
+  private _syncOpenState() {
+    if (this.hasAttribute('open') && !this.hasAttribute('headless')) {
+      this._bindGlobalListeners();
+      return;
+    }
+    this._unbindGlobalListeners();
+  }
+
   private _syncAnchorFromAttribute() {
     const anchorId = this.getAttribute('anchor-id');
     if (!anchorId) {
@@ -145,11 +159,29 @@ export class UIFloatingToolbar extends ElementBase {
   }
 
   private _schedulePosition() {
+    if (!this.hasAttribute('open')) return;
+    if (this.hasAttribute('headless')) return;
     if (this._raf != null) cancelAnimationFrame(this._raf);
     this._raf = requestAnimationFrame(() => {
       this._raf = null;
       this._position();
     });
+  }
+
+  private _bindGlobalListeners() {
+    if (this._globalListenersBound) return;
+    window.addEventListener('scroll', this._onWindowChangeBound, true);
+    window.addEventListener('resize', this._onWindowChangeBound);
+    document.addEventListener('pointerdown', this._onDocumentPointerDownBound, true);
+    this._globalListenersBound = true;
+  }
+
+  private _unbindGlobalListeners() {
+    if (!this._globalListenersBound) return;
+    window.removeEventListener('scroll', this._onWindowChangeBound, true);
+    window.removeEventListener('resize', this._onWindowChangeBound);
+    document.removeEventListener('pointerdown', this._onDocumentPointerDownBound, true);
+    this._globalListenersBound = false;
   }
 
   private _position() {

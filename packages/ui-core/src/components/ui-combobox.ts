@@ -351,6 +351,7 @@ export class UICombobox extends ElementBase {
   private _formUnregister: (() => void) | null = null;
   private _isFocused = false;
   private _suppressValueSync = false;
+  private _globalListenersBound = false;
 
   constructor() {
     super();
@@ -367,7 +368,6 @@ export class UICombobox extends ElementBase {
 
   connectedCallback() {
     super.connectedCallback();
-    document.addEventListener('mousedown', this._onDocumentMouseDown as EventListener);
 
     this._observer = new MutationObserver(() => {
       this._options = this._readOptions();
@@ -387,7 +387,7 @@ export class UICombobox extends ElementBase {
   }
 
   disconnectedCallback() {
-    document.removeEventListener('mousedown', this._onDocumentMouseDown as EventListener);
+    this._unbindGlobalListeners();
     this._detachDomListeners();
 
     if (this._observer) {
@@ -649,6 +649,7 @@ export class UICombobox extends ElementBase {
     if (!this._panel || !this._input || !this._toggleBtn) return;
     const open = this.open;
     if (open) {
+      this._bindGlobalListeners();
       this._panel.setAttribute('data-open', 'true');
       this._panel.removeAttribute('hidden');
       this._input.setAttribute('aria-expanded', 'true');
@@ -656,11 +657,24 @@ export class UICombobox extends ElementBase {
       this._rebuildFiltered({ preserveHighlight: true });
       this._renderList();
     } else {
+      this._unbindGlobalListeners();
       this._panel.setAttribute('hidden', '');
       this._panel.removeAttribute('data-open');
       this._input.setAttribute('aria-expanded', 'false');
       this._toggleBtn.setAttribute('data-open', 'false');
     }
+  }
+
+  private _bindGlobalListeners() {
+    if (this._globalListenersBound) return;
+    document.addEventListener('mousedown', this._onDocumentMouseDown as EventListener);
+    this._globalListenersBound = true;
+  }
+
+  private _unbindGlobalListeners() {
+    if (!this._globalListenersBound) return;
+    document.removeEventListener('mousedown', this._onDocumentMouseDown as EventListener);
+    this._globalListenersBound = false;
   }
 
   private _openPanel() {

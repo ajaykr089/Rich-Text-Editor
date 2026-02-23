@@ -547,6 +547,7 @@ export class UIMenubar extends ElementBase {
   private _panelForIndex = -1;
   private _typeaheadBuffer = '';
   private _typeaheadTimer: number | null = null;
+  private _globalListenersBound = false;
 
   constructor() {
     super();
@@ -563,8 +564,6 @@ export class UIMenubar extends ElementBase {
     this.root.addEventListener('click', this._onClick as EventListener);
     this.root.addEventListener('keydown', this._onKeyDown as EventListener);
     this.root.addEventListener('mousemove', this._onMouseMove as EventListener);
-    document.addEventListener('pointerdown', this._onDocPointerDown as EventListener, true);
-    document.addEventListener('keydown', this._onDocKeyDown as EventListener);
     this._attachSlotListeners();
     this._syncState();
   }
@@ -573,8 +572,7 @@ export class UIMenubar extends ElementBase {
     this.root.removeEventListener('click', this._onClick as EventListener);
     this.root.removeEventListener('keydown', this._onKeyDown as EventListener);
     this.root.removeEventListener('mousemove', this._onMouseMove as EventListener);
-    document.removeEventListener('pointerdown', this._onDocPointerDown as EventListener, true);
-    document.removeEventListener('keydown', this._onDocKeyDown as EventListener);
+    this._unbindGlobalListeners();
     this._detachSlotListeners();
     this._teardownPanel();
     super.disconnectedCallback();
@@ -704,6 +702,7 @@ export class UIMenubar extends ElementBase {
     if (nextOpen !== this._open) {
       this._open = nextOpen;
       if (nextOpen) {
+        this._bindGlobalListeners();
         this._rebuildPanel();
         this.dispatchEvent(
           new CustomEvent('open', {
@@ -712,6 +711,7 @@ export class UIMenubar extends ElementBase {
           })
         );
       } else {
+        this._unbindGlobalListeners();
         const previous = this._panelForIndex >= 0 ? this._panelForIndex : this._selectedIndex();
         this._teardownPanel();
         this.dispatchEvent(new CustomEvent('close', { detail: { previous }, bubbles: true }));
@@ -720,11 +720,27 @@ export class UIMenubar extends ElementBase {
     }
 
     if (this._open) {
+      this._bindGlobalListeners();
       const selected = this._selectedIndex();
       if (selected !== this._panelForIndex || !this._portalEl) this._rebuildPanel();
     } else {
+      this._unbindGlobalListeners();
       this._teardownPanel();
     }
+  }
+
+  private _bindGlobalListeners(): void {
+    if (this._globalListenersBound) return;
+    document.addEventListener('pointerdown', this._onDocPointerDown as EventListener, true);
+    document.addEventListener('keydown', this._onDocKeyDown as EventListener);
+    this._globalListenersBound = true;
+  }
+
+  private _unbindGlobalListeners(): void {
+    if (!this._globalListenersBound) return;
+    document.removeEventListener('pointerdown', this._onDocPointerDown as EventListener, true);
+    document.removeEventListener('keydown', this._onDocKeyDown as EventListener);
+    this._globalListenersBound = false;
   }
 
   private _syncStructure(): void {

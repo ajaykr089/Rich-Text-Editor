@@ -245,6 +245,17 @@ export class UIQuickActions extends ElementBase {
     super.disconnectedCallback();
   }
 
+  override attributeChangedCallback(name: string, oldValue: string | null, newValue: string | null): void {
+    if (oldValue === newValue) return;
+
+    if (name === 'open') {
+      this._syncOpenUi();
+      return;
+    }
+
+    super.attributeChangedCallback(name, oldValue, newValue);
+  }
+
   get open(): boolean {
     return this.hasAttribute('open');
   }
@@ -388,6 +399,34 @@ export class UIQuickActions extends ElementBase {
       if (!enabled.length) return;
       (event.key === 'Home' ? enabled[0] : enabled[enabled.length - 1]).focus();
     }
+  }
+
+  private _syncOpenUi(): void {
+    if (!this.isConnected) return;
+    if (!this.root.querySelector('.root')) {
+      this.requestRender();
+      return;
+    }
+
+    const mode = this.getAttribute('mode') === 'fab' ? 'fab' : 'bar';
+    const collapsible = this.hasAttribute('collapsible') || mode === 'fab';
+    const showActions = this.open || (!collapsible && mode === 'bar');
+    const label = this.getAttribute('label') || 'Quick actions';
+
+    const toggle = this.root.querySelector('.toggle') as HTMLButtonElement | null;
+    if (toggle) {
+      toggle.textContent = showActions ? '−' : '+';
+      toggle.setAttribute('aria-label', label);
+      toggle.setAttribute('aria-expanded', showActions ? 'true' : 'false');
+    }
+
+    const actions = this.root.querySelector('.actions') as HTMLElement | null;
+    if (actions) {
+      if (showActions) actions.removeAttribute('hidden');
+      else actions.setAttribute('hidden', '');
+    }
+
+    this._syncActionAccessibility(showActions);
   }
 
   protected override render(): void {

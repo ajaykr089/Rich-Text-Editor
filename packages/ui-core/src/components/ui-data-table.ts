@@ -457,6 +457,7 @@ export class UIDataTable extends ElementBase {
   private _dragColumnIndex = -1;
   private _dragOverColumnIndex = -1;
   private _ignoreHeaderClickUntil = 0;
+  private _syncRaf = 0;
 
   constructor() {
     super();
@@ -487,7 +488,7 @@ export class UIDataTable extends ElementBase {
 
     this._observer = new MutationObserver(() => {
       if (this._isSyncing) return;
-      this._syncStructure();
+      this._queueSyncStructure();
     });
     this._observer.observe(this, {
       childList: true,
@@ -517,6 +518,10 @@ export class UIDataTable extends ElementBase {
       cancelAnimationFrame(this._virtualRaf);
       this._virtualRaf = 0;
     }
+    if (this._syncRaf) {
+      cancelAnimationFrame(this._syncRaf);
+      this._syncRaf = 0;
+    }
     this._clearVirtualSpacers();
     if (this._observer) {
       this._observer.disconnect();
@@ -527,15 +532,21 @@ export class UIDataTable extends ElementBase {
   }
 
   attributeChangedCallback(name: string, oldValue: string | null, newValue: string | null) {
-    super.attributeChangedCallback(name, oldValue, newValue);
+    if (oldValue === newValue) return;
     if (name === 'column-order' && this._isSettingColumnOrder) return;
+    if (name === 'page' && this._isSettingPage) return;
+
+    // Only these attributes require rebuilding the component frame/template.
+    if (name === 'headless' || name === 'empty-text') {
+      super.attributeChangedCallback(name, oldValue, newValue);
+    }
+
+    if (!this.isConnected) return;
+
     if (name === 'pagination-id') {
       this._syncPaginationBinding();
     }
-    if (name === 'page' && this._isSettingPage) {
-      return;
-    }
-    this._syncStructure();
+    this._queueSyncStructure();
     if (name === 'filter-query' || name === 'filter-column' || name === 'filters') {
       this._dispatchFilterChange();
     }
@@ -573,6 +584,15 @@ export class UIDataTable extends ElementBase {
 
   private _findTable(): HTMLTableElement | null {
     return this.querySelector('table');
+  }
+
+  private _queueSyncStructure() {
+    if (!this.isConnected) return;
+    if (this._syncRaf) return;
+    this._syncRaf = requestAnimationFrame(() => {
+      this._syncRaf = 0;
+      this._syncStructure();
+    });
   }
 
   private _isVirtualSpacerRow(row: HTMLTableRowElement): boolean {

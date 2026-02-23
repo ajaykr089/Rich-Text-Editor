@@ -239,6 +239,7 @@ export class UISelectionPopup extends ElementBase {
   private _previousFocused: HTMLElement | null = null;
   private _resizeObserver: ResizeObserver | null = null;
   private _mutationObserver: MutationObserver | null = null;
+  private _globalListenersBound = false;
 
   constructor() {
     super();
@@ -251,21 +252,7 @@ export class UISelectionPopup extends ElementBase {
   override connectedCallback(): void {
     super.connectedCallback();
 
-    document.addEventListener('pointerdown', this._onDocumentPointerDown, true);
-    document.addEventListener('keydown', this._onDocumentKeyDown, true);
-    window.addEventListener('scroll', this._onWindowChange, true);
-    window.addEventListener('resize', this._onWindowChange);
     this.root.addEventListener('slotchange', this._onSlotChange as EventListener);
-
-    if (typeof ResizeObserver !== 'undefined') {
-      this._resizeObserver = new ResizeObserver(() => this._schedulePosition());
-      this._resizeObserver.observe(this);
-    }
-
-    if (typeof MutationObserver !== 'undefined') {
-      this._mutationObserver = new MutationObserver(() => this._schedulePosition());
-      this._mutationObserver.observe(this, { childList: true, subtree: true, characterData: true });
-    }
 
     this._syncAnchorFromAttribute();
     this._syncOpenLifecycle(false);
@@ -273,25 +260,13 @@ export class UISelectionPopup extends ElementBase {
   }
 
   override disconnectedCallback(): void {
-    document.removeEventListener('pointerdown', this._onDocumentPointerDown, true);
-    document.removeEventListener('keydown', this._onDocumentKeyDown, true);
-    window.removeEventListener('scroll', this._onWindowChange, true);
-    window.removeEventListener('resize', this._onWindowChange);
+    this._unbindGlobalListeners();
+    this._teardownObservers();
     this.root.removeEventListener('slotchange', this._onSlotChange as EventListener);
 
     if (this._raf != null) {
       cancelAnimationFrame(this._raf);
       this._raf = null;
-    }
-
-    if (this._resizeObserver) {
-      this._resizeObserver.disconnect();
-      this._resizeObserver = null;
-    }
-
-    if (this._mutationObserver) {
-      this._mutationObserver.disconnect();
-      this._mutationObserver = null;
     }
 
     super.disconnectedCallback();
@@ -354,8 +329,17 @@ export class UISelectionPopup extends ElementBase {
     const isOpen = this.open;
     if (!wasOpen && isOpen) {
       this._previousFocused = (document.activeElement as HTMLElement | null) || null;
+      this._bindGlobalListeners();
+      this._ensureObservers();
+      this._schedulePosition();
     }
     if (wasOpen && !isOpen) {
+      this._unbindGlobalListeners();
+      this._teardownObservers();
+      if (this._raf != null) {
+        cancelAnimationFrame(this._raf);
+        this._raf = null;
+      }
       const restore = this._anchor || this._previousFocused;
       if (restore && typeof restore.focus === 'function') {
         try {
@@ -374,6 +358,7 @@ export class UISelectionPopup extends ElementBase {
   }
 
   private _onSlotChange(): void {
+    if (!this.open) return;
     this._schedulePosition();
   }
 
@@ -396,11 +381,54 @@ export class UISelectionPopup extends ElementBase {
   }
 
   private _schedulePosition(): void {
+    if (!this.open) return;
     if (this._raf != null) cancelAnimationFrame(this._raf);
     this._raf = requestAnimationFrame(() => {
       this._raf = null;
       this._position();
     });
+  }
+
+  private _bindGlobalListeners(): void {
+    if (this._globalListenersBound) return;
+    document.addEventListener('pointerdown', this._onDocumentPointerDown, true);
+    document.addEventListener('keydown', this._onDocumentKeyDown, true);
+    window.addEventListener('scroll', this._onWindowChange, true);
+    window.addEventListener('resize', this._onWindowChange);
+    this._globalListenersBound = true;
+  }
+
+  private _unbindGlobalListeners(): void {
+    if (!this._globalListenersBound) return;
+    document.removeEventListener('pointerdown', this._onDocumentPointerDown, true);
+    document.removeEventListener('keydown', this._onDocumentKeyDown, true);
+    window.removeEventListener('scroll', this._onWindowChange, true);
+    window.removeEventListener('resize', this._onWindowChange);
+    this._globalListenersBound = false;
+  }
+
+  private _ensureObservers(): void {
+    if (this._resizeObserver == null && typeof ResizeObserver !== 'undefined') {
+      this._resizeObserver = new ResizeObserver(() => this._schedulePosition());
+      this._resizeObserver.observe(this);
+    }
+
+    if (this._mutationObserver == null && typeof MutationObserver !== 'undefined') {
+      this._mutationObserver = new MutationObserver(() => this._schedulePosition());
+      this._mutationObserver.observe(this, { childList: true, subtree: true, characterData: true });
+    }
+  }
+
+  private _teardownObservers(): void {
+    if (this._resizeObserver) {
+      this._resizeObserver.disconnect();
+      this._resizeObserver = null;
+    }
+
+    if (this._mutationObserver) {
+      this._mutationObserver.disconnect();
+      this._mutationObserver = null;
+    }
   }
 
   private _candidateFor(

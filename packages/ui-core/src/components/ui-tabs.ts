@@ -277,6 +277,7 @@ export class UITabs extends ElementBase {
   private _uid = `ui-tabs-${Math.random().toString(36).slice(2, 9)}`;
   private _observer: MutationObserver | null = null;
   private _isSyncing = false;
+  private _isSyncingSelectionAttributes = false;
 
   constructor() {
     super();
@@ -314,6 +315,19 @@ export class UITabs extends ElementBase {
     }
 
     super.disconnectedCallback();
+  }
+
+  override attributeChangedCallback(name: string, oldValue: string | null, newValue: string | null): void {
+    if (oldValue === newValue) return;
+
+    if (name === 'selected' || name === 'value') {
+      if (!this._isSyncingSelectionAttributes) {
+        this._syncSelectionUi();
+      }
+      return;
+    }
+
+    super.attributeChangedCallback(name, oldValue, newValue);
   }
 
   get selected(): string {
@@ -382,12 +396,17 @@ export class UITabs extends ElementBase {
     const selected = model[selectedIndex];
     if (!selected) return;
 
-    if (this.getAttribute('selected') !== String(selectedIndex)) {
-      this.setAttribute('selected', String(selectedIndex));
-    }
+    this._isSyncingSelectionAttributes = true;
+    try {
+      if (this.getAttribute('selected') !== String(selectedIndex)) {
+        this.setAttribute('selected', String(selectedIndex));
+      }
 
-    if (this.getAttribute('value') !== selected.value) {
-      this.setAttribute('value', selected.value);
+      if (this.getAttribute('value') !== selected.value) {
+        this.setAttribute('value', selected.value);
+      }
+    } finally {
+      this._isSyncingSelectionAttributes = false;
     }
   }
 
@@ -421,6 +440,42 @@ export class UITabs extends ElementBase {
       this._emit('change', model, nextIndex);
       this._emit('select', model, nextIndex);
     }
+  }
+
+  private _syncSelectionUi(): void {
+    if (!this.isConnected) return;
+    if (!this.root.querySelector('.nav')) {
+      this.requestRender();
+      return;
+    }
+
+    const model = this._tabsModel();
+    if (!model.length) return;
+    const selectedIndex = this._resolveSelectedIndex(model);
+    const selected = model[selectedIndex];
+    this._syncSelectedAttributes(model, selectedIndex);
+
+    const buttons = Array.from(this.root.querySelectorAll<HTMLButtonElement>('.tab'));
+    buttons.forEach((button, index) => {
+      const tab = model[index];
+      if (!tab) return;
+      const selectedState = index === selectedIndex;
+      button.setAttribute('aria-selected', selectedState ? 'true' : 'false');
+      button.setAttribute('tabindex', selectedState && !tab.disabled ? '0' : '-1');
+      button.setAttribute('aria-controls', tab.panelId);
+      if (tab.disabled) button.setAttribute('disabled', '');
+      else button.removeAttribute('disabled');
+    });
+
+    if (selected) {
+      this.setAttribute('aria-activedescendant', selected.tabId);
+      this.setAttribute('aria-controls', selected.panelId);
+    } else {
+      this.removeAttribute('aria-activedescendant');
+      this.removeAttribute('aria-controls');
+    }
+
+    this._syncPanels(model, selectedIndex);
   }
 
   private _syncPanels(model: TabModel[], selectedIndex: number): void {

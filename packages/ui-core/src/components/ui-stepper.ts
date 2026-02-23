@@ -299,6 +299,7 @@ export class UIStepper extends ElementBase {
   }
 
   private _observer: MutationObserver | null = null;
+  private _isSyncingValueAttribute = false;
 
   constructor() {
     super();
@@ -333,6 +334,27 @@ export class UIStepper extends ElementBase {
       this._observer = null;
     }
     super.disconnectedCallback();
+  }
+
+  override attributeChangedCallback(name: string, oldValue: string | null, newValue: string | null): void {
+    if (oldValue === newValue) return;
+
+    if (name === 'value') {
+      if (!this._isSyncingValueAttribute) {
+        this._syncValueUi();
+      }
+      return;
+    }
+
+    if (name === 'aria-label') {
+      const frame = this.root.querySelector('.frame') as HTMLElement | null;
+      if (frame) {
+        frame.setAttribute('aria-label', newValue || 'Stepper');
+        return;
+      }
+    }
+
+    super.attributeChangedCallback(name, oldValue, newValue);
   }
 
   private _fromSlots(): StepItem[] {
@@ -514,6 +536,52 @@ export class UIStepper extends ElementBase {
       event.preventDefault();
       trigger.click();
     }
+  }
+
+  private _syncValueUi(): void {
+    if (!this.isConnected) return;
+    if (!this.root.querySelector('.list')) {
+      this.requestRender();
+      return;
+    }
+
+    const steps = this._steps();
+    if (!steps.length) return;
+
+    this._isSyncingValueAttribute = true;
+    let activeIndex = -1;
+    try {
+      activeIndex = this._activeIndex(steps);
+    } finally {
+      this._isSyncingValueAttribute = false;
+    }
+
+    const items = Array.from(this.root.querySelectorAll<HTMLElement>('.item'));
+    items.forEach((item, index) => {
+      const step = steps[index];
+      if (!step) return;
+
+      const status = step.state !== 'default'
+        ? step.state
+        : index < activeIndex
+          ? 'complete'
+          : index === activeIndex
+            ? 'current'
+            : 'upcoming';
+
+      item.setAttribute('data-state', status);
+      item.setAttribute('data-active', index === activeIndex ? 'true' : 'false');
+
+      const trigger = item.querySelector('.trigger') as HTMLButtonElement | null;
+      if (trigger) {
+        trigger.setAttribute('aria-current', index === activeIndex ? 'step' : 'false');
+      }
+
+      const indicator = item.querySelector('.index') as HTMLElement | null;
+      if (indicator) {
+        indicator.textContent = index < activeIndex ? '✓' : String(index + 1);
+      }
+    });
   }
 
   protected override render(): void {

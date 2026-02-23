@@ -253,6 +253,7 @@ export class UITable extends ElementBase {
   private _sortDirection: SortDirection = 'asc';
   private _selectedRows = new Set<HTMLTableRowElement>();
   private _isSyncing = false;
+  private _syncRaf = 0;
 
   constructor() {
     super();
@@ -269,7 +270,7 @@ export class UITable extends ElementBase {
 
     this._observer = new MutationObserver(() => {
       if (this._isSyncing) return;
-      this._syncStructure();
+      this._queueSyncStructure();
     });
     // Avoid observing subtree attribute mutations because table sync updates
     // header/row attributes itself and can otherwise trigger feedback loops.
@@ -283,6 +284,10 @@ export class UITable extends ElementBase {
   disconnectedCallback() {
     this.removeEventListener('click', this._onClick as EventListener);
     this.removeEventListener('keydown', this._onKeyDown as EventListener);
+    if (this._syncRaf) {
+      cancelAnimationFrame(this._syncRaf);
+      this._syncRaf = 0;
+    }
     if (this._observer) {
       this._observer.disconnect();
       this._observer = null;
@@ -292,8 +297,12 @@ export class UITable extends ElementBase {
 
   attributeChangedCallback(name: string, oldValue: string | null, newValue: string | null) {
     if (oldValue === newValue) return;
-    super.attributeChangedCallback(name, oldValue, newValue);
-    this._syncStructure();
+    // Only these attributes change the component frame/template.
+    if (name === 'headless' || name === 'empty-text') {
+      super.attributeChangedCallback(name, oldValue, newValue);
+    }
+    if (!this.isConnected) return;
+    this._queueSyncStructure();
   }
 
   protected render() {
@@ -316,6 +325,15 @@ export class UITable extends ElementBase {
 
   private _findTable(): HTMLTableElement | null {
     return this.querySelector('table');
+  }
+
+  private _queueSyncStructure() {
+    if (!this.isConnected) return;
+    if (this._syncRaf) return;
+    this._syncRaf = requestAnimationFrame(() => {
+      this._syncRaf = 0;
+      this._syncStructure();
+    });
   }
 
   private _syncStructure() {

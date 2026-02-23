@@ -53,7 +53,17 @@ export abstract class ElementBase extends HTMLElement {
     // default behavior: re-render on attribute changes
     if (oldValue === newValue) return;
     if (!this.isConnected) return;
+    if (name && !this.shouldRenderOnAttributeChange(name, oldValue ?? null, newValue ?? null)) return;
     this._scheduleRender();
+  }
+
+  // Override in components to avoid full shadow rerenders for non-template attributes.
+  protected shouldRenderOnAttributeChange(
+    _name: string,
+    _oldValue: string | null,
+    _newValue: string | null
+  ): boolean {
+    return true;
   }
 
   protected setContent(html: string) {

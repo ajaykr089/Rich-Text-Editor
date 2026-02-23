@@ -300,6 +300,7 @@ export class UIHoverCard extends ElementBase {
   private _closeTimer: number | null = null;
   private _positionRaf: number | null = null;
   private _isOpen = false;
+  private _globalListenersBound = false;
 
   constructor() {
     super();
@@ -321,9 +322,6 @@ export class UIHoverCard extends ElementBase {
     this.addEventListener('focusout', this._onFocusOut);
     this.addEventListener('keydown', this._onKeyDown as EventListener);
     this.root.addEventListener('slotchange', this._onSlotChange as EventListener);
-    document.addEventListener('pointerdown', this._onDocumentPointerDown, true);
-    window.addEventListener('resize', this._onViewportChange);
-    window.addEventListener('scroll', this._onViewportChange, true);
     this._syncOpenState();
   }
 
@@ -334,9 +332,7 @@ export class UIHoverCard extends ElementBase {
     this.removeEventListener('focusout', this._onFocusOut);
     this.removeEventListener('keydown', this._onKeyDown as EventListener);
     this.root.removeEventListener('slotchange', this._onSlotChange as EventListener);
-    document.removeEventListener('pointerdown', this._onDocumentPointerDown, true);
-    window.removeEventListener('resize', this._onViewportChange);
-    window.removeEventListener('scroll', this._onViewportChange, true);
+    this._unbindGlobalListeners();
     this._clearTimers();
     if (this._positionRaf != null) {
       cancelAnimationFrame(this._positionRaf);
@@ -499,7 +495,12 @@ export class UIHoverCard extends ElementBase {
     const nowOpen = this.hasAttribute('open') && !this.hasAttribute('headless');
 
     if (nowOpen === this._isOpen) {
-      if (nowOpen) this._schedulePosition();
+      if (nowOpen) {
+        this._bindGlobalListeners();
+        this._schedulePosition();
+      } else {
+        this._unbindGlobalListeners();
+      }
       return;
     }
 
@@ -507,6 +508,7 @@ export class UIHoverCard extends ElementBase {
     const panel = this._getPanel();
 
     if (nowOpen) {
+      this._bindGlobalListeners();
       if (panel) panel.setAttribute('data-ready', 'false');
       this.dispatchEvent(new CustomEvent('open', { bubbles: true }));
       this.dispatchEvent(new CustomEvent('show', { bubbles: true }));
@@ -515,6 +517,7 @@ export class UIHoverCard extends ElementBase {
       return;
     }
 
+    this._unbindGlobalListeners();
     this._clearTimers();
     if (this._positionRaf != null) {
       cancelAnimationFrame(this._positionRaf);
@@ -526,6 +529,22 @@ export class UIHoverCard extends ElementBase {
     this.dispatchEvent(new CustomEvent('close', { bubbles: true }));
     this.dispatchEvent(new CustomEvent('hide', { bubbles: true }));
     this.dispatchEvent(new CustomEvent('change', { bubbles: true, detail: { open: false } }));
+  }
+
+  private _bindGlobalListeners(): void {
+    if (this._globalListenersBound) return;
+    document.addEventListener('pointerdown', this._onDocumentPointerDown, true);
+    window.addEventListener('resize', this._onViewportChange);
+    window.addEventListener('scroll', this._onViewportChange, true);
+    this._globalListenersBound = true;
+  }
+
+  private _unbindGlobalListeners(): void {
+    if (!this._globalListenersBound) return;
+    document.removeEventListener('pointerdown', this._onDocumentPointerDown, true);
+    window.removeEventListener('resize', this._onViewportChange);
+    window.removeEventListener('scroll', this._onViewportChange, true);
+    this._globalListenersBound = false;
   }
 
   private _schedulePosition(): void {
