@@ -1,15 +1,6 @@
 import { useState } from 'react';
-import { EditoraEditor } from '@editora/react';
-import {
-  BoldPlugin,
-  ItalicPlugin,
-  UnderlinePlugin,
-  StrikethroughPlugin,
-  HeadingPlugin,
-  ListPlugin,
-  LinkPlugin,
-  HistoryPlugin
-} from '@editora/plugins';
+import { EditoraEditor } from "@editora/react";
+import { BoldPlugin, ItalicPlugin } from "@editora/plugins";
 import "@editora/themes/themes/default.css";
 import './App.css';
 
@@ -17,16 +8,7 @@ function App() {
   const [content, setContent] = useState('<p>Welcome to <strong>Editora</strong>!</p><p>Start typing to see it in action...</p>');
 
   // Initialize plugins
-  const plugins = [
-    BoldPlugin(),
-    ItalicPlugin(),
-    UnderlinePlugin(),
-    StrikethroughPlugin(),
-    HeadingPlugin(),
-    ListPlugin(),
-    LinkPlugin(),
-    HistoryPlugin()
-  ];
+   const plugins = [BoldPlugin(), ItalicPlugin()];
 
   return (
     <div className="app">
@@ -41,21 +23,27 @@ function App() {
             value={content}
             onChange={setContent}
             plugins={plugins}
-            placeholder="Start typing..."
-            theme="light"
+            placeholder="Start writing your document..."
+            autofocus
           />
         </div>
 
         <div className="output-container">
           <h2>Output (HTML)</h2>
-          <pre><code>{content}</code></pre>
+          <pre>
+            <code>{content}</code>
+          </pre>
         </div>
       </main>
 
       <footer className="app-footer">
         <p>
-          Learn more at{' '}
-          <a href="https://github.com/ajaykr089/Editora" target="_blank" rel="noopener noreferrer">
+          Learn more at{" "}
+          <a
+            href="https://github.com/ajaykr089/Editora"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
             GitHub
           </a>
         </p>

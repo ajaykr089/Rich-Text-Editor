@@ -223,7 +223,7 @@ Editora provides a framework-agnostic web component that works with any JavaScri
 <head>
   <meta charset="UTF-8">
   <title>Editora Web Component</title>
-  <script src="https://cdn.jsdelivr.net/npm/@editora/core/dist/webcomponent.min.js"></script>
+  <script type="module" src="https://cdn.jsdelivr.net/npm/@editora/core/dist/webcomponent.js"></script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@editora/core/dist/webcomponent.min.css">
 </head>
 <body>
@@ -362,7 +362,7 @@ const myCustomPlugin: Plugin = {
 ### Plugin Configuration
 
 ```typescript
-const imagePlugin = createImagePlugin({
+const imagePlugin = MediaManagerPlugin({
   uploadUrl: '/api/upload',
   maxSize: 10 * 1024 * 1024,
   allowedTypes: ['image/jpeg', 'image/png', 'image/webp'],

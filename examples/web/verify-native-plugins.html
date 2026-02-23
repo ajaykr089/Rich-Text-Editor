@@ -141,7 +141,7 @@
       
       <h3 style="margin: 20px 0 10px; color: #667eea;">1. Vanilla HTML</h3>
       <pre class="code-block"><code><span class="comment">&lt;!-- Just include the script (Full bundle for all plugins) --&gt;</span>
-<span class="highlight">&lt;script</span> src="packages/core/dist/webcomponent.min.js"<span class="highlight">&gt;&lt;/script&gt;</span>
+<span class="highlight">&lt;script</span> src="packages/core/dist/webcomponent.js"<span class="highlight">&gt;&lt;/script&gt;</span>
 
 <span class="comment">&lt;!-- Use the custom element --&gt;</span>
 <span class="highlight">&lt;editora-editor</span>
@@ -178,7 +178,7 @@
 <span class="highlight">&lt;/template&gt;</span></code></pre>
 
       <h3 style="margin: 20px 0 10px; color: #667eea;">4. CDN Usage</h3>
-      <pre class="code-block"><code><span class="highlight">&lt;script</span> src="https://unpkg.com/@editora/core@latest/dist/webcomponent.min.js"<span class="highlight">&gt;&lt;/script&gt;</span>
+      <pre class="code-block"><code><span class="highlight">&lt;script</span> src="https://unpkg.com/@editora/core@latest/dist/webcomponent.js"<span class="highlight">&gt;&lt;/script&gt;</span>
     <span class="highlight">&lt;editora-editor</span> height="400"<span class="highlight">&gt;&lt;/editora-editor&gt;</span></code></pre>
     </div>
 
@@ -190,7 +190,7 @@
   </div>
 
   <!-- Import Web Component Bundle (100% Native Plugins - Full Bundle) -->
-  <script src="https://cdn.jsdelivr.net/npm/@editora/core/dist/webcomponent.min.js"></script>
+  <script type="module" src="https://cdn.jsdelivr.net/npm/@editora/core/dist/webcomponent.js"></script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@editora/core/dist/webcomponent.min.css">
 
   <script>

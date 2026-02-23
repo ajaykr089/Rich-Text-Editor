@@ -69,7 +69,7 @@ import {
   ParagraphPlugin,
   ListPlugin,
   LinkPlugin,
-  ImagePlugin,
+  MediaManagerPlugin,
   TablePlugin,
   CodeSamplePlugin,
   HistoryPlugin
@@ -86,24 +86,7 @@ function FullEditor() {
     UnderlinePlugin(),
     HeadingPlugin(),
     ListPlugin(),
-    LinkPlugin({
-      onLinkClick: (url) => window.open(url, '_blank')
-    }),
-    createImagePlugin({
-      upload: async (file) => {
-        const formData = new FormData();
-        formData.append('image', file);
-        const response = await fetch('/api/upload', {
-          method: 'POST',
-          body: formData
-        });
-        const data = await response.json();
-        return data.url;
-      }
-    }),
-    createTablePlugin(),
-    createCodeSamplePlugin(),
-    createHistoryPlugin()
+    MediaManagerPlugin()
   ];
 
   return (
@@ -323,9 +306,9 @@ const boldPlugin = BoldPlugin({
 ### Image Plugin with Upload
 
 ```tsx
-import { createImagePlugin } from '@editora/plugins';
+import { MediaManagerPlugin } from '@editora/plugins';
 
-const imagePlugin = createImagePlugin({
+const imagePlugin = MediaManagerPlugin({
   upload: async (file) => {
     const url = await uploadToServer(file);
     return url;
@@ -341,9 +324,9 @@ const imagePlugin = createImagePlugin({
 ### Link Plugin
 
 ```tsx
-import { createLinkPlugin } from '@editora/plugins';
+import { LinkPlugin } from '@editora/plugins';
 
-const linkPlugin = createLinkPlugin({
+const linkPlugin = LinkPlugin({
   openOnClick: false,
   validate: (url) => {
     return url.startsWith('http') || url.startsWith('https');

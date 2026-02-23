@@ -45,7 +45,7 @@
   ],
   "main": "dist/index.cjs.js",
   "module": "dist/index.esm.js",
-  "browser": "dist/editora.min.js",
+  "browser": "dist/index.esm.js",
   "unpkg": "dist/editora.min.js",
   "jsdelivr": "dist/editora.min.js",
   "types": "dist/index.d.ts",
@@ -54,19 +54,19 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.esm.js",
       "require": "./dist/index.cjs.js",
-      "browser": "./dist/editora.min.js"
+      "browser": "./dist/index.esm.js"
     },
     "./webcomponent": {
       "types": "./dist/webcomponent/index.d.ts",
       "import": "./dist/webcomponent.js",
       "require": "./dist/webcomponent.cjs.js",
-      "browser": "./dist/webcomponent.min.js"
+      "browser": "./dist/webcomponent.js"
     },
     "./webcomponent-core": {
       "types": "./dist/webcomponent/index.d.ts",
       "import": "./dist/webcomponent-core.js",
       "require": "./dist/webcomponent-core.cjs.js",
-      "browser": "./dist/webcomponent-core.min.js"
+      "browser": "./dist/webcomponent-core.js"
     },
     "./plugin-loader": {
       "types": "./dist/webcomponent/index.d.ts",

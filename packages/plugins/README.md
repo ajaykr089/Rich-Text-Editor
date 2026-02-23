@@ -290,7 +290,7 @@ ChecklistPlugin(options?: {
 
 #### Image Plugin
 ```typescript
-ImagePlugin(options: {
+MediaManagerPlugin(options: {
   upload: (file: File) => Promise<string>;
   validate?: (file: File) => boolean;
   maxSize?: number; // bytes
@@ -302,7 +302,7 @@ ImagePlugin(options: {
 })
 
 // Example
-const imagePlugin = ImagePlugin({
+const imagePlugin = MediaManagerPlugin({
   upload: async (file) => {
     const formData = new FormData();
     formData.append('image', file);
@@ -482,7 +482,7 @@ import {
   HeadingPlugin,
   ParagraphPlugin,
   LinkPlugin,
-  ImagePlugin,
+  MediaManagerPlugin,
   ListPlugin,
   BlockquotePlugin,
   HistoryPlugin
@@ -493,7 +493,7 @@ const blogPlugins = [
   ItalicPlugin(),
   HeadingPlugin({ levels: [1, 2, 3] }),
   LinkPlugin({ targetBlank: true }),
-  ImagePlugin({ 
+  MediaManagerPlugin({ 
     upload: uploadImage,
     maxSize: 2 * 1024 * 1024 
   }),
