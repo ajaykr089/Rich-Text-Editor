@@ -1,7 +1,7 @@
 {
   "name": "@editora/ui-core",
   "version": "0.1.0",
-  "description": "Editora UI core: lightweight web components and reactivity",
+  "description": "Framework-agnostic Web Components and primitives for the Editora UI ecosystem",
   "main": "dist/index.js",
   "module": "dist/index.esm.js",
   "types": "dist/index.d.ts",
@@ -25,7 +25,18 @@
   "dependencies": {
     "@editora/icons": "^0.1.0"
   },
-  "keywords": ["editora","ui","web-components","reactivity"],
+  "keywords": [
+    "editora",
+    "editora ui ecosystem",
+    "ui-core",
+    "design-system",
+    "web-components",
+    "typescript",
+    "reactivity",
+    "admin-ui",
+    "accessible-ui"
+  ],
+  "author": "Ajay Kumar <ajaykr089@gmail.com>",
   "license": "MIT",
   "sideEffects": true
 }

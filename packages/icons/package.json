@@ -1,7 +1,7 @@
 {
   "name": "@editora/icons",
   "version": "0.1.0",
-  "description": "Framework-agnostic SVG icon system for Editora with outline/solid/duotone variants",
+  "description": "Framework-agnostic SVG icon system for the Editora UI ecosystem with outline/solid/duotone variants",
   "main": "dist/index.cjs.js",
   "module": "dist/index.esm.js",
   "types": "dist/index.d.ts",
@@ -30,11 +30,16 @@
   },
   "keywords": [
     "editora",
+    "editora ui ecosystem",
     "icons",
     "svg",
     "design-system",
-    "theming"
+    "theming",
+    "icon-library",
+    "outline-icons",
+    "duotone-icons"
   ],
+  "author": "Ajay Kumar <ajaykr089@gmail.com>",
   "license": "MIT",
   "sideEffects": false
 }

@@ -1,7 +1,7 @@
 {
   "name": "@editora/react-icons",
   "version": "0.1.0",
-  "description": "React icon components and theming context for @editora/icons",
+  "description": "React SVG icon components and theming context for the Editora UI ecosystem",
   "main": "dist/index.cjs.js",
   "module": "dist/index.esm.js",
   "types": "dist/index.d.ts",
@@ -34,11 +34,16 @@
   },
   "keywords": [
     "editora",
+    "editora ui ecosystem",
     "icons",
     "react",
     "svg",
-    "design-system"
+    "react-icons",
+    "design-system",
+    "icon-library",
+    "theming"
   ],
+  "author": "Ajay Kumar <ajaykr089@gmail.com>",
   "license": "MIT",
   "sideEffects": false,
   "publishConfig": {

@@ -1,7 +1,7 @@
 {
   "name": "@editora/ui-react",
   "version": "0.1.0",
-  "description": "Thin React adapter for Editora UI web components",
+  "description": "React wrappers and hooks for Web Components in the Editora UI ecosystem",
   "main": "dist/index.js",
   "module": "dist/index.esm.js",
   "types": "dist/index.d.ts",
@@ -26,6 +26,17 @@
   "dependencies": {
     "@editora/ui-core": "^0.1.0"
   },
-  "keywords": ["editora","ui","react","web-components"],
+  "keywords": [
+    "editora",
+    "editora ui ecosystem",
+    "ui-react",
+    "react",
+    "web-components",
+    "design-system",
+    "typescript",
+    "admin-ui",
+    "component-library"
+  ],
+  "author": "Ajay Kumar <ajaykr089@gmail.com>",
   "license": "MIT"
 }
