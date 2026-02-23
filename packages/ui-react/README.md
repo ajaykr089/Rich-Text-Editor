@@ -1,216 +1,268 @@
 # @editora/ui-react
 
-React wrappers for Editora UI web components.
+React wrappers for `@editora/ui-core` Web Components.
 
-The package auto-registers all `@editora/ui-core` custom elements when imported.
+This package gives React-friendly props, typed callback details, and hooks/providers for form and dialog workflows.
+
+## Installation
+
+```bash
+npm install @editora/ui-react @editora/ui-core
+```
+
+Peer dependencies:
+- `react`
+- `react-dom`
 
 ## Quick Start
 
-```tsx
-import React from 'react';
-import { Button, Input } from '@editora/ui-react';
-
-export function QuickStart() {
-  return (
-    <div style={{ display: 'grid', gap: 12, maxWidth: 360 }}>
-      <Input
-        name="title"
-        label="Document title"
-        placeholder="Untitled"
-        clearable
-      />
-      <Button variant="primary">Save</Button>
-    </div>
-  );
-}
-```
-
-## Toast Primitive
+Import from package root. This also registers all custom elements (`import '@editora/ui-core'`) internally.
 
 ```tsx
-import React, { useRef } from 'react';
-import { Button, Toast, type ToastElement } from '@editora/ui-react';
+import { Button, Input, ThemeProvider } from '@editora/ui-react';
 
-export function ToastExample() {
-  const toastRef = useRef<ToastElement | null>(null);
-
+export function App() {
   return (
-    <div>
-      <Toast ref={toastRef} />
-      <Button onClick={() => toastRef.current?.show('Saved successfully')}>
-        Show toast
-      </Button>
-    </div>
-  );
-}
-```
-
-## Context Menu
-
-### 1. Data-driven menu (`items`)
-
-```tsx
-import React from 'react';
-import { ContextMenu } from '@editora/ui-react';
-
-export function ContextMenuItemsExample() {
-  return (
-    <>
-      <div id="menu-anchor" style={{ padding: 20, border: '1px dashed #ccc', display: 'inline-block' }}>
-        Right click me
-      </div>
-      <ContextMenu
-        open
-        anchorId="menu-anchor"
-        items={[
-          { label: 'Rename', icon: '✏️', onClick: () => console.log('rename') },
-          { label: 'Duplicate', icon: '📄', onClick: () => console.log('duplicate') },
-          { separator: true },
-          { label: 'Delete', icon: '🗑️', disabled: true }
-        ]}
-      />
-    </>
-  );
-}
-```
-
-### 2. Fully custom slotted menu (`children`)
-
-```tsx
-import React, { useState } from 'react';
-import { ContextMenu } from '@editora/ui-react';
-
-export function ContextMenuSlotExample() {
-  const [state, setState] = useState<{ open: boolean; point?: { x: number; y: number } }>({ open: false });
-
-  return (
-    <div
-      style={{ padding: 24, border: '1px dashed #ccc' }}
-      onContextMenu={(e) => {
-        e.preventDefault();
-        setState({ open: true, point: { x: e.clientX, y: e.clientY } });
-      }}
-    >
-      Right click here
-      <ContextMenu open={state.open} anchorPoint={state.point}>
-        <div slot="menu">
-          <div className="menuitem" role="menuitem" tabIndex={0}>Cut</div>
-          <div className="menuitem" role="menuitem" tabIndex={0}>Copy</div>
-          <div className="separator" role="separator" />
-          <div className="menuitem" role="menuitem" tabIndex={0}>Paste</div>
-        </div>
-      </ContextMenu>
-    </div>
-  );
-}
-```
-
-## Form + useForm Hook
-
-```tsx
-import React from 'react';
-import { Form, Input, Button, useForm } from '@editora/ui-react';
-
-export function FormExample() {
-  const { ref, submit, validate, getValues } = useForm();
-
-  return (
-    <Form
-      ref={ref}
-      onSubmit={(values) => console.log('submit', values)}
-      onInvalid={(errors) => console.log('invalid', errors)}
-      style={{ display: 'grid', gap: 10, maxWidth: 420 }}
-    >
-      <Input name="email" type="email" label="Email" required placeholder="you@example.com" />
-      <Input name="displayName" label="Display Name" clearable />
-
-      <div style={{ display: 'flex', gap: 8 }}>
-        <Button variant="secondary" onClick={() => validate()}>
-          Validate
-        </Button>
-        <Button variant="secondary" onClick={() => console.log(getValues())}>
-          Get Values
-        </Button>
-        <Button onClick={() => submit()}>
-          Submit
-        </Button>
-      </div>
-    </Form>
-  );
-}
-```
-
-## ThemeProvider
-
-```tsx
-import React from 'react';
-import { ThemeProvider, Button, Input } from '@editora/ui-react';
-
-export function ThemedExample() {
-  return (
-    <ThemeProvider
-      tokens={{
-        colors: {
-          primary: '#0f766e',
-          text: '#0f172a',
-          background: '#ffffff'
-        }
-      }}
-    >
+    <ThemeProvider>
       <div style={{ display: 'grid', gap: 12, maxWidth: 360 }}>
-        <Input label="Name" placeholder="Type..." />
-        <Button>Save</Button>
+        <Input name="title" label="Title" placeholder="Untitled" clearable />
+        <Button variant="primary">Save</Button>
       </div>
     </ThemeProvider>
   );
 }
 ```
 
-## DataTable + Server States
+## Important Import Rule
+
+Recommended:
+
+```ts
+import { Button, DataTable } from '@editora/ui-react';
+```
+
+If you deep-import wrappers directly (not recommended), ensure custom elements are registered:
+
+```ts
+import '@editora/ui-core';
+```
+
+## Common Usage Examples
+
+### 1. Form + `useForm`
 
 ```tsx
-import React from 'react';
-import { Alert, DataTable, EmptyState, Pagination, Skeleton } from '@editora/ui-react';
+import { Form, Field, Input, Button, useForm } from '@editora/ui-react';
 
-export function AdminDataStateExample() {
-  const [page, setPage] = React.useState(1);
+export function ProfileForm() {
+  const { ref, submit, validate, getValues, reset, isDirty } = useForm();
 
   return (
-    <div style={{ display: 'grid', gap: 12 }}>
+    <Form
+      ref={ref}
+      autosave
+      guardUnsaved
+      onSubmit={(values) => console.log('submit', values)}
+      onInvalid={(errors) => console.log('invalid', errors)}
+      style={{ display: 'grid', gap: 12, maxWidth: 520 }}
+    >
+      <Field label="Full name" required>
+        <Input name="fullName" required />
+      </Field>
+
+      <Field label="Email" required>
+        <Input name="email" type="email" required />
+      </Field>
+
+      <div style={{ display: 'flex', gap: 8 }}>
+        <Button variant="secondary" onClick={() => validate()}>Validate</Button>
+        <Button variant="secondary" onClick={() => console.log(getValues())}>Values</Button>
+        <Button variant="secondary" onClick={() => reset()}>Reset</Button>
+        <Button onClick={() => submit()} disabled={!isDirty()}>Submit</Button>
+      </div>
+    </Form>
+  );
+}
+```
+
+### 2. Promise dialogs with provider hooks
+
+```tsx
+import { DialogProvider, useDialog, AlertDialogProvider, useAlertDialog, Button } from '@editora/ui-react';
+
+function Actions() {
+  const dialog = useDialog();
+  const alerts = useAlertDialog();
+
+  return (
+    <div style={{ display: 'flex', gap: 8 }}>
+      <Button
+        onClick={async () => {
+          const res = await dialog.confirm({
+            title: 'Archive project?',
+            description: 'You can restore it later.',
+            submitText: 'Archive'
+          });
+          console.log(res);
+        }}
+      >
+        Confirm
+      </Button>
+
+      <Button
+        variant="secondary"
+        onClick={async () => {
+          const res = await alerts.prompt({
+            title: 'Rename',
+            input: { required: true, placeholder: 'New name' }
+          });
+          console.log(res);
+        }}
+      >
+        Prompt
+      </Button>
+    </div>
+  );
+}
+
+export function DialogExample() {
+  return (
+    <DialogProvider>
+      <AlertDialogProvider>
+        <Actions />
+      </AlertDialogProvider>
+    </DialogProvider>
+  );
+}
+```
+
+### 3. Data table (sorting, selection, paging, filters)
+
+```tsx
+import { DataTable, Pagination } from '@editora/ui-react';
+import { useState } from 'react';
+
+export function UsersTable() {
+  const [page, setPage] = useState(1);
+
+  return (
+    <div style={{ display: 'grid', gap: 10 }}>
       <DataTable
         sortable
         selectable
+        resizableColumns
+        draggableColumns
         page={page}
-        pageSize={5}
-        paginationId="users-pagination"
-        onPageChange={(detail) => setPage(detail.page)}
+        pageSize={10}
+        paginationId="users-pager"
+        onPageChange={(d) => setPage(d.page)}
+        onSortChange={(d) => console.log('sort', d)}
+        onRowSelect={(d) => console.log('rows', d.indices)}
       >
-        <table>{/* your thead/tbody rows */}</table>
+        <table>
+          <thead>
+            <tr>
+              <th data-key="id">ID</th>
+              <th data-key="name">Name</th>
+              <th data-key="role">Role</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>1</td><td>Asha</td><td>Admin</td></tr>
+            <tr><td>2</td><td>Marco</td><td>Editor</td></tr>
+          </tbody>
+        </table>
       </DataTable>
-      <Pagination id="users-pagination" page={String(page)} />
 
-      <Skeleton variant="text" count={4} animated />
-      <Alert tone="danger" title="Could not fetch users" description="Retry in a moment." dismissible />
-      <EmptyState title="No users found" description="Try changing filters." actionLabel="Create user" />
+      <Pagination id="users-pager" page={String(page)} />
     </div>
   );
 }
 ```
 
-## Build
+### 4. Date/time and color pickers
+
+```tsx
+import { DatePicker, DateRangePicker, DateTimePicker, ColorPicker } from '@editora/ui-react';
+
+export function PickersDemo() {
+  return (
+    <div style={{ display: 'grid', gap: 12, maxWidth: 420 }}>
+      <DatePicker label="Start date" clearable onValueChange={(v) => console.log(v)} />
+      <DateRangePicker label="Window" closeOnSelect />
+      <DateTimePicker label="Publish at" />
+      <ColorPicker mode="popover" format="hex" alpha presets={['#2563eb', '#16a34a', '#dc2626']} />
+    </div>
+  );
+}
+```
+
+## Theming
+
+`ThemeProvider` applies `@editora/ui-core` token variables and supports persistence.
+
+```tsx
+import { ThemeProvider } from '@editora/ui-react';
+
+<ThemeProvider
+  tokens={{
+    colors: { primary: '#0f766e', text: '#0f172a', background: '#ffffff' },
+    radius: '10px'
+  }}
+  storageKey="my-app.theme"
+>
+  {/** app */}
+</ThemeProvider>
+```
+
+## Component Catalog
+
+### Form and inputs
+- `Form`, `Field`, `Label`, `Input`, `Textarea`, `Select`, `Combobox`
+- `Checkbox`, `RadioGroup`, `Switch`, `Slider`
+- `DatePicker`, `DateRangePicker`, `TimePicker`, `DateTimePicker`, `DateRangeTimePicker`
+- `ColorPicker`
+
+### Data and display
+- `Table`, `DataTable`, `Pagination`
+- `Calendar`, `Chart`, `Timeline`, `Gantt`
+- `Badge`, `Alert`, `Skeleton`, `EmptyState`, `Progress`, `Avatar`, `AspectRatio`
+
+### Overlay and interaction
+- `Tooltip`, `HoverCard`, `Popover`, `Dropdown`, `Menu`, `Menubar`, `ContextMenu`
+- `Dialog`, `AlertDialog`, `Drawer`, `Portal`, `Presence`
+- `CommandPalette`, `QuickActions`, `Toolbar`, `FloatingToolbar`, `BlockControls`, `SelectionPopup`, `PluginPanel`
+
+### Navigation and layout
+- `Layout`, `Sidebar`, `AppHeader`, `Breadcrumb`, `NavigationMenu`, `Tabs`
+- `Box`, `Flex`, `Grid`, `Section`, `Container`, `Separator`, `Slot`, `VisuallyHidden`
+- `Accordion`, `Collapsible`, `Stepper`, `Wizard`, `DirectionProvider`
+
+### APIs and hooks
+- `DialogProvider`, `useDialog`
+- `AlertDialogProvider`, `useAlertDialog`
+- `ThemeProvider`, `useTheme`
+- `useForm`, `useFloating`
+
+## SSR and StrictMode Notes
+
+- Providers are SSR-safe (they create hosts in `useEffect` on client).
+- Promise dialog providers are StrictMode-safe and handle unmount cleanup.
+- For server render, avoid accessing custom element methods until mounted.
+
+## Development
 
 ```bash
 cd packages/ui-react
 npm run build
-```
-
-Build output: `dist/index.js`, `dist/index.esm.js`, `dist/index.d.ts`.
-
-## Run Local Examples
-
-```bash
-cd packages/ui-react
 npm run dev:examples
 ```
 
-Example app files live in `packages/ui-react/examples`.
+Examples live under `packages/ui-react/examples`.
+
+## Troubleshooting
+
+- Warning: `tagName is not registered`
+  - Import wrappers from package root (`@editora/ui-react`), or import `@editora/ui-core` manually before rendering wrappers.
+- Event callback not firing as expected
+  - For wrapper callbacks like `onChange`, use the typed `detail` payload from wrapper props (not raw DOM event parsing).

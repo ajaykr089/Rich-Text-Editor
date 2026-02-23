@@ -249,24 +249,26 @@ const lightDomStyle = `
   }
 
   ui-data-table[sortable]:not([headless]) > table thead th[data-sortable="true"]::after {
-    content: "v^";
+    content: "⇅";
     position: absolute;
-    right: 9px;
+    right: 8px;
     top: 50%;
-    margin-top: -6px;
-    font-size: 10px;
+    margin-top: -7px;
+    font-size: 12px;
+    line-height: 1;
+    font-weight: 700;
     color: var(--ui-data-table-sort-indicator, #94a3b8);
-    letter-spacing: -1px;
+    letter-spacing: 0;
   }
 
   ui-data-table[sortable]:not([headless]) > table thead th[aria-sort="ascending"]::after {
-    content: "^";
+    content: "↑";
     letter-spacing: 0;
     color: var(--ui-data-table-sort-active, #2563eb);
   }
 
   ui-data-table[sortable]:not([headless]) > table thead th[aria-sort="descending"]::after {
-    content: "v";
+    content: "↓";
     letter-spacing: 0;
     color: var(--ui-data-table-sort-active, #2563eb);
   }

@@ -1,99 +1,217 @@
 # @editora/ui-core
 
-Lightweight core for Editora UI: web components, tiny reactivity primitives, and small primitives.
+Production-oriented Web Components for Editora UI.
 
-This package provides:
-- `createSignal`, `effect`, `computed` (minimal)
-- `ElementBase` base class for simple web components
-- a small `ui-button` primitive
+`@editora/ui-core` is the framework-agnostic layer. It ships:
+- Custom elements (`<ui-button>`, `<ui-data-table>`, `<ui-date-picker>`, etc.)
+- Imperative managers for Promise-based dialogs
+- Theming/token utilities
+- Overlay, focus, portal, and plugin helpers
 
-Button notes:
-- Animations are opt-in. Set the `animation` attribute (`scale`, `pulse`, or `none`) on `ui-button` or via the React wrapper prop `animation` to enable hover/press effects. The default is no animation.
+## Installation
 
-Sizing & customization:
-- Use CSS variables to adjust button dimensions and styling without changing component code.
-  - `--ui-min-height` — sets the button's minimum height (default 36px).
-  - `--ui-width` — optionally set a fixed width (default `auto`).
-  - `--ui-padding` — already available to change inner spacing.
-  - `--ui-radius` — controls border-radius (set to `0` to remove rounded corners).
-  - `--ui-border` — controls the secondary button border (set to `none` to remove border).
+```bash
+npm install @editora/ui-core
+```
 
-Examples:
-- Remove border radius + border (web component):
-  ```html
-  <ui-button style="--ui-radius:0; --ui-border:none">Flat</ui-button>
-  ```
-- React wrapper (remove border and set height):
-  ```tsx
-  <Button style={{ '--ui-radius': '0', '--ui-border': 'none', '--ui-min-height': '44px' } as React.CSSProperties}>Flat</Button>
-  ```
+## Quick Start (Vanilla / Any Framework)
 
-Advanced — full-style overrides
-- Use `::part(button)` when you need to target the inner native button inside the Shadow DOM without switching to `headless`.
-- Use `headless` for full CSS control and custom markup when you want to manage every style yourself.
+Import once at app bootstrap to register all custom elements.
 
-Override example — `::part(button)` (recommended)
+```ts
+import '@editora/ui-core';
+```
 
-You can fully override the button's inner styles from your global stylesheet (or CSS module) using the exported `part="button"`.
+Then use components directly:
 
-```css
-/* global stylesheet or CSS module (React: :global or similar) */
-ui-button::part(button) {
-  /* reset base styles (optional) */
-  all: unset;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+```html
+<ui-field label="Email" hint="Work email">
+  <ui-input name="email" type="email" placeholder="you@company.com" required></ui-input>
+</ui-field>
 
-  /* layout */
-  padding: 12px 20px;
-  min-height: 48px;           /* override default height */
-  width: 220px;              /* fixed width (or use max-width) */
+<ui-button variant="primary">Save</ui-button>
+```
 
-  /* visual */
-  background: linear-gradient(90deg,#7c3aed,#ec4899);
-  color: #fff;
-  border-radius: 0;          /* remove rounded corners */
-  border: none;              /* remove border */
-  box-shadow: none;
+## What You Get
+
+### Core utilities
+- `createSignal`, `computed`, `effect`
+- `ElementBase`
+- `applyTheme`, `defaultTokens`
+- `showPortalFor`, `autoUpdatePosition`, portal helpers
+- focus/overlay managers
+- `showToast`
+
+### Dialog managers (Promise API)
+- `createDialogManager`, `DialogManager`
+- `createAlertDialogManager`, `AlertDialogManager`
+
+## Component Catalog
+
+### Primitives and forms
+- `ui-button`, `ui-input`, `ui-textarea`, `ui-label`, `ui-field`, `ui-form`
+- `ui-checkbox`, `ui-radio-group`, `ui-switch`, `ui-slider`, `ui-select`, `ui-combobox`
+- `ui-date-picker`, `ui-date-range-picker`, `ui-time-picker`, `ui-date-time-picker`, `ui-date-range-time-picker`
+- `ui-color-picker`
+
+### Navigation and layout
+- `ui-layout`, `ui-sidebar`, `ui-app-header`, `ui-breadcrumb`, `ui-navigation-menu`, `ui-menubar`, `ui-tabs`
+- `ui-box`, `ui-flex`, `ui-grid`, `ui-section`, `ui-container`
+- `ui-drawer`
+
+### Overlays and interactions
+- `ui-dialog`, `ui-alert-dialog`, `ui-popover`, `ui-dropdown`, `ui-menu`, `ui-context-menu`, `ui-tooltip`, `ui-hover-card`
+- `ui-command-palette`, `ui-quick-actions`, `ui-selection-popup`, `ui-plugin-panel`, `ui-floating-toolbar`, `ui-toolbar`
+- `ui-portal`, `ui-presence`, `ui-slot`, `ui-visually-hidden`
+
+### Data and display
+- `ui-table`, `ui-data-table`, `ui-pagination`, `ui-empty-state`, `ui-skeleton`, `ui-alert`, `ui-badge`
+- `ui-chart`, `ui-timeline`, `ui-gantt`, `ui-calendar`, `ui-progress`, `ui-scroll-area`, `ui-separator`
+- `ui-accordion`, `ui-collapsible`, `ui-stepper`, `ui-wizard`, `ui-avatar`, `ui-aspect-ratio`, `ui-block-controls`, `ui-icon`
+
+## Usage Patterns
+
+### 1. Attributes + events
+
+```html
+<ui-date-picker id="start" name="startDate" clearable></ui-date-picker>
+<script type="module">
+  import '@editora/ui-core';
+
+  const picker = document.getElementById('start');
+  picker.addEventListener('change', (e) => {
+    console.log('new date', e.detail.value);
+  });
+</script>
+```
+
+### 2. Form validation and submit
+
+```html
+<ui-form id="profileForm" autosave guard-unsaved>
+  <ui-field label="Full name" required>
+    <ui-input name="fullName" required></ui-input>
+  </ui-field>
+  <ui-field label="Email" required>
+    <ui-input name="email" type="email" required></ui-input>
+  </ui-field>
+  <ui-button variant="primary" type="submit">Save</ui-button>
+</ui-form>
+
+<script type="module">
+  import '@editora/ui-core';
+  const form = document.getElementById('profileForm');
+
+  form.addEventListener('submit', (e) => console.log('values', e.detail.values));
+  form.addEventListener('invalid', (e) => console.log('errors', e.detail.errors));
+  form.addEventListener('dirty-change', (e) => console.log('dirty?', e.detail.dirty));
+</script>
+```
+
+### 3. Data table + pagination
+
+```html
+<ui-data-table id="usersTable" sortable selectable page-size="10" pagination-id="usersPager">
+  <table>
+    <thead>
+      <tr>
+        <th data-key="id">ID</th>
+        <th data-key="name">Name</th>
+        <th data-key="role">Role</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>1</td><td>Asha</td><td>Admin</td></tr>
+      <tr><td>2</td><td>Marco</td><td>Editor</td></tr>
+    </tbody>
+  </table>
+</ui-data-table>
+
+<ui-pagination id="usersPager"></ui-pagination>
+```
+
+### 4. Promise dialog manager
+
+```ts
+import '@editora/ui-core';
+import { createDialogManager } from '@editora/ui-core';
+
+const dialogs = createDialogManager();
+
+const result = await dialogs.confirm({
+  title: 'Delete record',
+  description: 'This action cannot be undone.',
+  submitText: 'Delete',
+  cancelText: 'Cancel',
+  mode: 'queue'
+});
+
+if (result.action === 'submit') {
+  // perform delete
 }
+```
 
-/* Variant-specific override (optional) */
-ui-button[variant="secondary"]::part(button) {
-  background: transparent;
-  border: 2px dashed #ccc; /* custom border for secondary */
+### 5. Promise alert dialog manager
+
+```ts
+import '@editora/ui-core';
+import { createAlertDialogManager } from '@editora/ui-core';
+
+const alerts = createAlertDialogManager();
+
+const confirm = await alerts.confirm({
+  title: 'Publish changes?',
+  description: 'You can still unpublish later.',
+  confirmText: 'Publish',
+  cancelText: 'Not now'
+});
+
+if (confirm.action === 'confirm') {
+  // publish
 }
 ```
 
-React example (global CSS or CSS-in-JS):
+## Theming
 
-```tsx
-// global.css
-// ui-button::part(button) { ... }
+Use `applyTheme` with token overrides:
 
-// In React
-<Button>Default</Button>
-<Button style={{ '--ui-min-height': '56px' } as React.CSSProperties}>Taller</Button>
+```ts
+import { applyTheme, defaultTokens } from '@editora/ui-core';
+
+applyTheme({
+  ...defaultTokens,
+  colors: {
+    ...defaultTokens.colors,
+    primary: '#0f766e',
+    text: '#0f172a',
+    background: '#ffffff'
+  },
+  radius: '10px'
+});
 ```
 
-Notes
-- `::part(button)` is the safest way to style the internal button while keeping the component API intact (it respects Shadow DOM encapsulation).
-- If you want to remove *all* built-in styles, use `headless` and supply your own styles/markup.
-- Prefer CSS variables (`--ui-padding`, `--ui-min-height`, `--ui-border`, `--ui-radius`) for small, theme-friendly tweaks.
+## Developer Notes
 
-Usage (browser):
+- This package is `sideEffects: true` because component registration happens via module import.
+- Use one global import (`import '@editora/ui-core'`) in app entry.
+- Events are dispatched as `CustomEvent` with `detail`, usually `bubbles: true` and `composed: true`.
+- For best performance, keep long tables virtualized (`ui-data-table[virtualize]`) and avoid unnecessary DOM churn in cell renderers.
 
-1. Import the built bundle or TypeScript module into your app.
-2. Use `<ui-button>` directly in HTML.
+## Development
 
-Build (development):
-
-Install dev deps in package root and run build:
-
-```
+```bash
 cd packages/ui-core
-npm install
-npm run build
+npm run build:tsc
+npm test
 ```
 
-This creates `dist/index.esm.js` and `dist/index.cjs.js` bundles.
+Full `npm run build` also runs Vite bundle output.
+
+## Troubleshooting
+
+- Components not rendering:
+  - Ensure `@editora/ui-core` is imported before first render.
+- Styles look unthemed:
+  - Apply tokens early in bootstrap with `applyTheme(...)`.
+- Dialog promises never resolving:
+  - Ensure you call `destroy()` on manager during app teardown only, not immediately after open.
