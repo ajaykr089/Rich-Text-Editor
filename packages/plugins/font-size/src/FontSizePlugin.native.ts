@@ -300,44 +300,40 @@ function isSelectionEntirelyWithinSpan(
  * Update font size input field to reflect current selection
  */
 function updateFontSizeInput() {
-  // Small delay to ensure DOM has updated
   setTimeout(() => {
     const { value, unit } = getCurrentFontSizeFromSelection();
-
-    // Try multiple selectors to find the font size input
-    let input: HTMLInputElement | null = null;
-
-    // Try finding by placeholder
-    input = document.querySelector(
-      'input[placeholder="14"]',
-    ) as HTMLInputElement;
-
-    // Try finding by class if available
-    if (!input) {
-      input = document.querySelector(
-        '.rte-toolbar-input[type="text"]',
-      ) as HTMLInputElement;
-    }
-
-    // Try finding any input near the increase/decrease buttons
-    if (!input) {
-      const decreaseBtn = Array.from(document.querySelectorAll("button")).find(
-        (btn) => btn.textContent?.trim() === "−",
-      );
-      if (decreaseBtn && decreaseBtn.parentElement) {
-        input = decreaseBtn.parentElement.querySelector(
-          'input[type="text"]',
-        ) as HTMLInputElement;
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) return;
+    let editorRoot: HTMLElement | null = null;
+    const range = selection.getRangeAt(0);
+    let node: Node | null = range.startContainer;
+    // Traverse up to find the editor container (assume .rte-editor or .editora-editor)
+    while (node) {
+      if (node instanceof HTMLElement && (node.classList.contains('rte-editor') || node.classList.contains('editora-editor'))) {
+        editorRoot = node;
+        break;
       }
+      node = node.parentNode;
     }
-
-    if (input) {
-      // Format value: remove trailing zeros and show unit
-      const formattedValue =
-        value % 1 === 0
-          ? value.toString()
-          : value.toFixed(2).replace(/\.?0+$/, "");
-      input.value = `${formattedValue}${unit}`;
+    if (!editorRoot) return;
+    // Find the nearest toolbar to this editor
+    let toolbar: HTMLElement | null = null;
+    if (editorRoot.previousElementSibling && editorRoot.previousElementSibling.classList.contains('rte-toolbar')) {
+      toolbar = editorRoot.previousElementSibling as HTMLElement;
+    } else if (editorRoot.nextElementSibling && editorRoot.nextElementSibling.classList.contains('rte-toolbar')) {
+      toolbar = editorRoot.nextElementSibling as HTMLElement;
+    } else {
+      toolbar = editorRoot.parentElement?.querySelector('.rte-toolbar') || null;
     }
+    if (!toolbar) return;
+    // Find the font size input in this toolbar
+    const input = toolbar.querySelector('input[placeholder="14"], .rte-toolbar-input[type="text"], input[type="text"]') as HTMLInputElement | null;
+    if (!input) return;
+    // Format value: remove trailing zeros and show unit
+    const formattedValue =
+      value % 1 === 0
+        ? value.toString()
+        : value.toFixed(2).replace(/\.?0+$/, "");
+    input.value = `${formattedValue}${unit}`;
   }, 10);
 }
