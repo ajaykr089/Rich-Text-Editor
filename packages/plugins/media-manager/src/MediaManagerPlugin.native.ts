@@ -31,17 +31,419 @@ declare global {
   }
 }
 
-const showMediaDialog = (type: 'image' | 'video') => {
+const DARK_THEME_SELECTOR = '[data-theme="dark"], .dark, .editora-theme-dark';
+
+const injectMediaDialogStyles = (): void => {
+  if (typeof document === 'undefined' || document.getElementById('rte-media-dialog-styles')) return;
+
+  const style = document.createElement('style');
+  style.id = 'rte-media-dialog-styles';
+  style.textContent = `
+    .rte-media-overlay {
+      --rte-media-overlay-bg: rgba(15, 23, 36, 0.56);
+      --rte-media-bg: #ffffff;
+      --rte-media-text: #101828;
+      --rte-media-muted: #5f6b7d;
+      --rte-media-border: #d6dbe4;
+      --rte-media-surface: #f7f9fc;
+      --rte-media-surface-hover: #eef2f7;
+      --rte-media-accent: #1f75fe;
+      --rte-media-accent-hover: #165fd6;
+      --rte-media-danger: #dc3545;
+      --rte-media-danger-hover: #b92735;
+      --rte-media-ring: rgba(31, 117, 254, 0.18);
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: var(--rte-media-overlay-bg);
+      backdrop-filter: blur(2px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 99999;
+      padding: 16px;
+      box-sizing: border-box;
+    }
+
+    .rte-media-overlay.rte-ui-theme-dark {
+      --rte-media-overlay-bg: rgba(2, 8, 20, 0.72);
+      --rte-media-bg: #202938;
+      --rte-media-text: #e8effc;
+      --rte-media-muted: #a5b1c5;
+      --rte-media-border: #49566c;
+      --rte-media-surface: #2a3444;
+      --rte-media-surface-hover: #344256;
+      --rte-media-accent: #58a6ff;
+      --rte-media-accent-hover: #4598f4;
+      --rte-media-danger: #ff7b72;
+      --rte-media-danger-hover: #ff645b;
+      --rte-media-ring: rgba(88, 166, 255, 0.22);
+    }
+
+    .rte-media-dialog {
+      width: min(92vw, 640px);
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: var(--rte-media-bg);
+      color: var(--rte-media-text);
+      border: 1px solid var(--rte-media-border);
+      border-radius: 12px;
+      box-shadow: 0 24px 48px rgba(10, 15, 24, 0.28);
+    }
+
+    .rte-media-dialog.rte-media-dialog-compact {
+      width: min(92vw, 520px);
+    }
+
+    .rte-media-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--rte-media-border);
+      background: linear-gradient(180deg, rgba(127, 154, 195, 0.08) 0%, rgba(127, 154, 195, 0) 100%);
+    }
+
+    .rte-media-title {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--rte-media-text);
+    }
+
+    .rte-media-close-btn {
+      width: 32px;
+      height: 32px;
+      border: none;
+      border-radius: 8px;
+      background: transparent;
+      color: var(--rte-media-muted);
+      font-size: 24px;
+      line-height: 1;
+      cursor: pointer;
+      transition: background-color 0.16s ease, color 0.16s ease;
+    }
+
+    .rte-media-close-btn:hover {
+      background: var(--rte-media-surface-hover);
+      color: var(--rte-media-text);
+    }
+
+    .rte-media-tabs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      border-bottom: 1px solid var(--rte-media-border);
+      gap: 0;
+    }
+
+    .rte-media-tab {
+      border: none;
+      border-right: 1px solid var(--rte-media-border);
+      padding: 12px 14px;
+      background: var(--rte-media-surface);
+      color: var(--rte-media-muted);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.16s ease, color 0.16s ease;
+    }
+
+    .rte-media-tab:last-child {
+      border-right: none;
+    }
+
+    .rte-media-tab:hover {
+      background: var(--rte-media-surface-hover);
+      color: var(--rte-media-text);
+    }
+
+    .rte-media-tab.active {
+      background: var(--rte-media-accent);
+      color: #fff;
+    }
+
+    .rte-media-body {
+      padding: 20px;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .rte-media-field {
+      margin-bottom: 16px;
+    }
+
+    .rte-media-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .rte-media-label {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--rte-media-text);
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .rte-media-input,
+    .rte-media-textarea {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 10px 12px;
+      border: 1px solid var(--rte-media-border);
+      border-radius: 8px;
+      background: var(--rte-media-surface);
+      color: var(--rte-media-text);
+      font-size: 14px;
+      transition: border-color 0.16s ease, box-shadow 0.16s ease;
+    }
+
+    .rte-media-input::placeholder,
+    .rte-media-textarea::placeholder {
+      color: var(--rte-media-muted);
+    }
+
+    .rte-media-input:focus,
+    .rte-media-textarea:focus {
+      outline: none;
+      border-color: var(--rte-media-accent);
+      box-shadow: 0 0 0 3px var(--rte-media-ring);
+    }
+
+    .rte-media-textarea {
+      min-height: 92px;
+      resize: vertical;
+      font-family: inherit;
+    }
+
+    .rte-media-dropzone {
+      border: 2px dashed var(--rte-media-border);
+      border-radius: 12px;
+      padding: 36px 18px;
+      text-align: center;
+      cursor: pointer;
+      background: var(--rte-media-surface);
+      transition: border-color 0.16s ease, background-color 0.16s ease;
+    }
+
+    .rte-media-dropzone:hover,
+    .rte-media-dropzone.is-dragover {
+      border-color: var(--rte-media-accent);
+      background: var(--rte-media-surface-hover);
+    }
+
+    .rte-media-dropzone-icon {
+      font-size: 40px;
+      margin-bottom: 10px;
+      line-height: 1;
+    }
+
+    .rte-media-dropzone-title {
+      margin: 0 0 8px 0;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--rte-media-text);
+    }
+
+    .rte-media-muted {
+      margin: 0 0 8px 0;
+      color: var(--rte-media-muted);
+      font-size: 14px;
+    }
+
+    .rte-media-hint {
+      margin: 0;
+      color: var(--rte-media-muted);
+      font-size: 12px;
+    }
+
+    .rte-media-progress {
+      margin-top: 16px;
+    }
+
+    .rte-media-progress-track {
+      height: 8px;
+      border-radius: 999px;
+      background: var(--rte-media-surface);
+      overflow: hidden;
+      border: 1px solid var(--rte-media-border);
+    }
+
+    .rte-media-progress-bar {
+      height: 100%;
+      width: 0;
+      background: var(--rte-media-accent);
+      transition: width 0.3s ease;
+    }
+
+    .rte-media-progress-text {
+      margin-top: 8px;
+      text-align: center;
+      color: var(--rte-media-muted);
+      font-size: 13px;
+    }
+
+    .rte-media-preview {
+      border: 1px solid var(--rte-media-border);
+      border-radius: 10px;
+      padding: 10px;
+      text-align: center;
+      background: var(--rte-media-surface);
+    }
+
+    .rte-media-preview img,
+    .rte-media-preview video {
+      max-width: 100%;
+      max-height: 240px;
+    }
+
+    .rte-media-helper {
+      margin-top: 8px;
+      margin-bottom: 0;
+      font-size: 12px;
+      color: var(--rte-media-muted);
+      line-height: 1.5;
+    }
+
+    .rte-media-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      padding: 16px 20px;
+      border-top: 1px solid var(--rte-media-border);
+      background: var(--rte-media-surface);
+    }
+
+    .rte-media-footer.rte-media-footer-spread {
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .rte-media-btn {
+      border-radius: 8px;
+      border: 1px solid transparent;
+      padding: 10px 16px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.16s ease, border-color 0.16s ease, color 0.16s ease;
+    }
+
+    .rte-media-btn-secondary {
+      background: var(--rte-media-bg);
+      border-color: var(--rte-media-border);
+      color: var(--rte-media-text);
+    }
+
+    .rte-media-btn-secondary:hover {
+      background: var(--rte-media-surface-hover);
+    }
+
+    .rte-media-btn-primary {
+      background: var(--rte-media-accent);
+      color: #fff;
+    }
+
+    .rte-media-btn-primary:hover {
+      background: var(--rte-media-accent-hover);
+    }
+
+    .rte-media-btn-primary:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    .rte-media-btn-danger {
+      background: var(--rte-media-danger);
+      color: #fff;
+    }
+
+    .rte-media-btn-danger:hover {
+      background: var(--rte-media-danger-hover);
+    }
+
+    .rte-media-checkbox-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--rte-media-text);
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    .rte-media-checkbox-label input {
+      accent-color: var(--rte-media-accent);
+    }
+
+    .rte-media-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    .rte-media-spacer {
+      flex: 1;
+    }
+  `;
+
+  document.head.appendChild(style);
+};
+
+const getSelectionEditor = (): HTMLElement | null => {
+  const selection = window.getSelection();
+  if (!selection || selection.rangeCount === 0) return null;
+  const anchor = selection.anchorNode;
+  const anchorElement = anchor instanceof HTMLElement ? anchor : anchor?.parentElement;
+  return (anchorElement?.closest('.rte-content, .editora-content') as HTMLElement | null) || null;
+};
+
+const resolveDialogContext = (contextElement?: HTMLElement | null): HTMLElement | null => {
+  if (contextElement) return contextElement;
+  const fromSelection = getSelectionEditor();
+  if (fromSelection) return fromSelection;
+  if (editorElement) return editorElement;
+  const active = document.activeElement as HTMLElement | null;
+  if (!active) return null;
+  return (active.closest('.rte-content, .editora-content') as HTMLElement | null) || active;
+};
+
+const isDarkThemeContext = (contextElement?: HTMLElement | null): boolean => {
+  const source = resolveDialogContext(contextElement);
+  if (!source) return false;
+  return Boolean(source.closest(DARK_THEME_SELECTOR));
+};
+
+const createDialogOverlay = (contextElement?: HTMLElement | null): HTMLDivElement => {
+  injectMediaDialogStyles();
+  const overlay = document.createElement('div');
+  overlay.className = 'rte-media-overlay';
+  if (isDarkThemeContext(contextElement)) {
+    overlay.classList.add('rte-ui-theme-dark');
+  }
+  return overlay;
+};
+
+const createDialogShell = (compact = false): HTMLDivElement => {
+  const dialog = document.createElement('div');
+  dialog.className = compact ? 'rte-media-dialog rte-media-dialog-compact' : 'rte-media-dialog';
+  dialog.setAttribute('role', 'dialog');
+  dialog.setAttribute('aria-modal', 'true');
+  return dialog;
+};
+
+const showMediaDialog = (type: 'image' | 'video', contextElement?: HTMLElement | null) => {
   const selection = window.getSelection();
   if (selection && selection.rangeCount > 0) {
     savedSelection = selection.getRangeAt(0).cloneRange();
   }
 
-  const overlay = document.createElement('div');
-  overlay.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; z-index: 99999;';
-
-  const dialog = document.createElement('div');
-  dialog.style.cssText = 'background: white; border-radius: 8px; width: 90%; max-width: 600px; max-height: 90vh; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);';
+  const overlay = createDialogOverlay(contextElement);
+  const dialog = createDialogShell();
 
   let activeTab: 'upload' | 'url' = 'upload';
   let urlValue = '';
@@ -51,60 +453,60 @@ const showMediaDialog = (type: 'image' | 'video') => {
 
   const renderDialog = () => {
     dialog.innerHTML = `
-      <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid #e1e5e9; background: #f8f9fa;">
-        <h2 style="margin: 0; font-size: 18px; font-weight: 600;">Insert ${type === 'image' ? 'Image' : 'Video'}</h2>
-        <button class="close-btn" style="background: none; border: none; font-size: 28px; cursor: pointer; color: #6c757d; padding: 0; width: 30px; height: 30px; line-height: 1;">×</button>
+      <div class="rte-media-header">
+        <h2 class="rte-media-title">Insert ${type === 'image' ? 'Image' : 'Video'}</h2>
+        <button class="close-btn rte-media-close-btn" type="button" aria-label="Close">×</button>
       </div>
 
-      <div class="tabs" style="display: flex; border-bottom: 1px solid #e1e5e9;">
-        <button class="tab-upload" style="flex: 1; padding: 12px; border: none; background: ${activeTab === 'upload' ? '#007bff' : '#f8f9fa'}; color: ${activeTab === 'upload' ? 'white' : '#495057'}; cursor: pointer; font-weight: 500;">📤 Upload</button>
-        <button class="tab-url" style="flex: 1; padding: 12px; border: none; background: ${activeTab === 'url' ? '#007bff' : '#f8f9fa'}; color: ${activeTab === 'url' ? 'white' : '#495057'}; cursor: pointer; font-weight: 500;">🔗 URL</button>
+      <div class="rte-media-tabs">
+        <button class="tab-upload rte-media-tab ${activeTab === 'upload' ? 'active' : ''}" type="button">Upload</button>
+        <button class="tab-url rte-media-tab ${activeTab === 'url' ? 'active' : ''}" type="button">URL</button>
       </div>
 
-      <div style="padding: 20px; overflow-y: auto; flex: 1;">
+      <div class="rte-media-body">
         ${activeTab === 'upload' ? `
           <div id="upload-section">
-            <div class="dropzone" style="border: 2px dashed #ced4da; border-radius: 8px; padding: 40px; text-align: center; cursor: pointer; transition: all 0.3s;">
-              <div style="font-size: 48px; margin-bottom: 10px;">📁</div>
-              <p style="margin: 0 0 8px 0; font-weight: 600; font-size: 16px;">Drag and drop your ${type} here</p>
-              <p style="margin: 0 0 8px 0; color: #6c757d; font-size: 14px;">or click to browse</p>
-              <p style="margin: 0; color: #6c757d; font-size: 12px;">Max file size: 50MB</p>
+            <div class="dropzone rte-media-dropzone">
+              <div class="rte-media-dropzone-icon">📁</div>
+              <p class="rte-media-dropzone-title">Drag and drop your ${type} here</p>
+              <p class="rte-media-muted">or click to browse</p>
+              <p class="rte-media-hint">Max file size: 50MB</p>
             </div>
             <input type="file" id="file-input" accept="${type === 'image' ? 'image/*' : 'video/*'}" style="display: none;">
-            <div id="upload-progress" style="display: none; margin-top: 20px;">
-              <div style="background: #e9ecef; border-radius: 4px; height: 8px; overflow: hidden;">
-                <div id="progress-bar" style="background: #007bff; height: 100%; width: 0%; transition: width 0.3s;"></div>
+            <div id="upload-progress" class="rte-media-progress" style="display: none;">
+              <div class="rte-media-progress-track">
+                <div id="progress-bar" class="rte-media-progress-bar"></div>
               </div>
-              <p id="progress-text" style="margin-top: 8px; text-align: center; color: #6c757d; font-size: 14px;">Uploading...</p>
+              <p id="progress-text" class="rte-media-progress-text">Uploading...</p>
             </div>
           </div>
         ` : `
           <div id="url-section">
-            <div style="margin-bottom: 20px;">
-              <label style="display: block; font-weight: 600; margin-bottom: 8px; font-size: 14px;">URL:</label>
-              <input type="text" id="url-input" placeholder="https://example.com/${type}.${type === 'image' ? 'jpg' : 'mp4'}" value="${urlValue}" style="width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #ced4da; border-radius: 4px; font-size: 14px;">
+            <div class="rte-media-field">
+              <label class="rte-media-label">URL</label>
+              <input type="text" id="url-input" class="rte-media-input" placeholder="https://example.com/${type}.${type === 'image' ? 'jpg' : 'mp4'}" value="${urlValue}">
             </div>
             ${type === 'image' ? `
-              <div style="margin-bottom: 20px;">
-                <label style="display: block; font-weight: 600; margin-bottom: 8px; font-size: 14px;">Alt Text (for accessibility):</label>
-                <input type="text" id="alt-input" placeholder="Describe the image" value="${altValue}" style="width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #ced4da; border-radius: 4px; font-size: 14px;">
+              <div class="rte-media-field">
+                <label class="rte-media-label">Alt Text (for accessibility)</label>
+                <input type="text" id="alt-input" class="rte-media-input" placeholder="Describe the image" value="${altValue}">
               </div>
             ` : ''}
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
-              <div>
-                <label style="display: block; font-weight: 600; margin-bottom: 8px; font-size: 14px;">Width (px):</label>
-                <input type="number" id="width-input" placeholder="Auto" value="${widthValue}" style="width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #ced4da; border-radius: 4px; font-size: 14px;">
+            <div class="rte-media-grid">
+              <div class="rte-media-field">
+                <label class="rte-media-label">Width (px)</label>
+                <input type="number" id="width-input" class="rte-media-input" placeholder="Auto" value="${widthValue}">
               </div>
-              <div>
-                <label style="display: block; font-weight: 600; margin-bottom: 8px; font-size: 14px;">Height (px):</label>
-                <input type="number" id="height-input" placeholder="Auto" value="${heightValue}" style="width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #ced4da; border-radius: 4px; font-size: 14px;">
+              <div class="rte-media-field">
+                <label class="rte-media-label">Height (px)</label>
+                <input type="number" id="height-input" class="rte-media-input" placeholder="Auto" value="${heightValue}">
               </div>
             </div>
             ${urlValue ? `
-              <div style="margin-bottom: 20px;">
-                <label style="display: block; font-weight: 600; margin-bottom: 8px; font-size: 14px;">Preview:</label>
-                <div style="border: 1px solid #dee2e6; border-radius: 4px; padding: 10px; background: #f8f9fa; text-align: center;">
-                  ${type === 'image' ? `<img src="${urlValue}" alt="Preview" style="max-width: 100%; max-height: 200px;">` : `<video src="${urlValue}" controls style="max-width: 100%; max-height: 200px;"></video>`}
+              <div class="rte-media-field">
+                <label class="rte-media-label">Preview</label>
+                <div class="rte-media-preview">
+                  ${type === 'image' ? `<img src="${urlValue}" alt="Preview">` : `<video src="${urlValue}" controls></video>`}
                 </div>
               </div>
             ` : ''}
@@ -112,9 +514,9 @@ const showMediaDialog = (type: 'image' | 'video') => {
         `}
       </div>
 
-      <div style="display: flex; justify-content: flex-end; gap: 10px; padding: 16px 20px; border-top: 1px solid #e1e5e9; background: #f8f9fa;">
-        <button class="cancel-btn" style="padding: 10px 20px; background: #fff; border: 1px solid #ced4da; border-radius: 4px; cursor: pointer; font-size: 14px;">Cancel</button>
-        <button id="insert-btn" style="padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;" ${!urlValue && activeTab === 'url' ? 'disabled' : ''}>Insert</button>
+      <div class="rte-media-footer">
+        <button class="cancel-btn rte-media-btn rte-media-btn-secondary" type="button">Cancel</button>
+        <button id="insert-btn" class="rte-media-btn rte-media-btn-primary" type="button" ${!urlValue && activeTab === 'url' ? 'disabled' : ''}>Insert</button>
       </div>
     `;
   };
@@ -123,7 +525,9 @@ const showMediaDialog = (type: 'image' | 'video') => {
   overlay.appendChild(dialog);
   document.body.appendChild(overlay);
 
-  const closeDialog = () => document.body.removeChild(overlay);
+  const closeDialog = () => {
+    if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+  };
 
   const insertMedia = () => {
     if (!urlValue) return;
@@ -131,7 +535,7 @@ const showMediaDialog = (type: 'image' | 'video') => {
     const mediaEl = type === 'image' ? document.createElement('img') : document.createElement('video');
     mediaEl.src = urlValue;
     mediaEl.setAttribute('data-media-type', type);
-    
+
     if (type === 'image' && altValue) {
       (mediaEl as HTMLImageElement).alt = altValue;
     }
@@ -143,7 +547,7 @@ const showMediaDialog = (type: 'image' | 'video') => {
       mediaEl.style.height = `${heightValue}px`;
       mediaEl.setAttribute('height', heightValue);
     }
-    
+
     if (type === 'video') {
       (mediaEl as HTMLVideoElement).controls = true;
     }
@@ -153,7 +557,7 @@ const showMediaDialog = (type: 'image' | 'video') => {
     } else {
       mediaEl.style.cssText = `display: block; margin: 1em 0; cursor: pointer; ${widthValue ? `width: ${widthValue}px;` : 'max-width: 100%;'} ${heightValue ? `height: ${heightValue}px;` : 'height: auto;'}`;
     }
-    
+
     if (savedSelection) {
       savedSelection.deleteContents();
       savedSelection.insertNode(mediaEl);
@@ -182,8 +586,8 @@ const showMediaDialog = (type: 'image' | 'video') => {
         reader.onload = () => {
           clearInterval(interval);
           progressBar.style.width = '100%';
-          progressText.textContent = '✅ Upload complete';
-          
+          progressText.textContent = 'Upload complete';
+
           setTimeout(() => {
             urlValue = reader.result as string;
             activeTab = 'url';
@@ -194,7 +598,7 @@ const showMediaDialog = (type: 'image' | 'video') => {
         reader.readAsDataURL(file);
       } catch (error) {
         clearInterval(interval);
-        progressText.textContent = '❌ Upload failed';
+        progressText.textContent = 'Upload failed';
       }
     }
   };
@@ -227,22 +631,19 @@ const showMediaDialog = (type: 'image' | 'video') => {
       const fileInput = dialog.querySelector('#file-input') as HTMLInputElement;
 
       dropzone?.addEventListener('click', () => fileInput?.click());
-      
+
       dropzone?.addEventListener('dragover', (e) => {
         e.preventDefault();
-        dropzone.style.borderColor = '#007bff';
-        dropzone.style.background = '#f0f8ff';
+        dropzone.classList.add('is-dragover');
       });
 
       dropzone?.addEventListener('dragleave', () => {
-        dropzone.style.borderColor = '#ced4da';
-        dropzone.style.background = 'transparent';
+        dropzone.classList.remove('is-dragover');
       });
 
       dropzone?.addEventListener('drop', (e) => {
         e.preventDefault();
-        dropzone.style.borderColor = '#ced4da';
-        dropzone.style.background = 'transparent';
+        dropzone.classList.remove('is-dragover');
         const file = e.dataTransfer?.files[0];
         if (file) handleFileUpload(file);
       });
@@ -333,25 +734,22 @@ const updateResizeHandles = () => {
 
 // Show Alt Text dialog
 const showAltTextDialog = (img: HTMLImageElement) => {
-  const overlay = document.createElement('div');
-  overlay.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; z-index: 10001;';
-
-  const dialog = document.createElement('div');
-  dialog.style.cssText = 'background: white; border-radius: 8px; width: 90%; max-width: 500px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);';
+  const overlay = createDialogOverlay(img);
+  const dialog = createDialogShell(true);
 
   dialog.innerHTML = `
-    <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid #e1e5e9; background: #f8f9fa;">
-      <h2 style="margin: 0; font-size: 18px; font-weight: 600;">Edit Alt Text</h2>
-      <button class="close-btn" style="background: none; border: none; font-size: 28px; cursor: pointer; color: #6c757d; padding: 0; width: 30px; height: 30px; line-height: 1;">×</button>
+    <div class="rte-media-header">
+      <h2 class="rte-media-title">Edit Alt Text</h2>
+      <button class="close-btn rte-media-close-btn" type="button" aria-label="Close">×</button>
     </div>
-    <div style="padding: 20px;">
-      <label style="display: block; margin-bottom: 8px; font-weight: 500;">Alternative Text (for accessibility):</label>
-      <textarea id="alt-text-input" style="width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #ced4da; border-radius: 4px; font-size: 14px; min-height: 80px; font-family: inherit; resize: vertical;" placeholder="Describe the image for screen readers...">${img.alt || ''}</textarea>
-      <p style="margin-top: 8px; margin-bottom: 0; font-size: 12px; color: #6c757d;">Good alt text is descriptive and concise. It helps users with visual impairments understand your content.</p>
+    <div class="rte-media-body">
+      <label class="rte-media-label">Alternative Text (for accessibility)</label>
+      <textarea id="alt-text-input" class="rte-media-textarea" placeholder="Describe the image for screen readers...">${img.alt || ''}</textarea>
+      <p class="rte-media-helper">Good alt text is descriptive and concise. It helps users with visual impairments understand your content.</p>
     </div>
-    <div style="display: flex; justify-content: flex-end; gap: 10px; padding: 16px 20px; border-top: 1px solid #e1e5e9; background: #f8f9fa;">
-      <button class="cancel-btn" style="padding: 10px 20px; background: #fff; border: 1px solid #ced4da; border-radius: 4px; cursor: pointer; font-size: 14px;">Cancel</button>
-      <button class="save-btn" style="padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;">Save</button>
+    <div class="rte-media-footer">
+      <button class="cancel-btn rte-media-btn rte-media-btn-secondary" type="button">Cancel</button>
+      <button class="save-btn rte-media-btn rte-media-btn-primary" type="button">Save</button>
     </div>
   `;
 
@@ -363,7 +761,9 @@ const showAltTextDialog = (img: HTMLImageElement) => {
   const cancelBtn = dialog.querySelector('.cancel-btn') as HTMLButtonElement;
   const saveBtn = dialog.querySelector('.save-btn') as HTMLButtonElement;
 
-  const closeDialog = () => document.body.removeChild(overlay);
+  const closeDialog = () => {
+    if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+  };
 
   closeBtn.addEventListener('click', closeDialog);
   cancelBtn.addEventListener('click', closeDialog);
@@ -385,38 +785,35 @@ const showLinkDialogForMedia = (media: HTMLImageElement | HTMLVideoElement) => {
   const currentTarget = existingLink?.getAttribute('target') || '_self';
   const currentTitle = existingLink?.getAttribute('title') || '';
 
-  const overlay = document.createElement('div');
-  overlay.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; z-index: 10001;';
-
-  const dialog = document.createElement('div');
-  dialog.style.cssText = 'background: white; border-radius: 8px; width: 90%; max-width: 500px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);';
+  const overlay = createDialogOverlay(media);
+  const dialog = createDialogShell(true);
 
   dialog.innerHTML = `
-    <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid #e1e5e9; background: #f8f9fa;">
-      <h2 style="margin: 0; font-size: 18px; font-weight: 600;">${existingLink ? 'Edit Link' : 'Add Link'}</h2>
-      <button class="close-btn" style="background: none; border: none; font-size: 28px; cursor: pointer; color: #6c757d; padding: 0; width: 30px; height: 30px; line-height: 1;">×</button>
+    <div class="rte-media-header">
+      <h2 class="rte-media-title">${existingLink ? 'Edit Link' : 'Add Link'}</h2>
+      <button class="close-btn rte-media-close-btn" type="button" aria-label="Close">×</button>
     </div>
-    <div style="padding: 20px;">
-      <div style="margin-bottom: 16px;">
-        <label style="display: block; margin-bottom: 6px; font-weight: 500;">URL:</label>
-        <input id="link-url" type="url" value="${currentHref}" placeholder="https://example.com" style="width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #ced4da; border-radius: 4px; font-size: 14px;" />
+    <div class="rte-media-body">
+      <div class="rte-media-field">
+        <label class="rte-media-label">URL</label>
+        <input id="link-url" type="url" class="rte-media-input" value="${currentHref}" placeholder="https://example.com" />
       </div>
-      <div style="margin-bottom: 16px;">
-        <label style="display: block; margin-bottom: 6px; font-weight: 500;">Title (tooltip):</label>
-        <input id="link-title" type="text" value="${currentTitle}" placeholder="Optional tooltip text" style="width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #ced4da; border-radius: 4px; font-size: 14px;" />
+      <div class="rte-media-field">
+        <label class="rte-media-label">Title (tooltip)</label>
+        <input id="link-title" type="text" class="rte-media-input" value="${currentTitle}" placeholder="Optional tooltip text" />
       </div>
-      <div>
-        <label style="display: flex; align-items: center; cursor: pointer;">
-          <input id="link-target" type="checkbox" ${currentTarget === '_blank' ? 'checked' : ''} style="margin-right: 8px;" />
-          Open in new window/tab
-        </label>
-      </div>
+      <label class="rte-media-checkbox-label">
+        <input id="link-target" type="checkbox" ${currentTarget === '_blank' ? 'checked' : ''} />
+        Open in new window/tab
+      </label>
     </div>
-    <div style="display: flex; justify-content: space-between; padding: 16px 20px; border-top: 1px solid #e1e5e9; background: #f8f9fa;">
-      ${existingLink ? '<button class="remove-link-btn" style="padding: 10px 20px; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;">Remove Link</button>' : '<span></span>'}
-      <div style="display: flex; gap: 10px;">
-        <button class="cancel-btn" style="padding: 10px 20px; background: #fff; border: 1px solid #ced4da; border-radius: 4px; cursor: pointer; font-size: 14px;">Cancel</button>
-        <button class="save-btn" style="padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;">Save</button>
+    <div class="rte-media-footer rte-media-footer-spread">
+      ${existingLink
+        ? '<button class="remove-link-btn rte-media-btn rte-media-btn-danger" type="button">Remove Link</button>'
+        : '<span class="rte-media-spacer"></span>'}
+      <div class="rte-media-actions">
+        <button class="cancel-btn rte-media-btn rte-media-btn-secondary" type="button">Cancel</button>
+        <button class="save-btn rte-media-btn rte-media-btn-primary" type="button">Save</button>
       </div>
     </div>
   `;
@@ -432,7 +829,9 @@ const showLinkDialogForMedia = (media: HTMLImageElement | HTMLVideoElement) => {
   const saveBtn = dialog.querySelector('.save-btn') as HTMLButtonElement;
   const removeLinkBtn = dialog.querySelector('.remove-link-btn') as HTMLButtonElement;
 
-  const closeDialog = () => document.body.removeChild(overlay);
+  const closeDialog = () => {
+    if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+  };
 
   closeBtn.addEventListener('click', closeDialog);
   cancelBtn.addEventListener('click', closeDialog);
@@ -496,54 +895,51 @@ const showLinkDialogForMedia = (media: HTMLImageElement | HTMLVideoElement) => {
 
 // Show Replace Image dialog
 const showReplaceImageDialog = (img: HTMLImageElement) => {
-  const overlay = document.createElement('div');
-  overlay.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; z-index: 10001;';
-
-  const dialog = document.createElement('div');
-  dialog.style.cssText = 'background: white; border-radius: 8px; width: 90%; max-width: 600px; max-height: 90vh; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);';
+  const overlay = createDialogOverlay(img);
+  const dialog = createDialogShell();
 
   let activeTab: 'upload' | 'url' = 'url';
   let urlValue = img.src;
 
   const renderDialog = () => {
     dialog.innerHTML = `
-      <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid #e1e5e9; background: #f8f9fa;">
-        <h2 style="margin: 0; font-size: 18px; font-weight: 600;">Replace Image</h2>
-        <button class="close-btn" style="background: none; border: none; font-size: 28px; cursor: pointer; color: #6c757d; padding: 0; width: 30px; height: 30px; line-height: 1;">×</button>
+      <div class="rte-media-header">
+        <h2 class="rte-media-title">Replace Image</h2>
+        <button class="close-btn rte-media-close-btn" type="button" aria-label="Close">×</button>
       </div>
 
-      <div class="tabs" style="display: flex; border-bottom: 1px solid #e1e5e9;">
-        <button class="tab-upload" style="flex: 1; padding: 12px; border: none; background: ${activeTab === 'upload' ? '#007bff' : '#f8f9fa'}; color: ${activeTab === 'upload' ? 'white' : '#495057'}; cursor: pointer; font-weight: 500;">📤 Upload</button>
-        <button class="tab-url" style="flex: 1; padding: 12px; border: none; background: ${activeTab === 'url' ? '#007bff' : '#f8f9fa'}; color: ${activeTab === 'url' ? 'white' : '#495057'}; cursor: pointer; font-weight: 500;">🔗 URL</button>
+      <div class="rte-media-tabs">
+        <button class="tab-upload rte-media-tab ${activeTab === 'upload' ? 'active' : ''}" type="button">Upload</button>
+        <button class="tab-url rte-media-tab ${activeTab === 'url' ? 'active' : ''}" type="button">URL</button>
       </div>
 
-      <div style="padding: 20px; overflow-y: auto; flex: 1;">
+      <div class="rte-media-body">
         ${activeTab === 'upload' ? `
           <div id="upload-section">
-            <div class="dropzone" style="border: 2px dashed #ced4da; border-radius: 8px; padding: 40px; text-align: center; cursor: pointer; transition: all 0.3s;">
-              <div style="font-size: 48px; margin-bottom: 10px;">📁</div>
-              <p style="margin: 0 0 8px 0; font-weight: 600; font-size: 16px;">Drag and drop your image here</p>
-              <p style="margin: 0 0 8px 0; color: #6c757d; font-size: 14px;">or click to browse</p>
+            <div class="dropzone rte-media-dropzone">
+              <div class="rte-media-dropzone-icon">📁</div>
+              <p class="rte-media-dropzone-title">Drag and drop your image here</p>
+              <p class="rte-media-muted">or click to browse</p>
             </div>
             <input type="file" id="file-input" accept="image/*" style="display: none;">
-            <div id="upload-progress" style="display: none; margin-top: 20px;">
-              <div style="background: #e9ecef; border-radius: 4px; height: 8px; overflow: hidden;">
-                <div id="progress-bar" style="background: #007bff; height: 100%; width: 0%; transition: width 0.3s;"></div>
+            <div id="upload-progress" class="rte-media-progress" style="display: none;">
+              <div class="rte-media-progress-track">
+                <div id="progress-bar" class="rte-media-progress-bar"></div>
               </div>
-              <p id="progress-text" style="margin-top: 8px; text-align: center; color: #6c757d; font-size: 14px;">Uploading...</p>
+              <p id="progress-text" class="rte-media-progress-text">Uploading...</p>
             </div>
           </div>
         ` : `
           <div id="url-section">
-            <div style="margin-bottom: 20px;">
-              <label style="display: block; font-weight: 600; margin-bottom: 8px; font-size: 14px;">Image URL:</label>
-              <input type="text" id="url-input" placeholder="https://example.com/image.jpg" value="${urlValue}" style="width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #ced4da; border-radius: 4px; font-size: 14px;">
+            <div class="rte-media-field">
+              <label class="rte-media-label">Image URL</label>
+              <input type="text" id="url-input" class="rte-media-input" placeholder="https://example.com/image.jpg" value="${urlValue}">
             </div>
             ${urlValue ? `
-              <div style="margin-bottom: 20px;">
-                <label style="display: block; font-weight: 600; margin-bottom: 8px; font-size: 14px;">Preview:</label>
-                <div style="border: 1px solid #dee2e6; border-radius: 4px; padding: 10px; background: #f8f9fa; text-align: center;">
-                  <img src="${urlValue}" alt="Preview" style="max-width: 100%; max-height: 300px;" onerror="this.parentElement.innerHTML='<p style=&quot;color: #dc3545;&quot;>Failed to load image</p>'">
+              <div class="rte-media-field">
+                <label class="rte-media-label">Preview</label>
+                <div class="rte-media-preview">
+                  <img src="${urlValue}" alt="Preview" onerror="this.parentElement.innerHTML='<p class=&quot;rte-media-muted&quot;>Failed to load image</p>'">
                 </div>
               </div>
             ` : ''}
@@ -551,9 +947,9 @@ const showReplaceImageDialog = (img: HTMLImageElement) => {
         `}
       </div>
 
-      <div style="display: flex; justify-content: flex-end; gap: 10px; padding: 16px 20px; border-top: 1px solid #e1e5e9; background: #f8f9fa;">
-        <button class="cancel-btn" style="padding: 10px 20px; background: #fff; border: 1px solid #ced4da; border-radius: 4px; cursor: pointer; font-size: 14px;">Cancel</button>
-        <button id="replace-btn" style="padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;" ${!urlValue && activeTab === 'url' ? 'disabled' : ''}>Replace</button>
+      <div class="rte-media-footer">
+        <button class="cancel-btn rte-media-btn rte-media-btn-secondary" type="button">Cancel</button>
+        <button id="replace-btn" class="rte-media-btn rte-media-btn-primary" type="button" ${!urlValue && activeTab === 'url' ? 'disabled' : ''}>Replace</button>
       </div>
     `;
   };
@@ -562,7 +958,9 @@ const showReplaceImageDialog = (img: HTMLImageElement) => {
   overlay.appendChild(dialog);
   document.body.appendChild(overlay);
 
-  const closeDialog = () => document.body.removeChild(overlay);
+  const closeDialog = () => {
+    if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+  };
 
   const replaceImage = () => {
     if (urlValue) {
@@ -591,7 +989,7 @@ const showReplaceImageDialog = (img: HTMLImageElement) => {
         reader.onload = () => {
           clearInterval(interval);
           progressBar.style.width = '100%';
-          progressText.textContent = '✅ Upload complete';
+          progressText.textContent = 'Upload complete';
           
           setTimeout(() => {
             urlValue = reader.result as string;
@@ -603,7 +1001,7 @@ const showReplaceImageDialog = (img: HTMLImageElement) => {
         reader.readAsDataURL(file);
       } catch (error) {
         clearInterval(interval);
-        progressText.textContent = '❌ Upload failed';
+        progressText.textContent = 'Upload failed';
       }
     }
   };
@@ -639,19 +1037,16 @@ const showReplaceImageDialog = (img: HTMLImageElement) => {
       
       dropzone?.addEventListener('dragover', (e) => {
         e.preventDefault();
-        dropzone.style.borderColor = '#007bff';
-        dropzone.style.background = '#f0f8ff';
+        dropzone.classList.add('is-dragover');
       });
 
       dropzone?.addEventListener('dragleave', () => {
-        dropzone.style.borderColor = '#ced4da';
-        dropzone.style.background = 'transparent';
+        dropzone.classList.remove('is-dragover');
       });
 
       dropzone?.addEventListener('drop', (e) => {
         e.preventDefault();
-        dropzone.style.borderColor = '#ced4da';
-        dropzone.style.background = 'transparent';
+        dropzone.classList.remove('is-dragover');
         const file = e.dataTransfer?.files[0];
         if (file) handleFileUpload(file);
       });
@@ -1056,13 +1451,19 @@ export const MediaManagerPlugin = (): Plugin => ({
   ],
   
   commands: {
-    insertImage: () => {
-      showMediaDialog('image');
+    insertImage: (_args, context) => {
+      const contextElement = context?.contentElement instanceof HTMLElement
+        ? context.contentElement
+        : undefined;
+      showMediaDialog('image', contextElement);
       return true;
     },
     
-    insertVideo: () => {
-      showMediaDialog('video');
+    insertVideo: (_args, context) => {
+      const contextElement = context?.contentElement instanceof HTMLElement
+        ? context.contentElement
+        : undefined;
+      showMediaDialog('video', contextElement);
       return true;
     }
   },

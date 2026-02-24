@@ -81,6 +81,21 @@ const descriptions: Record<string, string> = {
 
 // Module-level flag
 let isDialogOpen = false;
+const DARK_THEME_SELECTOR = '[data-theme="dark"], .dark, .editora-theme-dark';
+
+const getEditorContentFromSelection = (): HTMLElement | null => {
+  const selection = window.getSelection();
+  if (!selection || selection.rangeCount === 0) return null;
+  const anchorNode = selection.anchorNode;
+  const anchorElement = anchorNode instanceof HTMLElement ? anchorNode : anchorNode?.parentElement;
+  return (anchorElement?.closest('.rte-content, .editora-content') as HTMLElement | null) || null;
+};
+
+const isDarkThemeContext = (editorContent?: HTMLElement | null): boolean => {
+  const source = editorContent || getEditorContentFromSelection();
+  if (!source) return false;
+  return Boolean(source.closest(DARK_THEME_SELECTOR));
+};
 
 /**
  * Inject dialog styles into document head
@@ -94,27 +109,56 @@ const injectStyles = (): void => {
   style.id = styleId;
   style.textContent = `
     .special-characters-overlay {
+      --rte-sc-overlay-bg: rgba(15, 23, 36, 0.56);
+      --rte-sc-dialog-bg: #ffffff;
+      --rte-sc-dialog-text: #101828;
+      --rte-sc-border: #d6dbe4;
+      --rte-sc-subtle-bg: #f7f9fc;
+      --rte-sc-subtle-hover: #eef2f7;
+      --rte-sc-muted-text: #5f6b7d;
+      --rte-sc-accent: #1f75fe;
+      --rte-sc-accent-strong: #165fd6;
+      --rte-sc-ring: rgba(31, 117, 254, 0.18);
       position: fixed;
       top: 0;
       left: 0;
       right: 0;
       bottom: 0;
-      background-color: rgba(0, 0, 0, 0.5);
+      background-color: var(--rte-sc-overlay-bg);
+      backdrop-filter: blur(2px);
       display: flex;
       align-items: center;
       justify-content: center;
       z-index: 10000;
+      padding: 16px;
+      box-sizing: border-box;
+    }
+
+    .special-characters-overlay.rte-ui-theme-dark {
+      --rte-sc-overlay-bg: rgba(2, 8, 20, 0.72);
+      --rte-sc-dialog-bg: #202938;
+      --rte-sc-dialog-text: #e8effc;
+      --rte-sc-border: #49566c;
+      --rte-sc-subtle-bg: #2a3444;
+      --rte-sc-subtle-hover: #344256;
+      --rte-sc-muted-text: #a5b1c5;
+      --rte-sc-accent: #58a6ff;
+      --rte-sc-accent-strong: #4598f4;
+      --rte-sc-ring: rgba(88, 166, 255, 0.22);
     }
 
     .special-characters-dialog {
-      background: white;
-      border-radius: 8px;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+      background: var(--rte-sc-dialog-bg);
+      color: var(--rte-sc-dialog-text);
+      border: 1px solid var(--rte-sc-border);
+      border-radius: 12px;
+      box-shadow: 0 24px 48px rgba(10, 15, 24, 0.28);
       max-width: 800px;
       width: 90%;
       max-height: 80vh;
       display: flex;
       flex-direction: column;
+      overflow: hidden;
     }
 
     .special-characters-header {
@@ -122,14 +166,15 @@ const injectStyles = (): void => {
       justify-content: space-between;
       align-items: center;
       padding: 16px 20px;
-      border-bottom: 1px solid #e1e5e9;
+      border-bottom: 1px solid var(--rte-sc-border);
+      background: linear-gradient(180deg, rgba(127, 154, 195, 0.08) 0%, rgba(127, 154, 195, 0) 100%);
     }
 
     .special-characters-header h2 {
       margin: 0;
       font-size: 18px;
       font-weight: 600;
-      color: #1a202c;
+      color: var(--rte-sc-dialog-text);
     }
 
     .special-characters-close {
@@ -137,19 +182,20 @@ const injectStyles = (): void => {
       border: none;
       font-size: 24px;
       cursor: pointer;
-      color: #718096;
+      color: var(--rte-sc-muted-text);
       padding: 0;
       width: 32px;
       height: 32px;
       display: flex;
       align-items: center;
       justify-content: center;
-      border-radius: 4px;
+      border-radius: 8px;
+      transition: background-color 0.16s ease, color 0.16s ease;
     }
 
     .special-characters-close:hover {
-      background-color: #f7fafc;
-      color: #2d3748;
+      background-color: var(--rte-sc-subtle-hover);
+      color: var(--rte-sc-dialog-text);
     }
 
     .special-characters-content {
@@ -172,27 +218,31 @@ const injectStyles = (): void => {
     .special-characters-search-input {
       width: 100%;
       padding: 10px 12px;
-      border: 1px solid #e1e5e9;
-      border-radius: 6px;
+      border: 1px solid var(--rte-sc-border);
+      border-radius: 8px;
       font-size: 14px;
-      color: #2d3748;
-      background-color: #ffffff;
+      color: var(--rte-sc-dialog-text);
+      background-color: var(--rte-sc-subtle-bg);
       transition: border-color 0.2s ease, box-shadow 0.2s ease;
       box-sizing: border-box;
     }
 
+    .special-characters-search-input::placeholder {
+      color: var(--rte-sc-muted-text);
+    }
+
     .special-characters-search-input:focus {
       outline: none;
-      border-color: #4299e1;
-      box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
+      border-color: var(--rte-sc-accent);
+      box-shadow: 0 0 0 3px var(--rte-sc-ring);
     }
 
     .special-characters-tabs {
       display: flex;
       flex-direction: column;
       width: 180px;
-      border-right: 1px solid #e1e5e9;
-      background-color: #f8fafc;
+      border-right: 1px solid var(--rte-sc-border);
+      background-color: var(--rte-sc-subtle-bg);
     }
 
     .special-characters-tab {
@@ -202,19 +252,19 @@ const injectStyles = (): void => {
       text-align: left;
       cursor: pointer;
       font-size: 14px;
-      color: #4a5568;
-      border-bottom: 1px solid #e1e5e9;
+      color: var(--rte-sc-muted-text);
+      border-bottom: 1px solid var(--rte-sc-border);
       transition: all 0.2s ease;
     }
 
     .special-characters-tab:hover {
-      background-color: #edf2f7;
-      color: #2d3748;
+      background-color: var(--rte-sc-subtle-hover);
+      color: var(--rte-sc-dialog-text);
     }
 
     .special-characters-tab.active {
-      background-color: #4299e1;
-      color: white;
+      background-color: var(--rte-sc-accent);
+      color: #fff;
       font-weight: 500;
     }
 
@@ -232,19 +282,19 @@ const injectStyles = (): void => {
       display: flex;
       align-items: center;
       justify-content: center;
-      border: 1px solid #e1e5e9;
-      background: white;
-      border-radius: 4px;
+      border: 1px solid var(--rte-sc-border);
+      background: var(--rte-sc-subtle-bg);
+      border-radius: 8px;
       cursor: pointer;
       font-size: 18px;
       transition: all 0.2s ease;
-      color: #2d3748;
+      color: var(--rte-sc-dialog-text);
     }
 
     .special-characters-item:hover {
-      background-color: #4299e1;
-      border-color: #4299e1;
-      color: white;
+      background-color: var(--rte-sc-accent);
+      border-color: var(--rte-sc-accent);
+      color: #fff;
       transform: scale(1.05);
     }
 
@@ -255,12 +305,12 @@ const injectStyles = (): void => {
     .special-characters-no-results {
       grid-column: 1 / -1;
       text-align: center;
-      color: #718096;
+      color: var(--rte-sc-muted-text);
       font-size: 14px;
       padding: 40px 20px;
-      background-color: #f8fafc;
-      border-radius: 6px;
-      border: 1px solid #e1e5e9;
+      background-color: var(--rte-sc-subtle-bg);
+      border-radius: 8px;
+      border: 1px solid var(--rte-sc-border);
     }
 
     @media (max-width: 768px) {
@@ -276,14 +326,14 @@ const injectStyles = (): void => {
       .special-characters-tabs {
         width: 100%;
         border-right: none;
-        border-bottom: 1px solid #e1e5e9;
+        border-bottom: 1px solid var(--rte-sc-border);
         flex-direction: row;
         overflow-x: auto;
       }
 
       .special-characters-tab {
         border-bottom: none;
-        border-right: 1px solid #e1e5e9;
+        border-right: 1px solid var(--rte-sc-border);
         white-space: nowrap;
       }
     }
@@ -312,7 +362,7 @@ const insertCharacter = (character: string): void => {
 /**
  * Show special characters dialog
  */
-const showSpecialCharactersDialog = (): void => {
+const showSpecialCharactersDialog = (editorContent?: HTMLElement | null): void => {
   if (typeof window === 'undefined' || isDialogOpen) return;
   
   isDialogOpen = true;
@@ -324,10 +374,15 @@ const showSpecialCharactersDialog = (): void => {
   // Create overlay
   const overlay = document.createElement('div');
   overlay.className = 'special-characters-overlay';
+  if (isDarkThemeContext(editorContent)) {
+    overlay.classList.add('rte-ui-theme-dark');
+  }
 
   // Create dialog
   const dialog = document.createElement('div');
   dialog.className = 'special-characters-dialog';
+  dialog.setAttribute('role', 'dialog');
+  dialog.setAttribute('aria-modal', 'true');
 
   // Render function
   const render = () => {
@@ -445,8 +500,11 @@ export const SpecialCharactersPlugin = (): Plugin => ({
   }],
   
   commands: {
-    insertSpecialCharacter: () => {
-      showSpecialCharactersDialog();
+    insertSpecialCharacter: (_args, context) => {
+      const editorContent = context?.contentElement instanceof HTMLElement
+        ? context.contentElement
+        : getEditorContentFromSelection();
+      showSpecialCharactersDialog(editorContent);
       return true;
     }
   },

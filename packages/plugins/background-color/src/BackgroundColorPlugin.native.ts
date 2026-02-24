@@ -25,6 +25,7 @@ let colorPickerElement: HTMLDivElement | null = null;
 let currentButton: HTMLElement | null = null;
 let savedRange: Range | null = null;
 let selectedColor: string = '#ffff00'; // Default yellow highlight
+const DARK_THEME_SELECTOR = '[data-theme="dark"], .dark, .editora-theme-dark';
 
 /**
  * Preset colors for background color - reduced set for smaller picker
@@ -78,6 +79,24 @@ function getToolbarButton(command: string): HTMLElement | null {
   }
 
   return document.querySelector(`[data-command="${command}"]`) as HTMLElement | null;
+}
+
+function isDarkThemeContext(anchor?: HTMLElement | null): boolean {
+  if (anchor?.closest(DARK_THEME_SELECTOR)) return true;
+
+  const selection = window.getSelection();
+  if (selection && selection.rangeCount > 0) {
+    const node = selection.getRangeAt(0).startContainer;
+    const element = node.nodeType === Node.ELEMENT_NODE
+      ? (node as HTMLElement)
+      : node.parentElement;
+    if (element?.closest(DARK_THEME_SELECTOR)) return true;
+  }
+
+  const active = document.activeElement as HTMLElement | null;
+  if (active?.closest(DARK_THEME_SELECTOR)) return true;
+
+  return document.body.matches(DARK_THEME_SELECTOR) || document.documentElement.matches(DARK_THEME_SELECTOR);
 }
 
 /**
@@ -242,6 +261,71 @@ function injectStyles() {
       display: flex;
       gap: 8px;
     }
+
+    .rte-bg-color-picker.rte-theme-dark {
+      background: #1f2937;
+      border: 1px solid #4b5563;
+      box-shadow: 0 14px 30px rgba(0, 0, 0, 0.5);
+    }
+
+    .rte-bg-color-picker.rte-theme-dark .rte-bg-color-picker-header {
+      border-bottom-color: #3b4657;
+    }
+
+    .rte-bg-color-picker.rte-theme-dark .rte-bg-color-picker-title {
+      color: #e2e8f0;
+    }
+
+    .rte-bg-color-picker.rte-theme-dark .rte-bg-color-picker-close {
+      color: #94a3b8;
+    }
+
+    .rte-bg-color-picker.rte-theme-dark .rte-bg-color-picker-close:hover {
+      color: #f8fafc;
+    }
+
+    .rte-bg-color-picker.rte-theme-dark .rte-bg-color-section-label {
+      color: #9fb0c6;
+    }
+
+    .rte-bg-color-picker.rte-theme-dark .rte-bg-color-preview {
+      background-color: #111827;
+      border-color: #4b5563;
+    }
+
+    .rte-bg-color-picker.rte-theme-dark .rte-bg-color-preview-hex {
+      color: #cbd5e1;
+    }
+
+    .rte-bg-color-picker.rte-theme-dark .rte-bg-color-preview-swatch,
+    .rte-bg-color-picker.rte-theme-dark .rte-bg-color-swatch {
+      border-color: #4b5563;
+    }
+
+    .rte-bg-color-picker.rte-theme-dark .rte-bg-color-swatch:hover {
+      border-color: #7a8ba5;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+    }
+
+    .rte-bg-color-picker.rte-theme-dark .rte-bg-color-swatch.selected {
+      border-color: #58a6ff;
+      box-shadow: 0 0 0 1px rgba(88, 166, 255, 0.4);
+    }
+
+    .rte-bg-color-picker.rte-theme-dark .rte-bg-color-input,
+    .rte-bg-color-picker.rte-theme-dark .rte-bg-color-text-input {
+      background: #111827;
+      border-color: #4b5563;
+      color: #e2e8f0;
+    }
+
+    .rte-bg-color-picker.rte-theme-dark .rte-bg-color-text-input::placeholder {
+      color: #94a3b8;
+    }
+
+    .rte-bg-color-picker.rte-theme-dark .rte-bg-color-text-input:focus {
+      border-color: #58a6ff;
+    }
   `;
 
   document.head.appendChild(styleElement);
@@ -253,6 +337,9 @@ function injectStyles() {
 function createColorPicker(): HTMLDivElement {
   const picker = document.createElement('div');
   picker.className = 'rte-bg-color-picker';
+  if (isDarkThemeContext(currentButton)) {
+    picker.classList.add('rte-theme-dark');
+  }
   picker.addEventListener('click', (e) => e.stopPropagation());
 
   // Header

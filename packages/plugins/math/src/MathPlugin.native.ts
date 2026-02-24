@@ -35,6 +35,7 @@ const MATH_TEMPLATES = {
 let savedSelection: Range | null = null;
 let editingMathElement: HTMLElement | null = null;
 let katexLoaded = false;
+const DARK_THEME_SELECTOR = '[data-theme="dark"], .dark, .editora-theme-dark';
 
 // Global flag to ensure listener is added only once across all instances
 declare global {
@@ -75,6 +76,22 @@ const loadKaTeX = (): Promise<any> => {
   });
 };
 
+const isDarkThemeContext = (): boolean => {
+  const selection = window.getSelection();
+  if (selection && selection.rangeCount > 0) {
+    const node = selection.getRangeAt(0).startContainer;
+    const element = node.nodeType === Node.ELEMENT_NODE
+      ? (node as HTMLElement)
+      : node.parentElement;
+    if (element?.closest(DARK_THEME_SELECTOR)) return true;
+  }
+
+  const active = document.activeElement as HTMLElement | null;
+  if (active?.closest(DARK_THEME_SELECTOR)) return true;
+
+  return document.body.matches(DARK_THEME_SELECTOR) || document.documentElement.matches(DARK_THEME_SELECTOR);
+};
+
 const showMathDialog = async (initialData?: { formula: string; format: 'latex' | 'mathml'; inline: boolean }) => {
   const selection = window.getSelection();
   if (selection && selection.rangeCount > 0) {
@@ -82,55 +99,101 @@ const showMathDialog = async (initialData?: { formula: string; format: 'latex' |
   }
 
   await loadKaTeX();
+  const isDarkTheme = isDarkThemeContext();
+  const palette = isDarkTheme
+    ? {
+      overlay: 'rgba(0, 0, 0, 0.62)',
+      dialogBg: '#1f2937',
+      border: '#3b4657',
+      panelBg: '#222d3a',
+      fieldBg: '#111827',
+      fieldBorder: '#4b5563',
+      text: '#e2e8f0',
+      muted: '#94a3b8',
+      templateBtnBg: '#273244',
+      templateBtnHover: '#334155',
+      templateBtnText: '#dbe7f7',
+      templateSubText: '#9fb0c6',
+      previewBg: '#111827',
+      previewText: '#cbd5e1',
+      cancelBg: '#334155',
+      cancelText: '#e2e8f0',
+      cancelBorder: '#4b5563',
+      insertBg: '#3b82f6',
+      insertHover: '#2563eb',
+      invalid: '#f87171',
+    }
+    : {
+      overlay: 'rgba(0, 0, 0, 0.5)',
+      dialogBg: '#ffffff',
+      border: '#e1e5e9',
+      panelBg: '#f8f9fa',
+      fieldBg: '#ffffff',
+      fieldBorder: '#ced4da',
+      text: '#1f2937',
+      muted: '#6c757d',
+      templateBtnBg: '#ffffff',
+      templateBtnHover: '#f8f9fa',
+      templateBtnText: '#1f2937',
+      templateSubText: '#6c757d',
+      previewBg: '#f8f9fa',
+      previewText: '#6c757d',
+      cancelBg: '#ffffff',
+      cancelText: '#1f2937',
+      cancelBorder: '#ced4da',
+      insertBg: '#007bff',
+      insertHover: '#0069d9',
+      invalid: '#cc0000',
+    };
 
   const overlay = document.createElement('div');
-  overlay.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; z-index: 99999;';
+  overlay.style.cssText = `position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: ${palette.overlay}; display: flex; align-items: center; justify-content: center; z-index: 99999;`;
 
   const dialog = document.createElement('div');
-  dialog.style.cssText = 'background: white; border-radius: 8px; width: 90%; max-width: 600px; max-height: 90vh; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);';
+  dialog.style.cssText = `background: ${palette.dialogBg}; border: 1px solid ${palette.border}; border-radius: 8px; width: 90%; max-width: 600px; max-height: 90vh; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2); color: ${palette.text};`;
 
   let currentFormat: 'latex' | 'mathml' = initialData?.format || 'latex';
   let currentFormula = initialData?.formula || '';
   let currentInline = initialData?.inline !== false;
 
   dialog.innerHTML = `
-    <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid #e1e5e9; background: #f8f9fa;">
-      <h2 style="margin: 0; font-size: 18px; font-weight: 600;">${initialData ? 'Edit' : 'Insert'} Math Formula</h2>
-      <button class="close-btn" style="background: none; border: none; font-size: 28px; cursor: pointer; color: #6c757d; padding: 0; width: 30px; height: 30px; line-height: 1;">×</button>
+    <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid ${palette.border}; background: ${palette.panelBg};">
+      <h2 style="margin: 0; font-size: 18px; font-weight: 600; color: ${palette.text};">${initialData ? 'Edit' : 'Insert'} Math Formula</h2>
+      <button class="close-btn" style="background: none; border: none; font-size: 28px; cursor: pointer; color: ${palette.muted}; padding: 0; width: 30px; height: 30px; line-height: 1;">×</button>
     </div>
     
     <div style="padding: 20px; overflow-y: auto; flex: 1;">
       <div style="margin-bottom: 20px;">
-        <label style="display: block; font-weight: 600; margin-bottom: 8px; font-size: 14px;">Format:</label>
+        <label style="display: block; font-weight: 600; margin-bottom: 8px; font-size: 14px; color: ${palette.text};">Format:</label>
         <div style="display: flex; gap: 16px;">
-          <label style="cursor: pointer;"><input type="radio" name="format" value="latex" ${currentFormat === 'latex' ? 'checked' : ''} style="margin-right: 6px;"> LaTeX</label>
-          <label style="cursor: pointer;"><input type="radio" name="format" value="mathml" ${currentFormat === 'mathml' ? 'checked' : ''} style="margin-right: 6px;"> MathML</label>
+          <label style="cursor: pointer; color: ${palette.text};"><input type="radio" name="format" value="latex" ${currentFormat === 'latex' ? 'checked' : ''} style="margin-right: 6px;"> LaTeX</label>
+          <label style="cursor: pointer; color: ${palette.text};"><input type="radio" name="format" value="mathml" ${currentFormat === 'mathml' ? 'checked' : ''} style="margin-right: 6px;"> MathML</label>
         </div>
       </div>
 
       <div style="margin-bottom: 20px;">
-        <label style="display: block; font-weight: 600; margin-bottom: 8px; font-size: 14px;">Quick Templates:</label>
+        <label style="display: block; font-weight: 600; margin-bottom: 8px; font-size: 14px; color: ${palette.text};">Quick Templates:</label>
         <div id="templates-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; max-height: 200px; overflow-y: auto;"></div>
       </div>
 
       <div style="margin-bottom: 20px;">
-        <label style="cursor: pointer;"><input type="checkbox" id="inline-cb" ${currentInline ? 'checked' : ''} style="margin-right: 8px;"> Inline math</label>
+        <label style="cursor: pointer; color: ${palette.text};"><input type="checkbox" id="inline-cb" ${currentInline ? 'checked' : ''} style="margin-right: 8px;"> Inline math</label>
       </div>
 
       <div style="margin-bottom: 20px;">
-        <label style="display: block; font-weight: 600; margin-bottom: 8px; font-size: 14px;">Formula:</label>
-        <textarea id="formula-input" rows="4" style="width: 100%; padding: 10px; border: 1px solid #ced4da; border-radius: 4px; font-family: 'Courier New', monospace; font-size: 14px;">${currentFormula}</textarea>
+        <label style="display: block; font-weight: 600; margin-bottom: 8px; font-size: 14px; color: ${palette.text};">Formula:</label>
+        <textarea id="formula-input" rows="4" style="width: 100%; padding: 10px; border: 1px solid ${palette.fieldBorder}; border-radius: 4px; font-family: 'Courier New', monospace; font-size: 14px; background: ${palette.fieldBg}; color: ${palette.text};">${currentFormula}</textarea>
       </div>
 
       <div style="margin-bottom: 20px;">
-        <label style="display: block; font-weight: 600; margin-bottom: 8px; font-size: 14px;">Preview:</label>
-        <div id="preview-area" style="min-height: 60px; padding: 15px; border: 1px solid #dee2e6; border-radius: 4px; background: #f8f9fa; display: flex; align-items: center; justify-content: center; color: #6c757d;"></div>
+        <label style="display: block; font-weight: 600; margin-bottom: 8px; font-size: 14px; color: ${palette.text};">Preview:</label>
+        <div id="preview-area" style="min-height: 60px; padding: 15px; border: 1px solid ${palette.fieldBorder}; border-radius: 4px; background: ${palette.previewBg}; display: flex; align-items: center; justify-content: center; color: ${palette.previewText};"></div>
       </div>
     </div>
 
-    <div style="display: flex; justify-content: flex-end; gap: 10px; padding: 16px 20px; border-top: 1px solid #e1e5e9; background: #f8f9fa;">
-      <button class="cancel-btn" style="padding: 10px 20px; background: #fff; border: 1px solid #ced4da; border-radius: 4px; cursor: pointer; font-size: 14px;">Cancel</button>
-      <button id="insert-btn" style="padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;" disabled>${initialData ? 'Update' : 'Insert'}</button>
+    <div style="display: flex; justify-content: flex-end; gap: 10px; padding: 16px 20px; border-top: 1px solid ${palette.border}; background: ${palette.panelBg};">
+      <button class="cancel-btn" style="padding: 10px 20px; background: ${palette.cancelBg}; color: ${palette.cancelText}; border: 1px solid ${palette.cancelBorder}; border-radius: 4px; cursor: pointer; font-size: 14px;">Cancel</button>
+      <button id="insert-btn" style="padding: 10px 20px; background: ${palette.insertBg}; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;" disabled>${initialData ? 'Update' : 'Insert'}</button>
     </div>
   `;
 
@@ -149,13 +212,20 @@ const showMathDialog = async (initialData?: { formula: string; format: 'latex' |
   const updateTemplates = () => {
     const templates = MATH_TEMPLATES[currentFormat];
     templatesGrid.innerHTML = templates.map(t => `
-      <button type="button" data-formula="${t.formula.replace(/"/g, '&quot;')}" title="${t.description}" style="padding: 8px; border: 1px solid #ced4da; border-radius: 4px; background: #fff; cursor: pointer; text-align: left;">
-        <div style="font-weight: 600; font-size: 12px;">${t.name}</div>
-        <div style="font-size: 10px; color: #6c757d; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${t.formula.substring(0, 20)}...</div>
+      <button type="button" data-formula="${t.formula.replace(/"/g, '&quot;')}" title="${t.description}" style="padding: 8px; border: 1px solid ${palette.fieldBorder}; border-radius: 4px; background: ${palette.templateBtnBg}; cursor: pointer; text-align: left;">
+        <div style="font-weight: 600; font-size: 12px; color: ${palette.templateBtnText};">${t.name}</div>
+        <div style="font-size: 10px; color: ${palette.templateSubText}; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${t.formula.substring(0, 20)}...</div>
       </button>
     `).join('');
 
     templatesGrid.querySelectorAll('button').forEach(btn => {
+      const buttonEl = btn as HTMLButtonElement;
+      buttonEl.onmouseover = () => {
+        buttonEl.style.background = palette.templateBtnHover;
+      };
+      buttonEl.onmouseout = () => {
+        buttonEl.style.background = palette.templateBtnBg;
+      };
       btn.addEventListener('click', () => {
         formulaInput.value = btn.getAttribute('data-formula') || '';
         currentFormula = formulaInput.value;
@@ -168,7 +238,7 @@ const showMathDialog = async (initialData?: { formula: string; format: 'latex' |
     const formula = formulaInput.value.trim();
     
     if (!formula) {
-      previewArea.innerHTML = '<span style="color: #6c757d;">Enter a formula to see preview</span>';
+      previewArea.innerHTML = `<span style="color: ${palette.previewText};">Enter a formula to see preview</span>`;
       insertBtn.disabled = true;
       return;
     }
@@ -189,11 +259,32 @@ const showMathDialog = async (initialData?: { formula: string; format: 'latex' |
         }
       }
     } catch {
-      previewArea.innerHTML = '<span style="color: #cc0000;">Invalid formula</span>';
+      previewArea.innerHTML = `<span style="color: ${palette.invalid};">Invalid formula</span>`;
     }
   };
 
   const closeDialog = () => document.body.removeChild(overlay);
+  closeBtn.onmouseover = () => {
+    closeBtn.style.color = '#f8fafc';
+    closeBtn.style.background = isDarkTheme ? '#334155' : '#e5e7eb';
+    closeBtn.style.borderRadius = '4px';
+  };
+  closeBtn.onmouseout = () => {
+    closeBtn.style.color = palette.muted;
+    closeBtn.style.background = 'none';
+  };
+  cancelBtn.onmouseover = () => {
+    cancelBtn.style.background = isDarkTheme ? '#475569' : '#f3f4f6';
+  };
+  cancelBtn.onmouseout = () => {
+    cancelBtn.style.background = palette.cancelBg;
+  };
+  insertBtn.onmouseover = () => {
+    if (!insertBtn.disabled) insertBtn.style.background = palette.insertHover;
+  };
+  insertBtn.onmouseout = () => {
+    insertBtn.style.background = palette.insertBg;
+  };
 
   const insertMath = () => {
     const formula = formulaInput.value.trim();

@@ -26,6 +26,7 @@ import { findEditorContainerFromSelection, getContentElement } from '../../share
 
 // --- Anchor Registry ---
 const anchorRegistry = new Set<string>();
+const DARK_THEME_SELECTOR = '[data-theme="dark"], .dark, .editora-theme-dark';
 
 /**
  * Initialize mutation observer to track anchor deletions
@@ -138,12 +139,90 @@ function syncAnchorRegistry() {
   domAnchors.forEach((id) => anchorRegistry.add(id));
 }
 
+function isDarkThemeContext(savedRange?: Range): boolean {
+  if (savedRange) {
+    const startNode = savedRange.startContainer;
+    const startElement = startNode.nodeType === Node.ELEMENT_NODE
+      ? (startNode as HTMLElement)
+      : startNode.parentElement;
+    if (startElement?.closest(DARK_THEME_SELECTOR)) return true;
+  }
+
+  const selection = window.getSelection();
+  if (selection && selection.rangeCount > 0) {
+    const node = selection.getRangeAt(0).startContainer;
+    const element = node.nodeType === Node.ELEMENT_NODE
+      ? (node as HTMLElement)
+      : node.parentElement;
+    if (element?.closest(DARK_THEME_SELECTOR)) return true;
+  }
+
+  const active = document.activeElement as HTMLElement | null;
+  if (active?.closest(DARK_THEME_SELECTOR)) return true;
+
+  return document.body.matches(DARK_THEME_SELECTOR) || document.documentElement.matches(DARK_THEME_SELECTOR);
+}
+
 /**
  * Create Anchor Dialog
  */
 function createAnchorDialog(mode: 'add' | 'edit', currentId?: string, onSave?: (id: string) => void, savedRange?: Range) {
   // Sync registry before showing dialog
   syncAnchorRegistry();
+  const isDarkTheme = isDarkThemeContext(savedRange);
+  const palette = isDarkTheme
+    ? {
+      overlay: 'rgba(0, 0, 0, 0.62)',
+      dialogBg: '#1f2937',
+      panelBg: '#222d3a',
+      border: '#3b4657',
+      text: '#e2e8f0',
+      muted: '#94a3b8',
+      closeHoverBg: '#334155',
+      fieldBg: '#111827',
+      fieldFocusBg: '#111827',
+      fieldBorder: '#4b5563',
+      fieldText: '#e2e8f0',
+      fieldPlaceholder: '#94a3b8',
+      fieldErrorBg: '#3f2124',
+      fieldErrorBorder: '#ef4444',
+      cancelBg: '#334155',
+      cancelHover: '#475569',
+      cancelText: '#e2e8f0',
+      saveBg: '#3b82f6',
+      saveHover: '#2563eb',
+      saveDisabledBg: '#374151',
+      saveDisabledText: '#7f8ca1',
+      help: '#9fb0c6',
+      focusRing: 'rgba(88, 166, 255, 0.25)',
+      errorRing: 'rgba(239, 68, 68, 0.25)',
+    }
+    : {
+      overlay: 'rgba(0, 0, 0, 0.5)',
+      dialogBg: '#ffffff',
+      panelBg: '#f9f9f9',
+      border: '#e0e0e0',
+      text: '#333333',
+      muted: '#999999',
+      closeHoverBg: '#e0e0e0',
+      fieldBg: '#ffffff',
+      fieldFocusBg: '#f9f9ff',
+      fieldBorder: '#d0d0d0',
+      fieldText: '#333333',
+      fieldPlaceholder: '#9ca3af',
+      fieldErrorBg: '#ffebee',
+      fieldErrorBorder: '#d32f2f',
+      cancelBg: '#f0f0f0',
+      cancelHover: '#e0e0e0',
+      cancelText: '#333333',
+      saveBg: '#0066cc',
+      saveHover: '#0052a3',
+      saveDisabledBg: '#d0d0d0',
+      saveDisabledText: '#999999',
+      help: '#999999',
+      focusRing: 'rgba(0, 102, 204, 0.1)',
+      errorRing: 'rgba(211, 47, 47, 0.1)',
+    };
   
   // Create overlay
   const overlay = document.createElement('div');
@@ -154,7 +233,7 @@ function createAnchorDialog(mode: 'add' | 'edit', currentId?: string, onSave?: (
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
+    background: ${palette.overlay};
     display: flex;
     align-items: center;
     justify-content: center;
@@ -166,7 +245,8 @@ function createAnchorDialog(mode: 'add' | 'edit', currentId?: string, onSave?: (
   const dialog = document.createElement('div');
   dialog.className = 'rte-anchor-dialog';
   dialog.style.cssText = `
-    background: white;
+    background: ${palette.dialogBg};
+    border: 1px solid ${palette.border};
     border-radius: 8px;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
     width: 90%;
@@ -201,12 +281,12 @@ function createAnchorDialog(mode: 'add' | 'edit', currentId?: string, onSave?: (
     align-items: center;
     justify-content: space-between;
     padding: 16px 20px;
-    border-bottom: 1px solid #e0e0e0;
-    background: #f9f9f9;
+    border-bottom: 1px solid ${palette.border};
+    background: ${palette.panelBg};
   `;
   
   const title = document.createElement('h3');
-  title.style.cssText = 'margin: 0; font-size: 18px; font-weight: 600; color: #333;';
+  title.style.cssText = `margin: 0; font-size: 18px; font-weight: 600; color: ${palette.text};`;
   title.textContent = mode === 'add' ? 'Add Anchor' : 'Edit Anchor';
   
   const closeBtn = document.createElement('button');
@@ -215,7 +295,7 @@ function createAnchorDialog(mode: 'add' | 'edit', currentId?: string, onSave?: (
     background: none;
     border: none;
     font-size: 24px;
-    color: #999;
+    color: ${palette.muted};
     cursor: pointer;
     padding: 0;
     width: 32px;
@@ -226,8 +306,8 @@ function createAnchorDialog(mode: 'add' | 'edit', currentId?: string, onSave?: (
     border-radius: 4px;
     transition: all 0.2s ease;
   `;
-  closeBtn.onmouseover = () => { closeBtn.style.background = '#e0e0e0'; closeBtn.style.color = '#333'; };
-  closeBtn.onmouseout = () => { closeBtn.style.background = 'none'; closeBtn.style.color = '#999'; };
+  closeBtn.onmouseover = () => { closeBtn.style.background = palette.closeHoverBg; closeBtn.style.color = '#f8fafc'; };
+  closeBtn.onmouseout = () => { closeBtn.style.background = 'none'; closeBtn.style.color = palette.muted; };
   
   header.appendChild(title);
   header.appendChild(closeBtn);
@@ -241,7 +321,7 @@ function createAnchorDialog(mode: 'add' | 'edit', currentId?: string, onSave?: (
   
   const label = document.createElement('label');
   label.textContent = 'Anchor ID';
-  label.style.cssText = 'display: block; font-size: 14px; font-weight: 500; color: #333; margin-bottom: 8px;';
+  label.style.cssText = `display: block; font-size: 14px; font-weight: 500; color: ${palette.text}; margin-bottom: 8px;`;
   label.setAttribute('for', 'anchor-id-input');
   
   const input = document.createElement('input');
@@ -253,12 +333,15 @@ function createAnchorDialog(mode: 'add' | 'edit', currentId?: string, onSave?: (
     width: 100%;
     padding: 10px 12px;
     font-size: 14px;
-    border: 1px solid #d0d0d0;
+    border: 1px solid ${palette.fieldBorder};
     border-radius: 4px;
     font-family: 'Courier New', monospace;
+    color: ${palette.fieldText};
+    background: ${palette.fieldBg};
     transition: all 0.2s ease;
     box-sizing: border-box;
   `;
+  input.style.setProperty('caret-color', palette.fieldText);
   
   const errorDiv = document.createElement('div');
   errorDiv.style.cssText = `
@@ -270,7 +353,7 @@ function createAnchorDialog(mode: 'add' | 'edit', currentId?: string, onSave?: (
   
   const helpText = document.createElement('div');
   helpText.textContent = 'URL-safe ID (letters, numbers, hyphens, underscores). Must start with letter or underscore.';
-  helpText.style.cssText = 'color: #999; font-size: 12px; margin-top: 8px; line-height: 1.4;';
+  helpText.style.cssText = `color: ${palette.help}; font-size: 12px; margin-top: 8px; line-height: 1.4;`;
   
   field.appendChild(label);
   field.appendChild(input);
@@ -284,8 +367,8 @@ function createAnchorDialog(mode: 'add' | 'edit', currentId?: string, onSave?: (
     display: flex;
     gap: 12px;
     padding: 16px 20px;
-    border-top: 1px solid #e0e0e0;
-    background: #f9f9f9;
+    border-top: 1px solid ${palette.border};
+    background: ${palette.panelBg};
     justify-content: flex-end;
   `;
   
@@ -299,11 +382,11 @@ function createAnchorDialog(mode: 'add' | 'edit', currentId?: string, onSave?: (
     border-radius: 4px;
     cursor: pointer;
     transition: all 0.2s ease;
-    background: #f0f0f0;
-    color: #333;
+    background: ${palette.cancelBg};
+    color: ${palette.cancelText};
   `;
-  cancelBtn.onmouseover = () => cancelBtn.style.background = '#e0e0e0';
-  cancelBtn.onmouseout = () => cancelBtn.style.background = '#f0f0f0';
+  cancelBtn.onmouseover = () => cancelBtn.style.background = palette.cancelHover;
+  cancelBtn.onmouseout = () => cancelBtn.style.background = palette.cancelBg;
   
   const saveBtn = document.createElement('button');
   saveBtn.textContent = mode === 'add' ? 'Add Anchor' : 'Save Changes';
@@ -315,7 +398,7 @@ function createAnchorDialog(mode: 'add' | 'edit', currentId?: string, onSave?: (
     border-radius: 4px;
     cursor: pointer;
     transition: all 0.2s ease;
-    background: #0066cc;
+    background: ${palette.saveBg};
     color: white;
   `;
   saveBtn.disabled = !input.value.trim();
@@ -323,12 +406,12 @@ function createAnchorDialog(mode: 'add' | 'edit', currentId?: string, onSave?: (
   const updateSaveButton = () => {
     if (!input.value.trim()) {
       saveBtn.disabled = true;
-      saveBtn.style.background = '#d0d0d0';
-      saveBtn.style.color = '#999';
+      saveBtn.style.background = palette.saveDisabledBg;
+      saveBtn.style.color = palette.saveDisabledText;
       saveBtn.style.cursor = 'not-allowed';
     } else {
       saveBtn.disabled = false;
-      saveBtn.style.background = '#0066cc';
+      saveBtn.style.background = palette.saveBg;
       saveBtn.style.color = 'white';
       saveBtn.style.cursor = 'pointer';
     }
@@ -336,13 +419,15 @@ function createAnchorDialog(mode: 'add' | 'edit', currentId?: string, onSave?: (
   
   saveBtn.onmouseover = () => {
     if (!saveBtn.disabled) {
-      saveBtn.style.background = '#0052a3';
-      saveBtn.style.boxShadow = '0 2px 8px rgba(0, 102, 204, 0.3)';
+      saveBtn.style.background = palette.saveHover;
+      saveBtn.style.boxShadow = isDarkTheme
+        ? '0 2px 8px rgba(59, 130, 246, 0.35)'
+        : '0 2px 8px rgba(0, 102, 204, 0.3)';
     }
   };
   saveBtn.onmouseout = () => {
     if (!saveBtn.disabled) {
-      saveBtn.style.background = '#0066cc';
+      saveBtn.style.background = palette.saveBg;
       saveBtn.style.boxShadow = 'none';
     }
   };
@@ -362,45 +447,45 @@ function createAnchorDialog(mode: 'add' | 'edit', currentId?: string, onSave?: (
         errorMessage = validation.error;
         errorDiv.textContent = '⚠ ' + errorMessage;
         errorDiv.style.display = 'block';
-        input.style.borderColor = '#d32f2f';
-        input.style.background = '#ffebee';
+        input.style.borderColor = palette.fieldErrorBorder;
+        input.style.background = palette.fieldErrorBg;
       } else if (mode === 'add' && anchorRegistry.has(value)) {
         errorMessage = `Anchor ID already exists: ${value}`;
         errorDiv.textContent = '⚠ ' + errorMessage;
         errorDiv.style.display = 'block';
-        input.style.borderColor = '#d32f2f';
-        input.style.background = '#ffebee';
+        input.style.borderColor = palette.fieldErrorBorder;
+        input.style.background = palette.fieldErrorBg;
       } else if (mode === 'edit' && value !== currentId && anchorRegistry.has(value)) {
         errorMessage = `Anchor ID already exists: ${value}`;
         errorDiv.textContent = '⚠ ' + errorMessage;
         errorDiv.style.display = 'block';
-        input.style.borderColor = '#d32f2f';
-        input.style.background = '#ffebee';
+        input.style.borderColor = palette.fieldErrorBorder;
+        input.style.background = palette.fieldErrorBg;
       } else {
         errorMessage = '';
         errorDiv.style.display = 'none';
-        input.style.borderColor = '#d0d0d0';
-        input.style.background = 'white';
+        input.style.borderColor = palette.fieldBorder;
+        input.style.background = palette.fieldBg;
       }
     } else {
       errorDiv.style.display = 'none';
-      input.style.borderColor = '#d0d0d0';
-      input.style.background = 'white';
+      input.style.borderColor = palette.fieldBorder;
+      input.style.background = palette.fieldBg;
     }
   };
   
   input.onfocus = () => {
-    input.style.borderColor = errorMessage ? '#d32f2f' : '#0066cc';
+    input.style.borderColor = errorMessage ? palette.fieldErrorBorder : palette.saveBg;
     input.style.boxShadow = errorMessage 
-      ? '0 0 0 3px rgba(211, 47, 47, 0.1)' 
-      : '0 0 0 3px rgba(0, 102, 204, 0.1)';
-    input.style.background = errorMessage ? '#ffebee' : '#f9f9ff';
+      ? `0 0 0 3px ${palette.errorRing}`
+      : `0 0 0 3px ${palette.focusRing}`;
+    input.style.background = errorMessage ? palette.fieldErrorBg : palette.fieldFocusBg;
   };
   
   input.onblur = () => {
     input.style.boxShadow = 'none';
     if (!errorMessage) {
-      input.style.background = 'white';
+      input.style.background = palette.fieldBg;
     }
   };
   

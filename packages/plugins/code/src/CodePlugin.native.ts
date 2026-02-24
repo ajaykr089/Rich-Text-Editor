@@ -11,6 +11,8 @@ import {
   SyntaxHighlightingExtension
 } from '@editora/light-code-editor';
 
+const DARK_THEME_SELECTOR = '[data-theme="dark"], .dark, .editora-theme-dark';
+
 const SOURCE_EDITOR_CSS = `/* Source Editor Dialog Styles */
 .rte-source-editor-overlay {
   position: fixed !important;
@@ -280,64 +282,83 @@ const SOURCE_EDITOR_CSS = `/* Source Editor Dialog Styles */
   background: #0056b3;
 }
 
-/* Dark theme support */
-@media (prefers-color-scheme: dark) {
-  .rte-source-editor-modal {
-    background: #1e1e1e;
-    color: #f8f9fa;
-  }
+.rte-source-editor-overlay.rte-theme-dark .rte-source-editor-modal {
+  background: #1e1e1e;
+  color: #f8f9fa;
+  border: 1px solid #434d5f;
+}
 
-  .rte-source-editor-header {
-    background: #2d2d2d;
-    border-color: #404040;
-  }
+.rte-source-editor-overlay.rte-theme-dark .rte-source-editor-header,
+.rte-source-editor-overlay.rte-theme-dark .rte-source-editor-footer {
+  background: #2a3442;
+  border-color: #434d5f;
+}
 
-  .rte-source-editor-header h2 {
-    color: #f8f9fa;
-  }
+.rte-source-editor-overlay.rte-theme-dark .rte-source-editor-header h2 {
+  color: #f8f9fa;
+}
 
-  .rte-source-editor-fullscreen-btn,
-  .rte-source-editor-close-btn {
-    color: #ccc;
-  }
+.rte-source-editor-overlay.rte-theme-dark .rte-source-editor-toolbar-btn,
+.rte-source-editor-overlay.rte-theme-dark .rte-source-editor-fullscreen-btn,
+.rte-source-editor-overlay.rte-theme-dark .rte-source-editor-close-btn {
+  color: #c1cede;
+}
 
-  .rte-source-editor-fullscreen-btn:hover,
-  .rte-source-editor-close-btn:hover {
-    background: #404040;
-    color: #f8f9fa;
-  }
+.rte-source-editor-overlay.rte-theme-dark .rte-source-editor-toolbar-btn:hover:not(:disabled),
+.rte-source-editor-overlay.rte-theme-dark .rte-source-editor-fullscreen-btn:hover,
+.rte-source-editor-overlay.rte-theme-dark .rte-source-editor-close-btn:hover {
+  background: #404a5a;
+  color: #f8fafc;
+}
 
-  .rte-source-editor-error {
-    background: #2d1b1b;
-    color: #fca5a5;
-    border-color: #dc2626;
-  }
+.rte-source-editor-overlay.rte-theme-dark .rte-source-editor-toolbar-btn.active {
+  background: #3b82f6;
+  color: #ffffff;
+}
 
-  .rte-source-editor-warning {
-    background: #2d2a1b;
-    color: #fcd34d;
-    border-color: #d97706;
-  }
+.rte-source-editor-overlay.rte-theme-dark .rte-source-editor-toolbar-btn.active:hover {
+  background: #2563eb;
+}
 
-  .rte-source-editor-footer {
-    background: #2d2d2d;
-    border-color: #404040;
-  }
+.rte-source-editor-overlay.rte-theme-dark .rte-source-editor-loading,
+.rte-source-editor-overlay.rte-theme-dark .rte-source-editor-footer-info {
+  color: #cbd5e1;
+}
 
-  .rte-source-editor-footer-info {
-    color: #ccc;
-  }
+.rte-source-editor-overlay.rte-theme-dark .rte-source-editor-spinner {
+  border-color: #3f4b60;
+  border-top-color: #58a6ff;
+}
 
-  .rte-source-editor-btn-cancel {
-    background: #374151;
-    border-color: #4b5563;
-    color: #f9fafb;
-  }
+.rte-source-editor-overlay.rte-theme-dark .rte-source-editor-error {
+  background: #3f2124;
+  color: #fecaca;
+  border-color: #ef4444;
+}
 
-  .rte-source-editor-btn-cancel:hover:not(:disabled) {
-    background: #4b5563;
-    border-color: #6b7280;
-  }
+.rte-source-editor-overlay.rte-theme-dark .rte-source-editor-warning {
+  background: #3b3220;
+  color: #fde68a;
+  border-color: #f59e0b;
+}
+
+.rte-source-editor-overlay.rte-theme-dark .rte-source-editor-btn-cancel {
+  background: #334155;
+  border-color: #475569;
+  color: #f1f5f9;
+}
+
+.rte-source-editor-overlay.rte-theme-dark .rte-source-editor-btn-cancel:hover:not(:disabled) {
+  background: #475569;
+  border-color: #64748b;
+}
+
+.rte-source-editor-overlay.rte-theme-dark .rte-source-editor-btn-save {
+  background: #3b82f6;
+}
+
+.rte-source-editor-overlay.rte-theme-dark .rte-source-editor-btn-save:hover:not(:disabled) {
+  background: #2563eb;
 }
 
 /* Responsive design */
@@ -496,8 +517,15 @@ export const CodePlugin = (): Plugin => ({
         let isFullscreen = false;
         let hasUnsavedChanges = false;
         const originalHtml = currentHtml;
+        const isDarkTheme =
+          !!contentElement.closest(DARK_THEME_SELECTOR) ||
+          document.body.matches(DARK_THEME_SELECTOR) ||
+          document.documentElement.matches(DARK_THEME_SELECTOR);
         const overlay = document.createElement('div');
         overlay.className = 'rte-source-editor-overlay';
+        if (isDarkTheme) {
+          overlay.classList.add('rte-theme-dark');
+        }
         
         const dialog = document.createElement('div');
         dialog.className = 'rte-source-editor-modal';

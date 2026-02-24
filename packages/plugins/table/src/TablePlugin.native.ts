@@ -25,6 +25,7 @@ let mouseDownHandler: ((e: MouseEvent) => void) | null = null;
 let tableDeletedHandler: (() => void) | null = null;
 let scrollHandler: (() => void) | null = null;
 let resizeHandler: (() => void) | null = null;
+const DARK_THEME_SELECTOR = '[data-theme="dark"], .dark, .editora-theme-dark';
 
 // Column resizing state
 let isResizing = false;
@@ -564,6 +565,12 @@ function showTableToolbar(table: HTMLTableElement): void {
     toolbarElement = createTableToolbar();
     document.body.appendChild(toolbarElement);
   }
+
+  const isDarkTheme =
+    !!table.closest(DARK_THEME_SELECTOR) ||
+    document.body.matches(DARK_THEME_SELECTOR) ||
+    document.documentElement.matches(DARK_THEME_SELECTOR);
+  toolbarElement.classList.toggle('rte-theme-dark', isDarkTheme);
 
   // Make toolbar visible temporarily to measure its dimensions
   toolbarElement.style.display = 'flex';

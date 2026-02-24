@@ -20,6 +20,7 @@ let colorPickerElement: HTMLDivElement | null = null;
 let currentButton: HTMLElement | null = null;
 let savedRange: Range | null = null;
 let selectedColor: string = '#000000';
+const DARK_THEME_SELECTOR = '[data-theme="dark"], .dark, .editora-theme-dark';
 
 // ============================================================================
 // Preset Colors (matching React version) - Reduced set for smaller picker
@@ -73,6 +74,24 @@ function getToolbarButton(command: string): HTMLElement | null {
   }
 
   return document.querySelector(`[data-command="${command}"]`) as HTMLElement | null;
+}
+
+function isDarkThemeContext(anchor?: HTMLElement | null): boolean {
+  if (anchor?.closest(DARK_THEME_SELECTOR)) return true;
+
+  const selection = window.getSelection();
+  if (selection && selection.rangeCount > 0) {
+    const node = selection.getRangeAt(0).startContainer;
+    const element = node.nodeType === Node.ELEMENT_NODE
+      ? (node as HTMLElement)
+      : node.parentElement;
+    if (element?.closest(DARK_THEME_SELECTOR)) return true;
+  }
+
+  const active = document.activeElement as HTMLElement | null;
+  if (active?.closest(DARK_THEME_SELECTOR)) return true;
+
+  return document.body.matches(DARK_THEME_SELECTOR) || document.documentElement.matches(DARK_THEME_SELECTOR);
 }
 
 // ============================================================================
@@ -213,6 +232,9 @@ function createColorPicker(button: HTMLElement): void {
   // Create picker element
   colorPickerElement = document.createElement('div');
   colorPickerElement.className = 'rte-inline-color-picker';
+  if (isDarkThemeContext(button)) {
+    colorPickerElement.classList.add('rte-theme-dark');
+  }
   colorPickerElement.addEventListener('click', (e) => e.stopPropagation());
 
   // Build picker content
@@ -637,6 +659,70 @@ function initTextColorPlugin(): void {
 
       .rte-btn-secondary:hover {
         background-color: #eeeeee;
+      }
+
+      .rte-inline-color-picker.rte-theme-dark {
+        background: #1f2937;
+        border: 1px solid #4b5563;
+        box-shadow: 0 14px 30px rgba(0, 0, 0, 0.5);
+      }
+
+      .rte-inline-color-picker.rte-theme-dark .rte-color-picker-header {
+        border-bottom-color: #3b4657;
+      }
+
+      .rte-inline-color-picker.rte-theme-dark .rte-color-picker-title {
+        color: #e2e8f0;
+      }
+
+      .rte-inline-color-picker.rte-theme-dark .rte-color-picker-close {
+        color: #94a3b8;
+      }
+
+      .rte-inline-color-picker.rte-theme-dark .rte-color-picker-close:hover {
+        color: #f8fafc;
+      }
+
+      .rte-inline-color-picker.rte-theme-dark .rte-color-preview-section {
+        background-color: #111827;
+        border-color: #4b5563;
+      }
+
+      .rte-inline-color-picker.rte-theme-dark .rte-color-preview-label {
+        color: #cbd5e1;
+      }
+
+      .rte-inline-color-picker.rte-theme-dark .rte-color-section-label {
+        color: #9fb0c6;
+      }
+
+      .rte-inline-color-picker.rte-theme-dark .rte-color-swatch {
+        border-color: #4b5563;
+      }
+
+      .rte-inline-color-picker.rte-theme-dark .rte-color-swatch:hover {
+        border-color: #7a8ba5;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+      }
+
+      .rte-inline-color-picker.rte-theme-dark .rte-color-swatch.selected {
+        border-color: #58a6ff;
+        box-shadow: 0 0 0 1px rgba(88, 166, 255, 0.4);
+      }
+
+      .rte-inline-color-picker.rte-theme-dark .rte-color-input-native,
+      .rte-inline-color-picker.rte-theme-dark .rte-color-input-text {
+        background: #111827;
+        border-color: #4b5563;
+        color: #e2e8f0;
+      }
+
+      .rte-inline-color-picker.rte-theme-dark .rte-color-input-text::placeholder {
+        color: #94a3b8;
+      }
+
+      .rte-inline-color-picker.rte-theme-dark .rte-color-input-text:focus {
+        border-color: #58a6ff;
       }
     `;
     document.head.appendChild(styleElement);

@@ -29,6 +29,7 @@ let activeTab: EmojiCategory = 'all';
 let searchQuery = '';
 // Store the selection range before opening the dialog
 let savedSelectionRange: Range | null = null;
+const DARK_THEME_SELECTOR = '[data-theme="dark"], .dark, .editora-theme-dark';
 
 export const EmojisPlugin = (): Plugin => {
   return {
@@ -88,10 +89,15 @@ function createEmojiDialog(editorContent: HTMLElement): void {
 
   const overlay = document.createElement('div');
   overlay.className = 'emojis-overlay';
+  if (isDarkThemeContext(editorContent)) {
+    overlay.classList.add('rte-ui-theme-dark');
+  }
   overlay.onclick = closeDialog;
 
   const dialog = document.createElement('div');
   dialog.className = 'emojis-dialog';
+  dialog.setAttribute('role', 'dialog');
+  dialog.setAttribute('aria-modal', 'true');
   dialog.onclick = (e) => e.stopPropagation();
 
   const categories = Object.keys(emojisSets) as EmojiCategory[];
@@ -250,6 +256,14 @@ function insertEmoji(emoji: string, editorContent: HTMLElement): void {
 }
 // Helper to get the currently focused editor content element (fallback)
 function getActiveEditorContent(): HTMLElement | null {
+  const selection = window.getSelection();
+  if (selection && selection.rangeCount > 0) {
+    const anchor = selection.anchorNode;
+    const anchorElement = anchor instanceof HTMLElement ? anchor : anchor?.parentElement;
+    const fromSelection = anchorElement?.closest('.editora-content, .rte-content') as HTMLElement | null;
+    if (fromSelection) return fromSelection;
+  }
+
   // Try to find the focused .editora-content or .rte-content
   const active = document.activeElement as HTMLElement | null;
   if (active && (active.classList.contains('editora-content') || active.classList.contains('rte-content'))) {
@@ -259,39 +273,89 @@ function getActiveEditorContent(): HTMLElement | null {
   return document.querySelector('.editora-content, .rte-content') as HTMLElement | null;
 }
 
+function isDarkThemeContext(editorContent?: HTMLElement | null): boolean {
+  const source = editorContent || getActiveEditorContent();
+  if (!source) return false;
+  return Boolean(source.closest(DARK_THEME_SELECTOR));
+}
+
 function injectEmojiDialogStyles(): void {
   if (document.getElementById('emojis-dialog-styles')) return;
 
   const style = document.createElement('style');
   style.id = 'emojis-dialog-styles';
   style.textContent = `
-    /* Emojis Dialog Styles */
     .emojis-overlay {
+      --rte-emoji-overlay-bg: rgba(15, 23, 36, 0.56);
+      --rte-emoji-dialog-bg: #ffffff;
+      --rte-emoji-dialog-text: #101828;
+      --rte-emoji-border: #d6dbe4;
+      --rte-emoji-subtle-bg: #f7f9fc;
+      --rte-emoji-subtle-hover: #eef2f7;
+      --rte-emoji-muted-text: #5f6b7d;
+      --rte-emoji-accent: #1f75fe;
+      --rte-emoji-accent-strong: #165fd6;
+      --rte-emoji-ring: rgba(31, 117, 254, 0.18);
       position: fixed;
       top: 0;
       left: 0;
       right: 0;
       bottom: 0;
-      background-color: rgba(0, 0, 0, 0.5);
+      background-color: var(--rte-emoji-overlay-bg);
+      backdrop-filter: blur(2px);
       display: flex;
       align-items: center;
       justify-content: center;
       z-index: 1000;
+      padding: 16px;
+      box-sizing: border-box;
+    }
+
+    .emojis-overlay.rte-ui-theme-dark {
+      --rte-emoji-overlay-bg: rgba(2, 8, 20, 0.72);
+      --rte-emoji-dialog-bg: #202938;
+      --rte-emoji-dialog-text: #e8effc;
+      --rte-emoji-border: #49566c;
+      --rte-emoji-subtle-bg: #2a3444;
+      --rte-emoji-subtle-hover: #344256;
+      --rte-emoji-muted-text: #a5b1c5;
+      --rte-emoji-accent: #58a6ff;
+      --rte-emoji-accent-strong: #4598f4;
+      --rte-emoji-ring: rgba(88, 166, 255, 0.22);
     }
 
     .emojis-dialog {
-      background: white;
-      border-radius: 8px;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+      background: var(--rte-emoji-dialog-bg);
+      color: var(--rte-emoji-dialog-text);
+      border: 1px solid var(--rte-emoji-border);
+      border-radius: 12px;
+      box-shadow: 0 24px 48px rgba(10, 15, 24, 0.28);
       max-width: 800px;
       width: 90%;
       max-height: 80vh;
       display: flex;
       flex-direction: column;
+      overflow: hidden;
+    }
+
+    .emojis-header {
+      border-bottom: 1px solid var(--rte-emoji-border);
+      background: linear-gradient(180deg, rgba(127, 154, 195, 0.08) 0%, rgba(127, 154, 195, 0) 100%);
     }
 
     .emojis-header h3 {
-      color: #1a202c;
+      color: var(--rte-emoji-dialog-text);
+    }
+
+    .emojis-close {
+      color: var(--rte-emoji-muted-text);
+      border-radius: 8px;
+      transition: background-color 0.16s ease, color 0.16s ease;
+    }
+
+    .emojis-close:hover {
+      background-color: var(--rte-emoji-subtle-hover);
+      color: var(--rte-emoji-dialog-text);
     }
 
     .emojis-content {
@@ -317,7 +381,7 @@ function injectEmojiDialogStyles(): void {
       position: absolute;
       left: 28px;
       top: 27px;
-      color: #a0aec0;
+      color: var(--rte-emoji-muted-text);
       pointer-events: none;
       z-index: 1;
     }
@@ -325,34 +389,34 @@ function injectEmojiDialogStyles(): void {
     .emojis-search-input {
       width: calc(100% - 24px);
       padding: 10px 12px 10px 40px;
-      border: 1px solid #e1e5e9;
-      border-radius: 6px;
+      border: 1px solid var(--rte-emoji-border);
+      border-radius: 8px;
       font-size: 14px;
-      color: #2d3748;
-      background-color: #ffffff;
+      color: var(--rte-emoji-dialog-text);
+      background-color: var(--rte-emoji-subtle-bg);
       transition: border-color 0.2s ease, box-shadow 0.2s ease;
     }
 
     .emojis-search-input:focus {
       outline: none;
-      border-color: #4299e1;
-      box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
+      border-color: var(--rte-emoji-accent);
+      box-shadow: 0 0 0 3px var(--rte-emoji-ring);
     }
 
-    .emojis-search-input:focus + .emojis-search-icon {
-      color: #4299e1;
+    .emojis-search:focus-within .emojis-search-icon {
+      color: var(--rte-emoji-accent);
     }
 
     .emojis-search-input::placeholder {
-      color: #a0aec0;
+      color: var(--rte-emoji-muted-text);
     }
 
     .emojis-tabs {
       display: flex;
       flex-direction: column;
       width: 180px;
-      border-right: 1px solid #e1e5e9;
-      background-color: #f8fafc;
+      border-right: 1px solid var(--rte-emoji-border);
+      background-color: var(--rte-emoji-subtle-bg);
     }
 
     .emojis-tab {
@@ -362,24 +426,24 @@ function injectEmojiDialogStyles(): void {
       text-align: left;
       cursor: pointer;
       font-size: 14px;
-      color: #4a5568;
-      border-bottom: 1px solid #e1e5e9;
+      color: var(--rte-emoji-muted-text);
+      border-bottom: 1px solid var(--rte-emoji-border);
       transition: all 0.2s ease;
     }
 
     .emojis-tab:hover {
-      background-color: #edf2f7;
-      color: #2d3748;
+      background-color: var(--rte-emoji-subtle-hover);
+      color: var(--rte-emoji-dialog-text);
     }
 
     .emojis-tab.active {
-      background-color: #4299e1;
-      color: white;
+      background-color: var(--rte-emoji-accent);
+      color: #fff;
       font-weight: 500;
     }
 
     .emojis-tab.active:hover {
-      background-color: #3182ce;
+      background-color: var(--rte-emoji-accent-strong);
     }
 
     .emojis-grid {
@@ -396,19 +460,19 @@ function injectEmojiDialogStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      border: 1px solid #e1e5e9;
-      background: white;
-      border-radius: 4px;
+      border: 1px solid var(--rte-emoji-border);
+      background: var(--rte-emoji-subtle-bg);
+      border-radius: 8px;
       cursor: pointer;
       font-size: 18px;
       transition: all 0.2s ease;
-      color: #2d3748;
+      color: var(--rte-emoji-dialog-text);
     }
 
     .emojis-item:hover {
-      background-color: #4299e1;
-      border-color: #4299e1;
-      color: white;
+      background-color: var(--rte-emoji-accent);
+      border-color: var(--rte-emoji-accent);
+      color: #fff;
       transform: scale(1.05);
     }
 
@@ -419,12 +483,12 @@ function injectEmojiDialogStyles(): void {
     .emojis-no-results {
       grid-column: 1 / -1;
       text-align: center;
-      color: #718096;
+      color: var(--rte-emoji-muted-text);
       font-size: 14px;
       padding: 40px 20px;
-      background-color: #f8fafc;
-      border-radius: 6px;
-      border: 1px solid #e1e5e9;
+      background-color: var(--rte-emoji-subtle-bg);
+      border-radius: 8px;
+      border: 1px solid var(--rte-emoji-border);
     }
 
     /* Responsive design */
@@ -441,14 +505,14 @@ function injectEmojiDialogStyles(): void {
       .emojis-tabs {
         width: 100%;
         border-right: none;
-        border-bottom: 1px solid #e1e5e9;
+        border-bottom: 1px solid var(--rte-emoji-border);
         flex-direction: row;
         overflow-x: auto;
       }
 
       .emojis-tab {
         border-bottom: none;
-        border-right: 1px solid #e1e5e9;
+        border-right: 1px solid var(--rte-emoji-border);
         white-space: nowrap;
         min-width: 80px;
       }
