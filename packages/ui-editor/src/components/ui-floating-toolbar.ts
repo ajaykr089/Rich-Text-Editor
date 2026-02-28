@@ -21,7 +21,13 @@ export class UIFloatingToolbar extends ElementBase {
     this.setContent(`<slot></slot>`);
     if (open && anchorId) {
       const anchor = document.getElementById(anchorId);
-      if (!anchor) return;
+      // if anchor not present, cleanup any previous portal and bail out
+      if (!anchor) {
+        if (this._cleanup) { try { this._cleanup(); } catch (e) {} this._cleanup = undefined; }
+        this._portalEl = null;
+        return;
+      }
+
       if (!this._portalEl) this._portalEl = document.createElement('div');
       this._portalEl.innerHTML = '';
       const panel = document.createElement('div');

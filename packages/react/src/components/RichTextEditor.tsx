@@ -39,6 +39,8 @@ const EditorCore: React.FC<RichTextEditorProps> = (props) => {
     props.className,
     props.value,
     props.defaultValue,
+    props.readonly,
+    props.placeholder,
     props.plugins,
     props.toolbar,
     props.menubar,
@@ -61,6 +63,8 @@ const EditorCore: React.FC<RichTextEditorProps> = (props) => {
   const apiRef = useRef<EditorAPI | null>(null);
   const onInitRef = useRef(props.onInit);
   const onDestroyRef = useRef(props.onDestroy);
+  const onChangeRef = useRef(props.onChange);
+  const changeSubscribersRef = useRef(new Set<(html: string) => void>());
   const editorContainerRef = useRef<HTMLDivElement>(null);
   const statusBarRef = useRef<StatusBar | null>(null);
   const statusBarElementRef = useRef<HTMLDivElement>(null);
@@ -69,7 +73,19 @@ const EditorCore: React.FC<RichTextEditorProps> = (props) => {
   useEffect(() => {
     onInitRef.current = props.onInit;
     onDestroyRef.current = props.onDestroy;
+    onChangeRef.current = props.onChange;
   });
+
+  const handleContentChange = (html: string) => {
+    onChangeRef.current?.(html);
+    changeSubscribersRef.current.forEach((subscriber) => {
+      try {
+        subscriber(html);
+      } catch (error) {
+        console.error('Editora onChange subscriber failed:', error);
+      }
+    });
+  };
 
   const editor = useMemo(() => {
     const pluginManager = new PluginManager();
@@ -103,6 +119,7 @@ const EditorCore: React.FC<RichTextEditorProps> = (props) => {
       },
       execCommand: (name: string, value?: any) => {
         if (typeof window !== 'undefined' && (window as any).executeEditorCommand) {
+          (window as any).__editoraCommandEditorRoot = editorContainerRef.current || null;
           (window as any).executeEditorCommand(name, value);
         }
       },
@@ -126,8 +143,10 @@ const EditorCore: React.FC<RichTextEditorProps> = (props) => {
         }
       },
       onChange: (fn: (html: string) => void) => {
-        // Subscribe to changes and return unsubscribe function
-        return () => {};
+        changeSubscribersRef.current.add(fn);
+        return () => {
+          changeSubscribersRef.current.delete(fn);
+        };
       },
       getState: () => ({
         plugins: config.plugins,
@@ -146,6 +165,7 @@ const EditorCore: React.FC<RichTextEditorProps> = (props) => {
     }
     
     return () => {
+      changeSubscribersRef.current.clear();
       if (onDestroyRef.current) {
         onDestroyRef.current();
       }
@@ -167,20 +187,50 @@ const EditorCore: React.FC<RichTextEditorProps> = (props) => {
       // Set up status bar updates
       const contentEl = editorContainerRef.current.querySelector('.rte-content') as HTMLElement;
       if (contentEl) {
-        const updateStatusBar = () => {
+        const hasFocusWithinEditor = () => {
+          const activeElement = document.activeElement;
+          return !!activeElement && (activeElement === contentEl || contentEl.contains(activeElement));
+        };
+
+        const isEditorInViewport = () => {
+          const rect = contentEl.getBoundingClientRect();
+          return rect.bottom >= 0 && rect.top <= window.innerHeight;
+        };
+
+        const getSelectionRangeInEditor = (): Range | null => {
+          const selection = window.getSelection();
+          if (!selection || selection.rangeCount === 0) return null;
+
+          const range = selection.getRangeAt(0);
+          const commonAncestor = range.commonAncestorContainer;
+          return contentEl.contains(commonAncestor) ? range : null;
+        };
+
+        const updateStatusBar = (fromSelectionEvent = false) => {
+          const viewportOnlyScan = config.performance.viewportOnlyScan !== false;
+          if (viewportOnlyScan && !isEditorInViewport() && !hasFocusWithinEditor()) {
+            return;
+          }
+
+          const rangeInEditor = getSelectionRangeInEditor();
+          const isRelevantSelectionChange = !!rangeInEditor || hasFocusWithinEditor();
+
+          // Ignore selection changes that belong to other editors/DOM areas.
+          if (fromSelectionEvent && !isRelevantSelectionChange) {
+            return;
+          }
+
           const text = contentEl.textContent || '';
           const { words, chars } = calculateTextStats(text);
           const lines = countLines(contentEl);
 
-          const selection = window.getSelection();
           let cursorPosition, selectionInfo;
 
-          if (selection && selection.rangeCount > 0) {
-            const range = selection.getRangeAt(0);
-            cursorPosition = getCursorPosition(contentEl, range);
+          if (rangeInEditor) {
+            cursorPosition = getCursorPosition(contentEl, rangeInEditor);
 
-            if (!range.collapsed) {
-              selectionInfo = getSelectionInfo(range, cursorPosition);
+            if (!rangeInEditor.collapsed) {
+              selectionInfo = getSelectionInfo(rangeInEditor, cursorPosition);
               cursorPosition = undefined; // Don't show cursor position when text is selected
             }
           }
@@ -194,19 +244,26 @@ const EditorCore: React.FC<RichTextEditorProps> = (props) => {
           });
         };
 
+        const handleInput = () => updateStatusBar();
+        const handleSelectionChange = () => updateStatusBar(true);
+        const handleFocus = () => updateStatusBar();
+        const handleBlur = () => updateStatusBar();
+
         // Add event listeners for real-time updates
-        contentEl.addEventListener('input', updateStatusBar);
-        contentEl.addEventListener('selectionchange', updateStatusBar);
-        document.addEventListener('selectionchange', updateStatusBar);
+        contentEl.addEventListener('input', handleInput);
+        contentEl.addEventListener('focus', handleFocus);
+        contentEl.addEventListener('blur', handleBlur);
+        document.addEventListener('selectionchange', handleSelectionChange);
 
         // Initial update
         updateStatusBar();
 
         // Store cleanup function
         return () => {
-          contentEl.removeEventListener('input', updateStatusBar);
-          contentEl.removeEventListener('selectionchange', updateStatusBar);
-          document.removeEventListener('selectionchange', updateStatusBar);
+          contentEl.removeEventListener('input', handleInput);
+          contentEl.removeEventListener('focus', handleFocus);
+          contentEl.removeEventListener('blur', handleBlur);
+          document.removeEventListener('selectionchange', handleSelectionChange);
         };
       }
     } else {
@@ -223,11 +280,12 @@ const EditorCore: React.FC<RichTextEditorProps> = (props) => {
         statusBarRef.current = null;
       }
     };
-  }, [config.statusbar.enabled, config.statusbar.position]);
+  }, [config.statusbar.enabled, config.statusbar.position, config.performance.viewportOnlyScan]);
 
   const floatingToolbarEnabled = config.toolbar.floating ?? false;
   const toolbarPosition = (config.toolbar as any).position || 'top';
   const stickyToolbar = config.toolbar.sticky ?? false;
+  const showMoreOptions = config.toolbar.showMoreOptions ?? true;
 
   return (
     <DynamicProviderWrapper plugins={config.plugins}>
@@ -235,7 +293,9 @@ const EditorCore: React.FC<RichTextEditorProps> = (props) => {
         ref={editorContainerRef}
         id={config.id}
         data-editora-editor
+        data-readonly={config.readonly ? 'true' : 'false'}
         className={`rte-editor ${config.className || ""}`}
+        lang={config.language.locale}
         dir={config.language.direction}
         style={{
           display: 'flex',
@@ -249,18 +309,26 @@ const EditorCore: React.FC<RichTextEditorProps> = (props) => {
             position={toolbarPosition}
             sticky={stickyToolbar}
             floating={floatingToolbarEnabled}
+            readonly={config.readonly}
+            showMoreOptions={showMoreOptions}
+            itemsOverride={config.toolbar.items}
           />
         )}
         <EditorContent 
           editor={editor}
           defaultValue={config.defaultValue}
           value={config.value}
-          onChange={config.onChange}
+          readonly={config.readonly}
+          placeholder={config.placeholder}
+          onChange={handleContentChange}
           pasteConfig={config.paste}
           contentConfig={config.content}
           securityConfig={config.security}
           performanceConfig={config.performance}
+          accessibilityConfig={config.accessibility}
           autosaveConfig={config.autosave}
+          contextMenuConfig={config.contextMenu}
+          spellcheckConfig={config.spellcheck}
         />
         {toolbarPosition === 'bottom' && (
           <Toolbar 
@@ -268,11 +336,16 @@ const EditorCore: React.FC<RichTextEditorProps> = (props) => {
             position={toolbarPosition}
             sticky={stickyToolbar}
             floating={floatingToolbarEnabled}
+            readonly={config.readonly}
+            showMoreOptions={showMoreOptions}
+            itemsOverride={config.toolbar.items}
           />
         )}
         <FloatingToolbar
           editor={editor}
           isEnabled={floatingToolbarEnabled}
+          viewportOnlyScan={config.performance.viewportOnlyScan}
+          readonly={config.readonly}
         />
         {config.statusbar.enabled && (
           <div 

@@ -2,22 +2,185 @@ export * from './signal';
 export * from './ElementBase';
 import './components/ui-button';
 import './components/ui-tooltip';
-import './components/ui-modal';
 import './components/ui-dropdown';
 import './components/ui-input';
+import './components/ui-form';
 import './components/ui-popover';
 import './components/ui-tabs';
 import './components/ui-menu';
 import './components/ui-icon';
 import './components/ui-toast';
+import './components/ui-label';
+import './components/ui-pagination';
+import './components/ui-hover-card';
+import './components/ui-collapsible';
+import './components/ui-direction-provider';
+import './components/ui-accordion';
+import './components/ui-checkbox';
+import './components/ui-radio-group';
+import './components/ui-switch';
+import './components/ui-slider';
+import './components/ui-select';
+import './components/ui-toggle';
+import './components/ui-toggle-group';
+import './components/ui-alert-dialog';
+import './components/ui-aspect-ratio';
+import './components/ui-avatar';
+import './components/ui-badge';
+import './components/ui-table';
+import './components/ui-navigation-menu';
+import './components/ui-menubar';
+import './components/ui-context-menu';
+import './components/ui-presence';
+import './components/ui-progress';
+import './components/ui-scroll-area';
+import './components/ui-separator';
+import './components/ui-slot';
+import './components/ui-toolbar';
+import './components/ui-portal';
+import './components/ui-visually-hidden';
+import './components/ui-breadcrumb';
+import './components/ui-sidebar';
+import './components/ui-app-header';
+import './components/ui-drawer';
+import './components/ui-dialog';
+import './components/ui-layout';
+import './components/ui-block-controls';
+import './components/ui-plugin-panel';
+import './components/ui-floating-toolbar';
+import './components/ui-selection-popup';
+import './components/ui-command-palette';
+import './components/ui-textarea';
+import './components/ui-field';
+import './components/ui-combobox';
+import './components/ui-alert';
+import './components/ui-skeleton';
+import './components/ui-empty-state';
+import './components/ui-data-table';
+import './components/ui-chart';
+import './components/ui-timeline';
+import './components/ui-calendar';
+import './components/ui-color-picker';
+import './components/ui-date-picker';
+import './components/ui-date-range-picker';
+import './components/ui-time-picker';
+import './components/ui-date-time-picker';
+import './components/ui-date-range-time-picker';
+import './components/ui-gantt';
+import './components/ui-stepper';
+import './components/ui-wizard';
+import './components/ui-quick-actions';
+
+
+// layout primitives
+import './components/ui-box';
+import './components/ui-flex';
+import './components/ui-grid';
+import './components/ui-section';
+import './components/ui-container';
 import { showToast } from './toast';
 
 export { showToast };
+export * from './alert-dialog-manager';
+export * from './dialog-manager';
 
 export * from './theme';
 export * from './portal';
 export * from './focusManager';
+export * from './overlayManager';
 export * from './plugin';
+export * from './icons';
 
 // Re-export custom element types for TS consumers
 export { UIButton } from './components/ui-button';
+export { UITooltip } from './components/ui-tooltip';
+export { UIDropdown } from './components/ui-dropdown';
+export { UIInput } from './components/ui-input';
+export { UIForm } from './components/ui-form';
+export { UIPopover } from './components/ui-popover';
+export { UITabs } from './components/ui-tabs';
+export { UIMenu } from './components/ui-menu';
+export { UIIcon } from './components/ui-icon';
+export { UIToast } from './components/ui-toast';
+export { UILabel } from './components/ui-label';
+export { UIPagination } from './components/ui-pagination';
+export { UIHoverCard } from './components/ui-hover-card';
+export { UICollapsible } from './components/ui-collapsible';
+export { UIDirectionProvider } from './components/ui-direction-provider';
+export { UIAccordion } from './components/ui-accordion';
+export { UICheckbox } from './components/ui-checkbox';
+export { UIRadioGroup } from './components/ui-radio-group';
+export { UISwitch } from './components/ui-switch';
+export { UISlider } from './components/ui-slider';
+export { UISelect } from './components/ui-select';
+export { UIToggle } from './components/ui-toggle';
+export { UIToggleGroup } from './components/ui-toggle-group';
+export { UIAlertDialog } from './components/ui-alert-dialog';
+export type {
+  UIAlertDialogTemplateOptions,
+  UIAlertDialogOpenDetail,
+  UIAlertDialogConfirmDetail,
+  UIAlertDialogCancelDetail,
+  UIAlertDialogDismissDetail,
+  UIAlertDialogCloseDetail
+} from './components/ui-alert-dialog';
+export { UIAspectRatio } from './components/ui-aspect-ratio';
+export { UIAvatar } from './components/ui-avatar';
+export { UIBadge } from './components/ui-badge';
+export { UITable } from './components/ui-table';
+export { UINavigationMenu } from './components/ui-navigation-menu';
+export { UIMenubar } from './components/ui-menubar';
+export { UIContextMenu } from './components/ui-context-menu';
+export { UIPresence } from './components/ui-presence';
+export { UIProgress } from './components/ui-progress';
+export { UIScrollArea } from './components/ui-scroll-area';
+export { UISeparator } from './components/ui-separator';
+export { UISlot } from './components/ui-slot';
+export { UIToolbar } from './components/ui-toolbar';
+export { UIPortal } from './components/ui-portal';
+export { UIVisuallyHidden } from './components/ui-visually-hidden';
+export { UIBox } from './components/ui-box';
+export { UIFlex } from './components/ui-flex';
+export { UIGrid } from './components/ui-grid';
+export { UISection } from './components/ui-section';
+export { UIContainer } from './components/ui-container';
+export { UIBreadcrumb } from './components/ui-breadcrumb';
+export { UISidebar } from './components/ui-sidebar';
+export { UIAppHeader } from './components/ui-app-header';
+export { UIDrawer } from './components/ui-drawer';
+export { UIDialog } from './components/ui-dialog';
+export type {
+  UIDialogTemplateOptions,
+  UIDialogOpenDetail,
+  UIDialogSubmitDetail,
+  UIDialogCancelDetail,
+  UIDialogDismissDetail,
+  UIDialogCloseDetail,
+  UIDialogRequestCloseReason
+} from './components/ui-dialog';
+export { UILayout } from './components/ui-layout';
+export { UIBlockControls } from './components/ui-block-controls';
+export { UIPluginPanel } from './components/ui-plugin-panel';
+export { UIFloatingToolbar } from './components/ui-floating-toolbar';
+export { UISelectionPopup } from './components/ui-selection-popup';
+export { UICommandPalette } from './components/ui-command-palette';
+export { UITextarea } from './components/ui-textarea';
+export { UIField } from './components/ui-field';
+export { UICombobox } from './components/ui-combobox';
+export { UIAlert } from './components/ui-alert';
+export { UISkeleton } from './components/ui-skeleton';
+export { UIEmptyState } from './components/ui-empty-state';
+export { UIDataTable } from './components/ui-data-table';
+export { UIChart } from './components/ui-chart';
+export { UITimeline } from './components/ui-timeline';
+export { UICalendar } from './components/ui-calendar';
+export { UIColorPicker } from './components/ui-color-picker';
+export { UIDatePicker } from './components/ui-date-picker';
+export { UIDateRangePicker } from './components/ui-date-range-picker';
+export { UITimePicker } from './components/ui-time-picker';
+export { UIDateTimePicker } from './components/ui-date-time-picker';
+export { UIDateRangeTimePicker } from './components/ui-date-range-time-picker';
+export { UIGantt } from './components/ui-gantt';
+export { UIStepper } from './components/ui-stepper';
+export { UIWizard } from './components/ui-wizard';
+export { UIQuickActions } from './components/ui-quick-actions';

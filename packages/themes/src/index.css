@@ -189,16 +189,20 @@
   font-size: 14px;
   line-height: 1;
 }
-
-.rte-toolbar-button svg {
-  flex-shrink: 0;
-  fill: currentColor;
-  stroke: currentColor;
-  width: 20px;
-  height: 20px;
+.rte-toolbar-button span{
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
-.rte-toolbar-button svg path {
+.rte-toolbar-button svg,
+.editora-toolbar-button svg,
+.editora-toolbar-icon svg {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  display: block;
+  color: currentColor;
   fill: currentColor;
 }
 
@@ -206,9 +210,8 @@
   opacity: 0.9;
 }
 
-.rte-toolbar-button[data-active="true"] svg {
-  fill: var(--rte-color-text-inverse);
-  stroke: var(--rte-color-text-inverse);
+:is(.rte-toolbar-button[data-active="true"], .editora-toolbar-button.active) svg {
+  color: var(--rte-color-text-inverse);
 }
 
 .rte-toolbar-button:hover {
@@ -321,7 +324,8 @@
 }
 
 /* Placeholder Styles */
-.rte-content:empty:before {
+.rte-content:empty:before,
+.rte-content.rte-content-empty:before {
   content: attr(data-placeholder);
   color: var(--rte-color-text-muted);
   pointer-events: none;

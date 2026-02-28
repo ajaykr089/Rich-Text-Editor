@@ -63,7 +63,7 @@ That's it! You now have a working rich text editor.
 ```tsx
 import {
   LinkPlugin,
-  ImagePlugin,
+  MediaManagerPlugin,
   TablePlugin,
   CodeSamplePlugin
 } from '@editora/plugins';
@@ -71,7 +71,7 @@ import {
 const advancedPlugins = [
   ...plugins, // Previous plugins
   LinkPlugin(),
-  ImagePlugin({
+  MediaManagerPlugin({
     upload: async (file) => {
       // Upload logic
       return '/path/to/uploaded/image.jpg';

@@ -8,16 +8,67 @@ export interface EditorConfigDefaults {
   width?: number | string;
   readonly?: boolean;
   disabled?: boolean;
-  menubar?: boolean;
-  toolbar?: string | boolean;
-  plugins?: string | string[];
+  menubar?: boolean | { enabled?: boolean; items?: string[] };
+  toolbar?:
+    | string
+    | boolean
+    | {
+        items?: string | string[];
+        floating?: boolean;
+        sticky?: boolean;
+        showMoreOptions?: boolean;
+      };
+  plugins?: string | string[] | any[];
+  pluginConfig?: Record<string, unknown>;
   theme?: string;
   content?: string;
   placeholder?: string;
   autofocus?: boolean;
-  autosave?: boolean | { interval?: number };
-  spellcheck?: boolean | { mode?: 'local' | 'api' | 'hybrid'; apiUrl?: string };
-  language?: string;
+  autosave?:
+    | boolean
+    | {
+        enabled?: boolean;
+        interval?: number;
+        intervalMs?: number;
+        storageKey?: string;
+        provider?: 'localStorage' | 'api';
+        apiUrl?: string;
+      };
+  accessibility?: {
+    enableARIA?: boolean;
+    keyboardNavigation?: boolean;
+    checker?: boolean;
+  };
+  performance?: {
+    debounceInputMs?: number;
+    viewportOnlyScan?: boolean;
+  };
+  spellcheck?:
+    | boolean
+    | {
+        enabled?: boolean;
+        provider?: 'browser' | 'local' | 'api';
+        mode?: 'local' | 'api' | 'hybrid';
+        apiUrl?: string;
+        apiHeaders?: Record<string, string>;
+      };
+  language?: string | { locale?: string; direction?: 'ltr' | 'rtl' };
+  contextMenu?: { enabled?: boolean } | boolean;
+  contentConfig?: {
+    allowedTags?: string[];
+    allowedAttributes?: Record<string, string[]>;
+    sanitize?: boolean;
+  };
+  paste?: {
+    clean?: boolean;
+    keepFormatting?: boolean;
+    convertWord?: boolean;
+  };
+  security?: {
+    sanitizeOnPaste?: boolean;
+    sanitizeOnInput?: boolean;
+  };
+  statusbar?: boolean | { enabled?: boolean; position?: 'top' | 'bottom' };
   [key: string]: any;
 }
 
@@ -42,8 +93,42 @@ export class ConfigResolver {
     placeholder: 'Start typing...',
     autofocus: false,
     autosave: false,
-    spellcheck: false,
-    language: 'en',
+    accessibility: {
+      enableARIA: true,
+      keyboardNavigation: true,
+      checker: false,
+    },
+    performance: {
+      debounceInputMs: 100,
+      viewportOnlyScan: true,
+    },
+    spellcheck: {
+      enabled: false,
+      provider: 'browser',
+      apiUrl: '',
+    },
+    language: {
+      locale: 'en',
+      direction: 'ltr',
+    },
+    contextMenu: {
+      enabled: true,
+    },
+    contentConfig: {
+      allowedTags: [],
+      allowedAttributes: {},
+      sanitize: true,
+    },
+    paste: {
+      clean: true,
+      keepFormatting: false,
+      convertWord: true,
+    },
+    security: {
+      sanitizeOnPaste: true,
+      sanitizeOnInput: true,
+    },
+    statusbar: false,
   };
 
   /**
@@ -70,8 +155,325 @@ export class ConfigResolver {
     if (sources.jsConfig) {
       Object.assign(config, sources.jsConfig);
     }
-    
-    return config;
+
+    return this.normalizeConfig(config);
+  }
+
+  /**
+   * Normalize mixed legacy/new config shapes
+   */
+  private static normalizeConfig(config: EditorConfigDefaults): EditorConfigDefaults {
+    const normalized = { ...config };
+
+    // Bridge flattened toolbar attributes into toolbar object config.
+    if (normalized.toolbarFloating !== undefined || normalized.toolbarSticky !== undefined) {
+      const toolbarObject: Record<string, any> =
+        typeof normalized.toolbar === 'object' && normalized.toolbar
+          ? { ...(normalized.toolbar as Record<string, any>) }
+          : typeof normalized.toolbar === 'string'
+            ? { items: normalized.toolbar }
+            : {};
+
+      if (normalized.toolbarFloating !== undefined) {
+        toolbarObject.floating = Boolean(normalized.toolbarFloating);
+      }
+      if (normalized.toolbarSticky !== undefined) {
+        toolbarObject.sticky = Boolean(normalized.toolbarSticky);
+      }
+
+      normalized.toolbar = toolbarObject;
+    }
+
+    if (normalized.toolbarItems !== undefined && typeof normalized.toolbar === 'object' && normalized.toolbar) {
+      (normalized.toolbar as Record<string, any>).items = normalized.toolbarItems;
+    }
+
+    // autosave: boolean -> object, and bridge flattened attributes.
+    if (
+      normalized.autosaveEnabled !== undefined ||
+      normalized.autosaveIntervalMs !== undefined ||
+      normalized.autosaveStorageKey !== undefined ||
+      normalized.autosaveProvider !== undefined ||
+      normalized.autosaveApiUrl !== undefined
+    ) {
+      const autosaveObject =
+        typeof normalized.autosave === 'object' && normalized.autosave
+          ? { ...(normalized.autosave as Record<string, any>) }
+          : {};
+
+      if (normalized.autosaveEnabled !== undefined) autosaveObject.enabled = Boolean(normalized.autosaveEnabled);
+      if (normalized.autosaveIntervalMs !== undefined) autosaveObject.intervalMs = Number(normalized.autosaveIntervalMs);
+      if (normalized.autosaveStorageKey !== undefined) autosaveObject.storageKey = normalized.autosaveStorageKey;
+      if (normalized.autosaveProvider !== undefined) autosaveObject.provider = normalized.autosaveProvider;
+      if (normalized.autosaveApiUrl !== undefined) autosaveObject.apiUrl = normalized.autosaveApiUrl;
+
+      normalized.autosave = autosaveObject;
+    }
+
+    const autosaveDefault = {
+      enabled: false,
+      intervalMs: 30000,
+      storageKey: 'rte-autosave',
+      provider: 'localStorage' as const,
+      apiUrl: '',
+    };
+    if (typeof normalized.autosave === 'boolean') {
+      normalized.autosave = {
+        ...autosaveDefault,
+        enabled: normalized.autosave,
+      };
+    } else if (typeof normalized.autosave === 'object' && normalized.autosave) {
+      const merged = {
+        ...autosaveDefault,
+        ...normalized.autosave,
+      } as Record<string, any>;
+
+      if (merged.intervalMs === undefined && merged.interval !== undefined) {
+        merged.intervalMs = Number(merged.interval);
+      }
+
+      if (merged.enabled === undefined) {
+        merged.enabled = true;
+      }
+
+      if (!Number.isFinite(merged.intervalMs) || merged.intervalMs <= 0) {
+        merged.intervalMs = autosaveDefault.intervalMs;
+      }
+
+      normalized.autosave = merged;
+    } else {
+      normalized.autosave = autosaveDefault;
+    }
+
+    // language: string -> object
+    if (normalized.languageLocale !== undefined || normalized.languageDirection !== undefined) {
+      const languageObject =
+        typeof normalized.language === 'object' && normalized.language
+          ? { ...(normalized.language as Record<string, any>) }
+          : {};
+
+      if (normalized.languageLocale !== undefined) {
+        languageObject.locale = normalized.languageLocale;
+      }
+      if (normalized.languageDirection !== undefined) {
+        languageObject.direction = normalized.languageDirection;
+      }
+
+      normalized.language = languageObject;
+    }
+
+    const languageDefault = { locale: 'en', direction: 'ltr' as const };
+    if (typeof normalized.language === 'string') {
+      normalized.language = {
+        locale: normalized.language,
+        direction: languageDefault.direction,
+      };
+    } else if (typeof normalized.language === 'object' && normalized.language) {
+      normalized.language = {
+        ...languageDefault,
+        ...normalized.language,
+      };
+    } else {
+      normalized.language = languageDefault;
+    }
+
+    // spellcheck: boolean -> object, and infer enabled when object is provided
+    if (
+      normalized.spellcheckEnabled !== undefined ||
+      normalized.spellcheckProvider !== undefined ||
+      normalized.spellcheckApiUrl !== undefined
+    ) {
+      const spellcheckObject =
+        typeof normalized.spellcheck === 'object' && normalized.spellcheck
+          ? { ...(normalized.spellcheck as Record<string, any>) }
+          : {};
+
+      if (normalized.spellcheckEnabled !== undefined) {
+        spellcheckObject.enabled = Boolean(normalized.spellcheckEnabled);
+      }
+      if (normalized.spellcheckProvider !== undefined) {
+        spellcheckObject.provider = normalized.spellcheckProvider;
+      }
+      if (normalized.spellcheckApiUrl !== undefined) {
+        spellcheckObject.apiUrl = normalized.spellcheckApiUrl;
+      }
+
+      normalized.spellcheck = spellcheckObject;
+    }
+
+    const spellcheckDefault = {
+      enabled: false,
+      provider: 'browser' as const,
+      apiUrl: '',
+    };
+    if (typeof normalized.spellcheck === 'boolean') {
+      normalized.spellcheck = {
+        ...spellcheckDefault,
+        enabled: normalized.spellcheck,
+      };
+    } else if (typeof normalized.spellcheck === 'object' && normalized.spellcheck) {
+      const merged = {
+        ...spellcheckDefault,
+        ...normalized.spellcheck,
+      } as Record<string, any>;
+
+      if (!merged.provider && merged.mode) {
+        merged.provider = merged.mode === 'local' ? 'browser' : 'api';
+      }
+
+      if (merged.enabled === undefined) {
+        merged.enabled = Boolean(merged.mode || merged.provider || merged.apiUrl);
+      }
+      normalized.spellcheck = merged;
+    } else {
+      normalized.spellcheck = spellcheckDefault;
+    }
+
+    // contextMenu: boolean -> object
+    if (normalized.contextMenuEnabled !== undefined) {
+      normalized.contextMenu = {
+        enabled: Boolean(normalized.contextMenuEnabled),
+      };
+    }
+
+    if (typeof normalized.contextMenu === 'boolean') {
+      normalized.contextMenu = { enabled: normalized.contextMenu };
+    } else if (typeof normalized.contextMenu === 'object' && normalized.contextMenu) {
+      normalized.contextMenu = {
+        enabled: normalized.contextMenu.enabled !== false,
+      };
+    } else {
+      normalized.contextMenu = { enabled: true };
+    }
+
+    // paste defaults
+    if (
+      normalized.pasteClean !== undefined ||
+      normalized.pasteKeepFormatting !== undefined ||
+      normalized.pasteConvertWord !== undefined
+    ) {
+      normalized.paste = {
+        ...(normalized.paste || {}),
+        ...(normalized.pasteClean !== undefined ? { clean: Boolean(normalized.pasteClean) } : {}),
+        ...(normalized.pasteKeepFormatting !== undefined
+          ? { keepFormatting: Boolean(normalized.pasteKeepFormatting) }
+          : {}),
+        ...(normalized.pasteConvertWord !== undefined
+          ? { convertWord: Boolean(normalized.pasteConvertWord) }
+          : {}),
+      };
+    }
+
+    normalized.paste = {
+      clean: true,
+      keepFormatting: false,
+      convertWord: true,
+      ...(normalized.paste || {}),
+    };
+
+    // content config defaults
+    normalized.contentConfig = {
+      allowedTags: [],
+      allowedAttributes: {},
+      sanitize: true,
+      ...(normalized.contentConfig || {}),
+    };
+
+    // security: bridge flattened attributes + defaults
+    if (
+      normalized.securitySanitizeOnPaste !== undefined ||
+      normalized.securitySanitizeOnInput !== undefined
+    ) {
+      normalized.security = {
+        ...(normalized.security || {}),
+        ...(normalized.securitySanitizeOnPaste !== undefined
+          ? { sanitizeOnPaste: Boolean(normalized.securitySanitizeOnPaste) }
+          : {}),
+        ...(normalized.securitySanitizeOnInput !== undefined
+          ? { sanitizeOnInput: Boolean(normalized.securitySanitizeOnInput) }
+          : {}),
+      };
+    }
+
+    normalized.security = {
+      sanitizeOnPaste: true,
+      sanitizeOnInput: true,
+      ...(normalized.security || {}),
+    };
+
+    // accessibility defaults + flattened attribute bridge
+    if (
+      normalized.accessibilityEnableAria !== undefined ||
+      normalized.accessibilityKeyboardNavigation !== undefined ||
+      normalized.accessibilityChecker !== undefined
+    ) {
+      normalized.accessibility = {
+        ...(normalized.accessibility || {}),
+        ...(normalized.accessibilityEnableAria !== undefined
+          ? { enableARIA: Boolean(normalized.accessibilityEnableAria) }
+          : {}),
+        ...(normalized.accessibilityKeyboardNavigation !== undefined
+          ? { keyboardNavigation: Boolean(normalized.accessibilityKeyboardNavigation) }
+          : {}),
+        ...(normalized.accessibilityChecker !== undefined
+          ? { checker: Boolean(normalized.accessibilityChecker) }
+          : {}),
+      };
+    }
+
+    if (typeof normalized.accessibility === 'boolean') {
+      normalized.accessibility = {
+        enableARIA: normalized.accessibility,
+        keyboardNavigation: normalized.accessibility,
+        checker: false,
+      };
+    }
+
+    normalized.accessibility = {
+      enableARIA: true,
+      keyboardNavigation: true,
+      checker: false,
+      ...(normalized.accessibility || {}),
+    };
+
+    // performance defaults + flattened attribute bridge
+    if (
+      normalized.performanceDebounceInputMs !== undefined ||
+      normalized.performanceViewportOnlyScan !== undefined
+    ) {
+      normalized.performance = {
+        ...(normalized.performance || {}),
+        ...(normalized.performanceDebounceInputMs !== undefined
+          ? { debounceInputMs: Number(normalized.performanceDebounceInputMs) }
+          : {}),
+        ...(normalized.performanceViewportOnlyScan !== undefined
+          ? { viewportOnlyScan: Boolean(normalized.performanceViewportOnlyScan) }
+          : {}),
+      };
+    }
+
+    if (typeof normalized.performance === 'boolean') {
+      normalized.performance = {
+        debounceInputMs: 100,
+        viewportOnlyScan: normalized.performance,
+      };
+    }
+
+    normalized.performance = {
+      debounceInputMs: 100,
+      viewportOnlyScan: true,
+      ...(normalized.performance || {}),
+    };
+
+    if (
+      typeof (normalized.performance as any).debounceInputMs !== 'number' ||
+      !Number.isFinite((normalized.performance as any).debounceInputMs) ||
+      (normalized.performance as any).debounceInputMs < 0
+    ) {
+      (normalized.performance as any).debounceInputMs = 100;
+    }
+
+    return normalized;
   }
 
   /**

@@ -17,6 +17,24 @@ React components for Editora Rich Text Editor - A modern, extensible WYSIWYG edi
 npm install @editora/react @editora/core @editora/plugins @editora/themes
 ```
 
+### Runtime Dependency Matrix
+
+- Required: `@editora/react`, `@editora/core`, `react`, `react-dom`
+- Optional but recommended: `@editora/plugins` (toolbar/plugin features), `@editora/themes` (default/dark/acme CSS)
+- For smaller bundles: prefer `@editora/plugins/lite` or per-plugin subpaths like `@editora/plugins/bold`, and lazy-load heavy plugins (`document-manager`, `media-manager`, `spell-check`) via dynamic imports.
+
+Minimal install:
+
+```bash
+npm install @editora/react @editora/core react react-dom
+```
+
+Full-featured install:
+
+```bash
+npm install @editora/react @editora/core @editora/plugins @editora/themes react react-dom
+```
+
 ## 🎯 Overview
 
 The React package provides ready-to-use React components for building rich text editing experiences. It includes hooks, components, and utilities specifically designed for React applications.
@@ -69,7 +87,7 @@ import {
   ParagraphPlugin,
   ListPlugin,
   LinkPlugin,
-  ImagePlugin,
+  MediaManagerPlugin,
   TablePlugin,
   CodeSamplePlugin,
   HistoryPlugin
@@ -86,24 +104,7 @@ function FullEditor() {
     UnderlinePlugin(),
     HeadingPlugin(),
     ListPlugin(),
-    LinkPlugin({
-      onLinkClick: (url) => window.open(url, '_blank')
-    }),
-    createImagePlugin({
-      upload: async (file) => {
-        const formData = new FormData();
-        formData.append('image', file);
-        const response = await fetch('/api/upload', {
-          method: 'POST',
-          body: formData
-        });
-        const data = await response.json();
-        return data.url;
-      }
-    }),
-    createTablePlugin(),
-    createCodeSamplePlugin(),
-    createHistoryPlugin()
+    MediaManagerPlugin()
   ];
 
   return (
@@ -118,6 +119,40 @@ function FullEditor() {
     </div>
   );
 }
+```
+
+### Performance + Accessibility Config
+
+```tsx
+<EditoraEditor
+  plugins={[BoldPlugin(), ItalicPlugin()]}
+  accessibility={{
+    enableARIA: true,
+    keyboardNavigation: true,
+    checker: true, // auto-enables a11y checker if factory/plugin is available
+  }}
+  performance={{
+    debounceInputMs: 120,
+    viewportOnlyScan: true,
+  }}
+/>
+```
+
+### Content Sizing (Scrollable vs Auto Height)
+
+```tsx
+// Default: fixed layout + scrollable content area
+<EditoraEditor plugins={[BoldPlugin()]} />
+
+// Optional: grow editor content height with content
+<EditoraEditor
+  plugins={[BoldPlugin()]}
+  content={{
+    autoHeight: true,
+    minHeight: 220,
+    maxHeight: 700, // optional cap; keeps scrolling after cap
+  }}
+/>
 ```
 
 ### With Custom Toolbar
@@ -181,7 +216,6 @@ interface EditoraEditorProps {
   // Styling
   className?: string;
   style?: React.CSSProperties;
-  theme?: 'light' | 'dark' | 'auto';
   
   // Toolbar
   showToolbar?: boolean;
@@ -283,28 +317,36 @@ const {
 ```tsx
 
 import "@editora/themes/themes/default.css";
+import "@editora/themes/themes/dark.css";
+import "@editora/themes/themes/acme.css";
 
-<EditoraEditor theme="dark" />
+<div data-theme="dark">
+  <EditoraEditor />
+</div>
 ```
 
 ### Custom Theme
 
 ```css
-:root {
-  --editora-bg: #ffffff;
-  --editora-text: #000000;
-  --editora-border: #cccccc;
-  --editora-primary: #0066cc;
-  --editora-toolbar-bg: #f5f5f5;
+:is([data-theme="custom-brand"], .editora-theme-custom-brand) {
+  --rte-color-primary: #2563eb;
+  --rte-color-primary-hover: #1d4ed8;
+  --rte-color-text-primary: #0f172a;
+  --rte-color-bg-primary: #ffffff;
+  --rte-color-border: #cbd5e1;
 }
 
 [data-theme="dark"] {
-  --editora-bg: #1e1e1e;
-  --editora-text: #ffffff;
-  --editora-border: #444444;
-  --editora-primary: #3399ff;
-  --editora-toolbar-bg: #2d2d2d;
+  --rte-color-primary: #58a6ff;
 }
+```
+
+Apply it in React with a wrapper:
+
+```tsx
+<div data-theme="custom-brand">
+  <EditoraEditor />
+</div>
 ```
 
 ## 🔌 Plugin Configuration
@@ -323,9 +365,9 @@ const boldPlugin = BoldPlugin({
 ### Image Plugin with Upload
 
 ```tsx
-import { createImagePlugin } from '@editora/plugins';
+import { MediaManagerPlugin } from '@editora/plugins';
 
-const imagePlugin = createImagePlugin({
+const imagePlugin = MediaManagerPlugin({
   upload: async (file) => {
     const url = await uploadToServer(file);
     return url;
@@ -341,9 +383,9 @@ const imagePlugin = createImagePlugin({
 ### Link Plugin
 
 ```tsx
-import { createLinkPlugin } from '@editora/plugins';
+import { LinkPlugin } from '@editora/plugins';
 
-const linkPlugin = createLinkPlugin({
+const linkPlugin = LinkPlugin({
   openOnClick: false,
   validate: (url) => {
     return url.startsWith('http') || url.startsWith('https');

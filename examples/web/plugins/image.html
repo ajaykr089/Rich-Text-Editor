@@ -102,14 +102,14 @@
                     </ul>
 
                     <h2>Installation</h2>
-                    <pre><code>npm install @editora/plugin-image</code></pre>
+                    <pre><code>npm install @editora/plugin-media-manager</code></pre>
 
                     <h2>Basic Usage</h2>
                     <pre><code>import Editora from '@editora/core';
-import ImagePlugin from '@editora/plugin-image';
+import MediaManagerPlugin from '@editora/plugin-media-manager';
 
 const editor = new Editora('#editor');
-editor.use(ImagePlugin, {
+editor.use(MediaManagerPlugin, {
     uploadUrl: '/api/upload',
     maxSize: 5000000 // 5MB
 });</code></pre>

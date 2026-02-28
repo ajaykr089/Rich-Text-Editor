@@ -21,6 +21,8 @@ const config: StorybookConfig = {
           '@editora/plugins': path.resolve(__dirname, '../packages/plugins/src'),
           '@editora/themes': path.resolve(__dirname, '../packages/themes/src'),
           '@editora/toast': path.resolve(__dirname, '../packages/editora-toast/src'),
+          '@editora/icons': path.resolve(__dirname, '../packages/icons/src'),
+          '@editora/react-icons': path.resolve(__dirname, '../packages/react-icons/src'),
           // Resolve UI packages to local source during Storybook development
           '@editora/ui-core': path.resolve(__dirname, '../packages/ui-core/src'),
           '@editora/ui-react': path.resolve(__dirname, '../packages/ui-react/src'),

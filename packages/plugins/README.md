@@ -75,6 +75,30 @@ This package provides a complete set of plugins for building feature-rich text e
 
 ## 🚀 Quick Start
 
+### Recommended Imports For Smaller Bundles
+
+For best bundle size, avoid importing everything from `@editora/plugins` in large apps.
+
+Use one of these patterns:
+
+```ts
+// Lightweight preset entry
+import { BoldPlugin, ItalicPlugin, HistoryPlugin } from '@editora/plugins/lite';
+
+// Per-plugin subpath entry (most explicit)
+import { BoldPlugin } from '@editora/plugins/bold';
+import { ItalicPlugin } from '@editora/plugins/italic';
+import { SpellCheckPlugin } from '@editora/plugins/spell-check';
+```
+
+Lazy-load heavy plugins only when needed:
+
+```ts
+const { DocumentManagerPlugin } = await import('@editora/plugins/document-manager');
+const { MediaManagerPlugin } = await import('@editora/plugins/media-manager');
+const { SpellCheckPlugin } = await import('@editora/plugins/spell-check');
+```
+
 ### Basic Formatting
 
 ```typescript
@@ -290,7 +314,7 @@ ChecklistPlugin(options?: {
 
 #### Image Plugin
 ```typescript
-ImagePlugin(options: {
+MediaManagerPlugin(options: {
   upload: (file: File) => Promise<string>;
   validate?: (file: File) => boolean;
   maxSize?: number; // bytes
@@ -302,7 +326,7 @@ ImagePlugin(options: {
 })
 
 // Example
-const imagePlugin = ImagePlugin({
+const imagePlugin = MediaManagerPlugin({
   upload: async (file) => {
     const formData = new FormData();
     formData.append('image', file);
@@ -482,7 +506,7 @@ import {
   HeadingPlugin,
   ParagraphPlugin,
   LinkPlugin,
-  ImagePlugin,
+  MediaManagerPlugin,
   ListPlugin,
   BlockquotePlugin,
   HistoryPlugin
@@ -493,7 +517,7 @@ const blogPlugins = [
   ItalicPlugin(),
   HeadingPlugin({ levels: [1, 2, 3] }),
   LinkPlugin({ targetBlank: true }),
-  ImagePlugin({ 
+  MediaManagerPlugin({ 
     upload: uploadImage,
     maxSize: 2 * 1024 * 1024 
   }),

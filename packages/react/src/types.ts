@@ -60,6 +60,8 @@ export interface RichTextEditorProps {
   // Content control
   value?: string;
   defaultValue?: string;
+  readonly?: boolean;
+  placeholder?: string;
   onChange?: (html: string) => void;
   onInit?: (editor: EditorAPI) => void;
   onDestroy?: () => void;
@@ -73,6 +75,7 @@ export interface RichTextEditorProps {
     items?: string[] | any[]; // Support both string refs and full item objects
     floating?: boolean;
     sticky?: boolean;
+    showMoreOptions?: boolean;
   };
 
   // Status bar
@@ -156,6 +159,9 @@ export interface RichTextEditorProps {
     allowedTags?: string[];
     allowedAttributes?: Record<string, string[]>;
     sanitize?: boolean;
+    autoHeight?: boolean;
+    minHeight?: number;
+    maxHeight?: number;
   };
 
   // Security
@@ -165,7 +171,7 @@ export interface RichTextEditorProps {
   };
 
   // Legacy/compatibility - keep current prop support
-  floatingToolbar?: {
+  floatingToolbar?: boolean | {
     enabled?: boolean;
   };
   mediaConfig?: {

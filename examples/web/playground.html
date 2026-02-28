@@ -148,6 +148,28 @@
       color: #721c24;
       border: 1px solid #f5c6cb;
     }
+
+    .test-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+    }
+
+    .theme-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 12px 0;
+    }
+
+    .theme-controls button {
+      padding: 8px 12px;
+      border-radius: 6px;
+      border: 1px solid #667eea;
+      background: #667eea;
+      color: #fff;
+      cursor: pointer;
+    }
     </style>
 </head>
 <body>
@@ -270,35 +292,88 @@
   <div class="test-section">
     <h2>Test 6: Placeholder</h2>
     <div class="test-info">
-      Shows a placeholder when the editor is empty.
+      Multiple placeholder examples: short text, long helper copy, and prefilled content fallback behavior.
     </div>
-    <editora-editor
-      id="placeholder-editor"
-      height="120"
-      plugins="bold italic"
-      toolbar-items="bold italic"
-      placeholder="Type something here..."
-      statusbar="true"
-    ></editora-editor>
+    <div class="test-grid">
+      <div>
+        <h4>Simple Placeholder</h4>
+        <editora-editor
+          id="placeholder-editor-basic"
+          height="120"
+          plugins="bold italic"
+          toolbar-items="bold italic"
+          placeholder="Type something here..."
+          statusbar="true"
+        ></editora-editor>
+      </div>
+      <div>
+        <h4>Long Instruction Placeholder</h4>
+        <editora-editor
+          id="placeholder-editor-long"
+          height="120"
+          plugins="bold italic underline"
+          toolbar-items="bold italic underline"
+          placeholder="Draft your release notes: summary, impact, migration steps, and rollback notes."
+          statusbar="true"
+        ></editora-editor>
+      </div>
+      <div>
+        <h4>Prefilled Then Clear</h4>
+        <editora-editor
+          id="placeholder-editor-prefilled"
+          height="120"
+          plugins="bold italic"
+          toolbar-items="bold italic"
+          placeholder="Placeholder appears when this content is removed."
+          statusbar="true"
+        >
+          <p>This editor starts with content. Delete all text to reveal placeholder.</p>
+        </editora-editor>
+      </div>
+    </div>
   </div>
 
-  <!-- Test 7: Theme Switcher -->
+  <!-- Test 7: Theme Switcher (Editor Only) -->
   <div class="test-section">
-    <h2>Test 7: Theme Switcher</h2>
+    <h2>Test 7: Theme Switcher (Editor Only)</h2>
     <div class="test-info">
-      Switch between default and dark themes dynamically.
+      Toggle theme attributes on editors only. This does not change page styles.
     </div>
-    <editora-editor
-      id="theme-editor"
-      height="150"
-      plugins="bold italic"
-      toolbar-items="bold italic"
-      theme="default"
-      statusbar="true"
-    >
-      <p>Click the button to toggle theme.</p>
-    </editora-editor>
-    <button id="toggle-theme-btn">Toggle Theme</button>
+    <div class="theme-controls">
+      <button id="toggle-theme-a-btn">Toggle Editor A Theme</button>
+      <button id="toggle-theme-b-btn">Toggle Editor B Theme</button>
+      <button id="set-theme-dark-btn">Set Both Dark</button>
+      <button id="set-theme-default-btn">Set Both Default</button>
+    </div>
+    <div class="test-grid">
+      <div>
+        <h4>Theme Editor A</h4>
+        <editora-editor
+          id="theme-editor-a"
+          height="150"
+          plugins="bold italic underline"
+          toolbar-items="bold italic underline"
+          theme="default"
+          statusbar="true"
+        >
+          <p>Editor A starts in default theme.</p>
+        </editora-editor>
+      </div>
+      <div>
+        <h4>Theme Editor B</h4>
+        <editora-editor
+          id="theme-editor-b"
+          height="150"
+          plugins="bold italic underline"
+          toolbar-items="bold italic underline"
+          theme="dark"
+          statusbar="true"
+        >
+          <p>Editor B starts in dark theme.</p>
+        </editora-editor>
+      </div>
+    </div>
+    <div id="theme-status" class="status"></div>
   </div>
 
   <!-- Test 8: Custom Event Handling -->
@@ -392,7 +467,7 @@
     </footer>
 
     <!-- <script src="https://unpkg.com/@editora/core@latest/dist/editora.min.js"></script> -->
-    <script src="https://cdn.jsdelivr.net/npm/@editora/core/dist/webcomponent.min.js"></script>
+    <script type="module" src="https://cdn.jsdelivr.net/npm/@editora/core/dist/webcomponent.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@editora/core/dist/webcomponent.min.css">
     <script src="assets/js/main.js"></script>
    <script>
@@ -415,14 +490,53 @@
         readonlyStatus.className = 'status success';
       };
 
-      // Test 7: Theme Switcher
-      const themeEditor = document.getElementById('theme-editor');
-      const themeBtn = document.getElementById('toggle-theme-btn');
-      let isDark = false;
-      themeBtn.onclick = () => {
-        isDark = !isDark;
-        themeEditor.setAttribute('theme', isDark ? 'dark' : 'default');
+      // Test 7: Theme Switcher (Editor Only)
+      const themeEditorA = document.getElementById('theme-editor-a');
+      const themeEditorB = document.getElementById('theme-editor-b');
+      const toggleThemeABtn = document.getElementById('toggle-theme-a-btn');
+      const toggleThemeBBtn = document.getElementById('toggle-theme-b-btn');
+      const setThemeDarkBtn = document.getElementById('set-theme-dark-btn');
+      const setThemeDefaultBtn = document.getElementById('set-theme-default-btn');
+      const themeStatus = document.getElementById('theme-status');
+
+      const getCurrentTheme = (editor) =>
+        editor?.getAttribute('theme') === 'dark' ? 'dark' : 'default';
+
+      const updateThemeStatus = () => {
+        const themeA = getCurrentTheme(themeEditorA);
+        const themeB = getCurrentTheme(themeEditorB);
+        themeStatus.textContent = `Editor A: ${themeA} | Editor B: ${themeB}`;
+        themeStatus.className = 'status success';
       };
+
+      const toggleTheme = (editor) => {
+        const nextTheme = getCurrentTheme(editor) === 'dark' ? 'default' : 'dark';
+        editor.setAttribute('theme', nextTheme);
+      };
+
+      toggleThemeABtn.onclick = () => {
+        toggleTheme(themeEditorA);
+        updateThemeStatus();
+      };
+
+      toggleThemeBBtn.onclick = () => {
+        toggleTheme(themeEditorB);
+        updateThemeStatus();
+      };
+
+      setThemeDarkBtn.onclick = () => {
+        themeEditorA.setAttribute('theme', 'dark');
+        themeEditorB.setAttribute('theme', 'dark');
+        updateThemeStatus();
+      };
+
+      setThemeDefaultBtn.onclick = () => {
+        themeEditorA.setAttribute('theme', 'default');
+        themeEditorB.setAttribute('theme', 'default');
+        updateThemeStatus();
+      };
+
+      updateThemeStatus();
 
       // Test 8: Custom Event Handling
       const eventEditor = document.getElementById('event-editor');
@@ -553,50 +667,5 @@
       }
     });
   </script>
-
-    <!-- Footer -->
-    <footer class="site-footer">
-        <div class="footer-container">
-            <div class="footer-section">
-                <h3>Documentation</h3>
-                <ul>
-                    <li><a href="https://editora-free.netlify.app/">Home</a></li>
-                    <li><a href="https://editora-free.netlify.app/docs/">Docs</a></li>
-                    <li><a href="https://editora-free.netlify.app/api/">API Reference</a></li>
-                    <li><a href="https://editora-free.netlify.app/examples/">Examples</a></li>
-                </ul>
-            </div>
-            <div class="footer-section">
-                <h3>Plugins</h3>
-                <ul>
-                    <li><a href="https://editora-free.netlify.app/plugins/">Available Plugins</a></li>
-                    <li><a href="https://editora-free.netlify.app/plugins/custom/">Custom Plugins</a></li>
-                    <li><a href="https://editora-free.netlify.app/plugins/native/">Native Plugins</a></li>
-                    <li><a href="https://editora-free.netlify.app/plugins/themes/">Themes</a></li>
-                </ul>
-            </div>
-            <div class="footer-section">
-                <h3>Links</h3>
-                <ul>
-                    <li><a href="https://github.com/editora-org/editora">GitHub</a></li>
-                    <li><a href="https://www.npmjs.com/package/@editora/core">NPM</a></li>
-                    <li><a href="https://editora-free.netlify.app/blog/">Blog</a></li>
-                    <li><a href="https://editora-free.netlify.app/community/">Community</a></li>
-                </ul>
-            </div>
-            <div class="footer-section">
-                <h3>About</h3>
-                <ul>
-                    <li><a href="https://editora-free.netlify.app/about/">About Editora</a></li>
-                    <li><a href="https://editora-free.netlify.app/license/">License</a></li>
-                    <li><a href="https://editora-free.netlify.app/contributing/">Contributing</a></li>
-                    <li><a href="https://editora-free.netlify.app/contact/">Contact</a></li>
-                </ul>
-            </div>
-        </div>
-        <div class="footer-bottom">
-            <p>&copy; 2024 Editora. Built with ❤️ by the Editora team.</p>
-        </div>
-    </footer>
 </body>
 </html>

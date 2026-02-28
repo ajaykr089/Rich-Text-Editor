@@ -39,6 +39,26 @@ const findActiveEditor = (): HTMLElement | null => {
   
   return document.querySelector('[contenteditable="true"]');
 };
+const DARK_THEME_SELECTOR = '[data-theme="dark"], .dark, .editora-theme-dark';
+
+const isDarkThemeContext = (): boolean => {
+  const editor = findActiveEditor();
+  if (editor?.closest(DARK_THEME_SELECTOR)) return true;
+
+  const selection = window.getSelection();
+  if (selection && selection.rangeCount > 0) {
+    const node = selection.getRangeAt(0).startContainer;
+    const element = node.nodeType === Node.ELEMENT_NODE
+      ? (node as HTMLElement)
+      : node.parentElement;
+    if (element?.closest(DARK_THEME_SELECTOR)) return true;
+  }
+
+  const active = document.activeElement as HTMLElement | null;
+  if (active?.closest(DARK_THEME_SELECTOR)) return true;
+
+  return document.body.matches(DARK_THEME_SELECTOR) || document.documentElement.matches(DARK_THEME_SELECTOR);
+};
 
 // ===== Supported Languages =====
 const SUPPORTED_LANGUAGES = [
@@ -89,16 +109,51 @@ function createCodeSampleDialog(
   const isEditing = !!editingCodeId;
   const initialLanguage = editingLanguage || 'javascript';
   const initialCode = editingCode || '';
+  const isDarkTheme = isDarkThemeContext();
+  const palette = isDarkTheme
+    ? {
+      overlay: 'rgba(0, 0, 0, 0.62)',
+      dialogBg: '#1f2937',
+      dialogBorder: '#4b5563',
+      text: '#e2e8f0',
+      mutedText: '#a8b5c8',
+      headerFooterBg: '#222d3a',
+      border: '#3b4657',
+      fieldBg: '#111827',
+      fieldBorder: '#4b5563',
+      cancelBg: '#334155',
+      cancelHover: '#475569',
+      cancelText: '#e2e8f0',
+      primaryBg: '#3b82f6',
+      primaryHover: '#2563eb',
+    }
+    : {
+      overlay: 'rgba(0, 0, 0, 0.5)',
+      dialogBg: '#ffffff',
+      dialogBorder: '#e0e0e0',
+      text: '#333333',
+      mutedText: '#666666',
+      headerFooterBg: '#ffffff',
+      border: '#e0e0e0',
+      fieldBg: '#ffffff',
+      fieldBorder: '#dddddd',
+      cancelBg: '#e5e7eb',
+      cancelHover: '#d1d5db',
+      cancelText: '#333333',
+      primaryBg: '#2563eb',
+      primaryHover: '#1d4ed8',
+    };
 
   const overlay = document.createElement('div');
   overlay.className = 'rte-code-sample-overlay';
+  if (isDarkTheme) overlay.classList.add('rte-theme-dark');
   overlay.style.cssText = `
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
+    background: ${palette.overlay};
     display: flex;
     align-items: center;
     justify-content: center;
@@ -109,7 +164,8 @@ function createCodeSampleDialog(
   const dialog = document.createElement('div');
   dialog.className = 'rte-code-sample-dialog';
   dialog.style.cssText = `
-    background: #fff;
+    background: ${palette.dialogBg};
+    border: 1px solid ${palette.dialogBorder};
     border-radius: 8px;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
     max-width: 700px;
@@ -124,16 +180,17 @@ function createCodeSampleDialog(
   const header = document.createElement('div');
   header.style.cssText = `
     padding: 20px;
-    border-bottom: 1px solid #e0e0e0;
+    border-bottom: 1px solid ${palette.border};
+    background: ${palette.headerFooterBg};
     display: flex;
     justify-content: space-between;
     align-items: center;
   `;
   header.innerHTML = `
-    <h2 style="margin: 0; font-size: 18px; font-weight: 600; color: #333;">
+    <h2 style="margin: 0; font-size: 18px; font-weight: 600; color: ${palette.text};">
       ${isEditing ? 'Edit Code Sample' : 'Insert Code Sample'}
     </h2>
-    <button class="rte-code-close-btn" style="background: none; border: none; font-size: 28px; color: #999; cursor: pointer; padding: 0; width: 32px; height: 32px;">×</button>
+    <button class="rte-code-close-btn" style="background: none; border: none; font-size: 28px; color: ${palette.mutedText}; cursor: pointer; padding: 0; width: 32px; height: 32px;">×</button>
   `;
 
   // Body
@@ -148,14 +205,15 @@ function createCodeSampleDialog(
   const languageGroup = document.createElement('div');
   languageGroup.style.marginBottom = '20px';
   languageGroup.innerHTML = `
-    <label style="display: block; margin-bottom: 8px; font-weight: 500; color: #333; font-size: 14px;">Language</label>
+    <label style="display: block; margin-bottom: 8px; font-weight: 500; color: ${palette.text}; font-size: 14px;">Language</label>
     <select class="rte-code-language" style="
       width: 100%;
       padding: 10px 12px;
-      border: 1px solid #ddd;
+      border: 1px solid ${palette.fieldBorder};
       border-radius: 4px;
       font-size: 14px;
-      background-color: #fff;
+      background-color: ${palette.fieldBg};
+      color: ${palette.text};
       cursor: pointer;
     ">
       ${SUPPORTED_LANGUAGES.map(lang => `
@@ -170,11 +228,11 @@ function createCodeSampleDialog(
   const codeGroup = document.createElement('div');
   codeGroup.style.marginBottom = '20px';
   codeGroup.innerHTML = `
-    <label style="display: block; margin-bottom: 8px; font-weight: 500; color: #333; font-size: 14px;">Code</label>
+    <label style="display: block; margin-bottom: 8px; font-weight: 500; color: ${palette.text}; font-size: 14px;">Code</label>
     <textarea class="rte-code-textarea" spellcheck="false" placeholder="Paste or type your code here..." style="
       width: 100%;
       padding: 12px;
-      border: 1px solid #ddd;
+      border: 1px solid ${palette.fieldBorder};
       border-radius: 4px;
       font-family: 'Courier New', Courier, monospace;
       font-size: 13px;
@@ -182,8 +240,8 @@ function createCodeSampleDialog(
       resize: vertical;
       min-height: 250px;
       max-height: 400px;
-      background-color: #f9f9f9;
-      color: #333;
+      background-color: ${palette.fieldBg};
+      color: ${palette.text};
       box-sizing: border-box;
     ">${initialCode}</textarea>
     <div class="rte-code-error" style="color: #dc2626; font-size: 12px; margin-top: 6px; display: none;"></div>
@@ -191,7 +249,7 @@ function createCodeSampleDialog(
 
   // Help text
   const help = document.createElement('div');
-  help.style.cssText = 'color: #666; font-size: 12px; margin-top: 10px;';
+  help.style.cssText = `color: ${palette.mutedText}; font-size: 12px; margin-top: 10px;`;
   help.innerHTML = '💡 Tip: Press Ctrl+Enter (or Cmd+Enter on Mac) to save, or Escape to cancel';
 
   body.appendChild(languageGroup);
@@ -202,7 +260,8 @@ function createCodeSampleDialog(
   const footer = document.createElement('div');
   footer.style.cssText = `
     padding: 20px;
-    border-top: 1px solid #e0e0e0;
+    border-top: 1px solid ${palette.border};
+    background: ${palette.headerFooterBg};
     display: flex;
     justify-content: flex-end;
     gap: 12px;
@@ -215,8 +274,8 @@ function createCodeSampleDialog(
       font-size: 14px;
       font-weight: 500;
       cursor: pointer;
-      background: #e5e7eb;
-      color: #333;
+      background: ${palette.cancelBg};
+      color: ${palette.cancelText};
     ">Cancel</button>
     <button class="rte-code-save-btn" style="
       padding: 10px 16px;
@@ -225,7 +284,7 @@ function createCodeSampleDialog(
       font-size: 14px;
       font-weight: 500;
       cursor: pointer;
-      background: #2563eb;
+      background: ${palette.primaryBg};
       color: #fff;
     ">${isEditing ? 'Update Code Sample' : 'Insert Code Sample'}</button>
   `;
@@ -242,6 +301,28 @@ function createCodeSampleDialog(
   const closeBtn = header.querySelector('.rte-code-close-btn') as HTMLButtonElement;
   const cancelBtn = footer.querySelector('.rte-code-cancel-btn') as HTMLButtonElement;
   const saveBtn = footer.querySelector('.rte-code-save-btn') as HTMLButtonElement;
+
+  closeBtn.onmouseover = () => {
+    closeBtn.style.color = '#f8fafc';
+    closeBtn.style.background = isDarkTheme ? '#334155' : '#f0f0f0';
+    closeBtn.style.borderRadius = '4px';
+  };
+  closeBtn.onmouseout = () => {
+    closeBtn.style.color = palette.mutedText;
+    closeBtn.style.background = 'none';
+  };
+  cancelBtn.onmouseover = () => {
+    cancelBtn.style.background = palette.cancelHover;
+  };
+  cancelBtn.onmouseout = () => {
+    cancelBtn.style.background = palette.cancelBg;
+  };
+  saveBtn.onmouseover = () => {
+    saveBtn.style.background = palette.primaryHover;
+  };
+  saveBtn.onmouseout = () => {
+    saveBtn.style.background = palette.primaryBg;
+  };
 
   const closeDialog = () => {
     overlay.remove();
@@ -518,22 +599,21 @@ function editCodeBlock(codeBlockId: string) {
 
 // ===== Plugin Export =====
 export const CodeSamplePlugin = (): Plugin => ({
-  name: 'codeSample',
-  
+  name: "codeSample",
+
   toolbar: [
     {
-      label: 'Code Block',
-      command: 'insertCodeBlock',
-      icon: '<svg width="18px" height="18px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M7 8L3 11.6923L7 16M17 8L21 11.6923L17 16M14 4L10 20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
-      shortcut: 'Mod-Shift-C'
-    }
+      label: "Insert Code",
+      command: "insertCodeBlock",
+      icon: '<svg width="24" height="26" focusable="false"><path d="M7.1 11a2.8 2.8 0 0 1-.8 2 2.8 2.8 0 0 1 .8 2v1.7c0 .3.1.6.4.8.2.3.5.4.8.4.3 0 .4.2.4.4v.8c0 .2-.1.4-.4.4-.7 0-1.4-.3-2-.8-.5-.6-.8-1.3-.8-2V15c0-.3-.1-.6-.4-.8-.2-.3-.5-.4-.8-.4a.4.4 0 0 1-.4-.4v-.8c0-.2.2-.4.4-.4.3 0 .6-.1.8-.4.3-.2.4-.5.4-.8V9.3c0-.7.3-1.4.8-2 .6-.5 1.3-.8 2-.8.3 0 .4.2.4.4v.8c0 .2-.1.4-.4.4-.3 0-.6.1-.8.4-.3.2-.4.5-.4.8V11Zm9.8 0V9.3c0-.3-.1-.6-.4-.8-.2-.3-.5-.4-.8-.4a.4.4 0 0 1-.4-.4V7c0-.2.1-.4.4-.4.7 0 1.4.3 2 .8.5.6.8 1.3.8 2V11c0 .3.1.6.4.8.2.3.5.4.8.4.2 0 .4.2.4.4v.8c0 .2-.2.4-.4.4-.3 0-.6.1-.8.4-.3.2-.4.5-.4.8v1.7c0 .7-.3 1.4-.8 2-.6.5-1.3.8-2 .8a.4.4 0 0 1-.4-.4v-.8c0-.2.1-.4.4-.4.3 0 .6-.1.8-.4.3-.2.4-.5.4-.8V15a2.8 2.8 0 0 1 .8-2 2.8 2.8 0 0 1-.8-2Zm-3.3-.4c0 .4-.1.8-.5 1.1-.3.3-.7.5-1.1.5-.4 0-.8-.2-1.1-.5-.4-.3-.5-.7-.5-1.1 0-.5.1-.9.5-1.2.3-.3.7-.4 1.1-.4.4 0 .8.1 1.1.4.4.3.5.7.5 1.2ZM12 13c.4 0 .8.1 1.1.5.4.3.5.7.5 1.1 0 1-.1 1.6-.5 2a3 3 0 0 1-1.1 1c-.4.3-.8.4-1.1.4a.5.5 0 0 1-.5-.5V17a3 3 0 0 0 1-.2l.6-.6c-.6 0-1-.2-1.3-.5-.2-.3-.3-.7-.3-1 0-.5.1-1 .5-1.2.3-.4.7-.5 1.1-.5Z" fill-rule="evenodd"></path></svg>',
+      shortcut: "Mod-Shift-C",
+    },
   ],
-  
+
   commands: {
     insertCodeBlock: (...args: any[]) => {
       insertCodeBlock();
       return true;
-    }
+    },
   },
-  
 });

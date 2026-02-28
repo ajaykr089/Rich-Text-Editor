@@ -18,6 +18,7 @@ vite.config.ts
 docs/
 stories/
 examples/
+.prompts/
 
 # Git
 .git/

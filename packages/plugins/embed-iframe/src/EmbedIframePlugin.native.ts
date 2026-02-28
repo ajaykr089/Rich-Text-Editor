@@ -32,6 +32,7 @@ const SIZE_OPTIONS = [
   { label: 'Responsive - 4x3', value: '4x3' },
   { label: 'Responsive - 1x1', value: '1x1' },
 ];
+const DARK_THEME_SELECTOR = '[data-theme="dark"], .dark, .editora-theme-dark';
 
 // Per-editor instance state
 const editorStates = new WeakMap<HTMLElement, {
@@ -77,6 +78,17 @@ const getEditorState = (editorElement: HTMLElement) => {
   }
   return editorStates.get(editorElement)!;
 };
+
+function isDarkThemeContext(editorElement?: HTMLElement | null): boolean {
+  if (editorElement?.matches(DARK_THEME_SELECTOR) || editorElement?.closest(DARK_THEME_SELECTOR)) {
+    return true;
+  }
+
+  const active = document.activeElement as HTMLElement | null;
+  if (active?.closest(DARK_THEME_SELECTOR)) return true;
+
+  return document.body.matches(DARK_THEME_SELECTOR) || document.documentElement.matches(DARK_THEME_SELECTOR);
+}
 
 export const EmbedIframePlugin = (): Plugin => {
   return {
@@ -145,8 +157,11 @@ function createEmbedDialog(editorElement?: HTMLElement): void {
 
   // Create dialog overlay
   const overlay = document.createElement('div');
-  overlay.className = 'rte-dialog-overlay';
-  overlay.onclick = closeDialog;
+  overlay.className = 'rte-dialog-overlay rte-embed-iframe-overlay';
+  if (isDarkThemeContext(editorElement)) {
+    overlay.classList.add('rte-theme-dark');
+  }
+  overlay.onclick = () => closeDialog(editorElement!);
 
   // Create dialog content
   const dialog = document.createElement('div');
@@ -551,6 +566,7 @@ function injectEmbedDialogStyles(): void {
     }
 
     .rte-form-textarea,
+    .rte-form-input,
     .rte-form-select {
       width: 100%;
       padding: 8px 12px;
@@ -562,6 +578,7 @@ function injectEmbedDialogStyles(): void {
     }
 
     .rte-form-textarea:focus,
+    .rte-form-input:focus,
     .rte-form-select:focus {
       outline: none;
       border-color: #0066cc;
@@ -633,6 +650,101 @@ function injectEmbedDialogStyles(): void {
 
     .rte-checkbox-label:hover {
       color: #000;
+    }
+
+    .rte-embed-iframe-overlay.rte-theme-dark .rte-dialog-content {
+      background: #1f2937;
+      border: 1px solid #4b5563;
+      color: #e2e8f0;
+      box-shadow: 0 18px 45px rgba(0, 0, 0, 0.6);
+    }
+
+    .rte-embed-iframe-overlay.rte-theme-dark .rte-dialog-header,
+    .rte-embed-iframe-overlay.rte-theme-dark .rte-dialog-footer {
+      background: #222d3a;
+      border-color: #3b4657;
+    }
+
+    .rte-embed-iframe-overlay.rte-theme-dark .rte-dialog-header h3,
+    .rte-embed-iframe-overlay.rte-theme-dark .rte-form-label,
+    .rte-embed-iframe-overlay.rte-theme-dark .rte-checkbox-label {
+      color: #e2e8f0;
+    }
+
+    .rte-embed-iframe-overlay.rte-theme-dark .rte-tab-buttons {
+      border-right-color: #3b4657;
+    }
+
+    .rte-embed-iframe-overlay.rte-theme-dark .rte-tab-button {
+      color: #a8b5c8;
+    }
+
+    .rte-embed-iframe-overlay.rte-theme-dark .rte-tab-button:hover {
+      background: #334155;
+      color: #f8fafc;
+    }
+
+    .rte-embed-iframe-overlay.rte-theme-dark .rte-tab-button.active {
+      background: rgba(88, 166, 255, 0.18);
+      color: #8cc6ff;
+      border-right-color: #58a6ff;
+    }
+
+    .rte-embed-iframe-overlay.rte-theme-dark .rte-form-input,
+    .rte-embed-iframe-overlay.rte-theme-dark .rte-form-select,
+    .rte-embed-iframe-overlay.rte-theme-dark .rte-form-textarea {
+      background: #111827;
+      border-color: #4b5563;
+      color: #e2e8f0;
+    }
+
+    .rte-embed-iframe-overlay.rte-theme-dark .rte-form-input::placeholder,
+    .rte-embed-iframe-overlay.rte-theme-dark .rte-form-textarea::placeholder {
+      color: #94a3b8;
+    }
+
+    .rte-embed-iframe-overlay.rte-theme-dark .rte-form-input:focus,
+    .rte-embed-iframe-overlay.rte-theme-dark .rte-form-select:focus,
+    .rte-embed-iframe-overlay.rte-theme-dark .rte-form-textarea:focus {
+      border-color: #58a6ff;
+      box-shadow: 0 0 0 2px rgba(88, 166, 255, 0.28);
+    }
+
+    .rte-embed-iframe-overlay.rte-theme-dark .rte-constrain-btn {
+      background: #111827;
+      border-color: #4b5563;
+      color: #e2e8f0;
+    }
+
+    .rte-embed-iframe-overlay.rte-theme-dark .rte-constrain-btn:hover {
+      background: #334155;
+      border-color: #58a6ff;
+    }
+
+    .rte-embed-iframe-overlay.rte-theme-dark .rte-constrain-btn.locked {
+      background: rgba(88, 166, 255, 0.22);
+      border-color: #58a6ff;
+      color: #d9ecff;
+    }
+
+    .rte-embed-iframe-overlay.rte-theme-dark .rte-btn-secondary {
+      background: #334155;
+      border-color: #4b5563;
+      color: #e2e8f0;
+    }
+
+    .rte-embed-iframe-overlay.rte-theme-dark .rte-btn-secondary:hover {
+      background: #475569;
+      border-color: #64748b;
+    }
+
+    .rte-embed-iframe-overlay.rte-theme-dark .rte-btn-primary {
+      background: #3b82f6;
+      color: #fff;
+    }
+
+    .rte-embed-iframe-overlay.rte-theme-dark .rte-btn-primary:hover {
+      background: #2563eb;
     }
 
     /* Responsive iframe classes */

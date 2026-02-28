@@ -75,6 +75,17 @@ const editor = createEditor({
 editor.mount(document.getElementById('editor'));
 ```
 
+### Theme Usage
+
+```typescript
+import "@editora/themes/themes/default.css";
+import "@editora/themes/themes/dark.css";
+import "@editora/themes/themes/acme.css";
+```
+
+- Core/React wrappers: apply a scope on a parent, for example `<div data-theme="dark">...</div>` or `<div data-theme="acme">...</div>`.
+- Web component: set theme directly on the element, for example `<editora-editor theme="dark">` or `<editora-editor theme="acme">`.
+
 ## 📖 API Reference
 
 ### `createEditor(config: EditorConfig): Editor`
@@ -205,6 +216,29 @@ interface EditorConfig {
   debounceDelay?: number;
 }
 ```
+
+### Web Component Config Additions
+
+When using `<editora-editor>` or `element.setConfig(...)`, these config groups are supported:
+
+```ts
+accessibility?: {
+  enableARIA?: boolean;
+  keyboardNavigation?: boolean;
+  checker?: boolean;
+};
+
+performance?: {
+  debounceInputMs?: number;
+  viewportOnlyScan?: boolean;
+};
+```
+
+- `accessibility.enableARIA`: toggles ARIA role/labels on the editable surface.
+- `accessibility.keyboardNavigation`: toggles keyboard shortcut handling.
+- `accessibility.checker`: auto-loads `a11yChecker` when plugin list is explicitly configured.
+- `performance.debounceInputMs`: debounces `content-change` events.
+- `performance.viewportOnlyScan`: skips floating-toolbar/status scans for offscreen instances.
 
 ## 🔌 Plugin System
 

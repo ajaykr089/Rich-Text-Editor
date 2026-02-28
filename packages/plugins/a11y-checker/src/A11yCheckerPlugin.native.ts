@@ -44,6 +44,7 @@ export interface A11yIssue {
 const suppressedRules = new Set<string>();
 const ruleRegistry: A11yRule[] = [];
 const registerA11yRule = (rule: A11yRule) => { ruleRegistry.push(rule); };
+const DARK_THEME_SELECTOR = '[data-theme="dark"], .dark, .editora-theme-dark';
 
 // --- WCAG 2.1 AA Rule Implementations ---
 
@@ -374,6 +375,25 @@ const findActiveEditor = (): HTMLElement | null => {
   return document.querySelector('[contenteditable="true"]');
 };
 
+const isDarkThemeContext = (): boolean => {
+  const editor = findActiveEditor();
+  if (editor?.closest(DARK_THEME_SELECTOR)) return true;
+
+  const selection = window.getSelection();
+  if (selection && selection.rangeCount > 0) {
+    const node = selection.getRangeAt(0).startContainer;
+    const element = node.nodeType === Node.ELEMENT_NODE
+      ? (node as HTMLElement)
+      : node.parentElement;
+    if (element?.closest(DARK_THEME_SELECTOR)) return true;
+  }
+
+  const active = document.activeElement as HTMLElement | null;
+  if (active?.closest(DARK_THEME_SELECTOR)) return true;
+
+  return document.body.matches(DARK_THEME_SELECTOR) || document.documentElement.matches(DARK_THEME_SELECTOR);
+};
+
 // --- Audit Engine ---
 export const runA11yAudit = (): A11yIssue[] => {
   const editor = findActiveEditor();
@@ -481,6 +501,40 @@ export const unsuppressRule = (ruleId: string) => { suppressedRules.delete(ruleI
 const createA11yDialog = () => {
   const issues = runA11yAudit();
   const score = getA11yScore(issues); // Pass issues to avoid duplicate audit
+  const isDarkTheme = isDarkThemeContext();
+  const palette = isDarkTheme
+    ? {
+      overlay: 'rgba(0, 0, 0, 0.62)',
+      dialogBg: '#1f2937',
+      panelBg: '#222d3a',
+      border: '#3b4657',
+      text: '#e2e8f0',
+      muted: '#9fb0c6',
+      closeHover: '#334155',
+      summaryBg: '#111827',
+      issueBg: '#1f2937',
+      issueHoverBg: '#273244',
+      issueBorder: '#4b5563',
+      issueHoverBorder: '#58a6ff',
+      fixBtn: '#3b82f6',
+      fixBtnHover: '#2563eb',
+    }
+    : {
+      overlay: 'rgba(0, 0, 0, 0.5)',
+      dialogBg: '#ffffff',
+      panelBg: '#ffffff',
+      border: '#e0e0e0',
+      text: '#1f2937',
+      muted: '#666666',
+      closeHover: '#f0f0f0',
+      summaryBg: '#f5f5f5',
+      issueBg: '#ffffff',
+      issueHoverBg: '#f5f9ff',
+      issueBorder: '#e0e0e0',
+      issueHoverBorder: '#2196f3',
+      fixBtn: '#2196f3',
+      fixBtnHover: '#1976d2',
+    };
   
   // Create dialog overlay
   const overlay = document.createElement('div');
@@ -491,7 +545,7 @@ const createA11yDialog = () => {
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
+    background: ${palette.overlay};
     z-index: 10000;
     display: flex;
     align-items: center;
@@ -502,7 +556,9 @@ const createA11yDialog = () => {
   const dialog = document.createElement('div');
   dialog.className = 'a11y-dialog';
   dialog.style.cssText = `
-    background: white;
+    background: ${palette.dialogBg};
+    border: 1px solid ${palette.border};
+    color: ${palette.text};
     border-radius: 8px;
     max-width: 800px;
     width: 90%;
@@ -516,14 +572,15 @@ const createA11yDialog = () => {
   const header = document.createElement('div');
   header.style.cssText = `
     padding: 20px;
-    border-bottom: 1px solid #e0e0e0;
+    border-bottom: 1px solid ${palette.border};
+    background: ${palette.panelBg};
     display: flex;
     align-items: center;
     justify-content: space-between;
   `;
   
   const title = document.createElement('h2');
-  title.style.cssText = 'margin: 0; font-size: 20px; font-weight: 600;';
+  title.style.cssText = `margin: 0; font-size: 20px; font-weight: 600; color: ${palette.text};`;
   title.textContent = 'Accessibility Checker';
   
   const scoreDisplay = document.createElement('div');
@@ -551,9 +608,16 @@ const createA11yDialog = () => {
     align-items: center;
     justify-content: center;
     border-radius: 4px;
+    color: ${palette.muted};
   `;
-  closeBtn.onmouseover = () => closeBtn.style.background = '#f0f0f0';
-  closeBtn.onmouseout = () => closeBtn.style.background = 'none';
+  closeBtn.onmouseover = () => {
+    closeBtn.style.background = palette.closeHover;
+    closeBtn.style.color = '#f8fafc';
+  };
+  closeBtn.onmouseout = () => {
+    closeBtn.style.background = 'none';
+    closeBtn.style.color = palette.muted;
+  };
   closeBtn.onclick = () => {
     // Clear all highlights
     issues.forEach(issue => highlightIssue(issue, false));
@@ -574,6 +638,7 @@ const createA11yDialog = () => {
     flex: 1;
     overflow-y: auto;
     padding: 20px;
+    background: ${palette.dialogBg};
   `;
   
   if (issues.length === 0) {
@@ -581,13 +646,14 @@ const createA11yDialog = () => {
       <div style="text-align: center; padding: 40px 20px;">
         <div style="font-size: 48px; margin-bottom: 16px;">✅</div>
         <h3 style="margin: 0 0 8px 0; color: #4caf50;">No issues found!</h3>
-        <p style="margin: 0; color: #666;">Your content meets WCAG 2.1 AA standards.</p>
+        <p style="margin: 0; color: ${palette.muted};">Your content meets WCAG 2.1 AA standards.</p>
       </div>
     `;
   } else {
     const summary = document.createElement('div');
     summary.style.cssText = `
-      background: #f5f5f5;
+      background: ${palette.summaryBg};
+      border: 1px solid ${palette.border};
       padding: 12px 16px;
       border-radius: 6px;
       margin-bottom: 20px;
@@ -600,9 +666,9 @@ const createA11yDialog = () => {
     const infos = issues.filter(i => i.severity === 'info').length;
     
     summary.innerHTML = `
-      <div><strong style="color: #f44336;">${errors}</strong> <span style="color: #666;">Errors</span></div>
-      <div><strong style="color: #ff9800;">${warnings}</strong> <span style="color: #666;">Warnings</span></div>
-      <div><strong style="color: #2196f3;">${infos}</strong> <span style="color: #666;">Info</span></div>
+      <div><strong style="color: #f44336;">${errors}</strong> <span style="color: ${palette.muted};">Errors</span></div>
+      <div><strong style="color: #ff9800;">${warnings}</strong> <span style="color: ${palette.muted};">Warnings</span></div>
+      <div><strong style="color: #2196f3;">${infos}</strong> <span style="color: ${palette.muted};">Info</span></div>
     `;
     
     content.appendChild(summary);
@@ -611,20 +677,22 @@ const createA11yDialog = () => {
     issues.forEach(issue => {
       const issueItem = document.createElement('div');
       issueItem.style.cssText = `
-        border: 1px solid #e0e0e0;
+        border: 1px solid ${palette.issueBorder};
         border-radius: 6px;
         padding: 16px;
         margin-bottom: 12px;
         transition: all 0.2s;
+        background: ${palette.issueBg};
+        color: ${palette.text};
       `;
       issueItem.onmouseover = () => {
-        issueItem.style.borderColor = '#2196f3';
-        issueItem.style.background = '#f5f9ff';
+        issueItem.style.borderColor = palette.issueHoverBorder;
+        issueItem.style.background = palette.issueHoverBg;
         highlightIssue(issue, true);
       };
       issueItem.onmouseout = () => {
-        issueItem.style.borderColor = '#e0e0e0';
-        issueItem.style.background = 'white';
+        issueItem.style.borderColor = palette.issueBorder;
+        issueItem.style.background = palette.issueBg;
         highlightIssue(issue, false);
       };
       
@@ -644,10 +712,10 @@ const createA11yDialog = () => {
           ">${issue.severity}</span>
           <div style="flex: 1;">
             <div style="font-weight: 600; margin-bottom: 4px;">${issue.message}</div>
-            <div style="font-size: 12px; color: #666;">WCAG ${issue.wcag} · ${issue.rule}</div>
+            <div style="font-size: 12px; color: ${palette.muted};">WCAG ${issue.wcag} · ${issue.rule}</div>
           </div>
         </div>
-        <div style="font-size: 14px; color: #444; margin-bottom: 8px; padding-left: 68px;">
+        <div style="font-size: 14px; color: ${palette.text}; margin-bottom: 8px; padding-left: 68px;">
           ${issue.suggestion || ''}
         </div>
       `;
@@ -656,7 +724,7 @@ const createA11yDialog = () => {
         const fixBtn = document.createElement('button');
         fixBtn.textContent = `🔧 ${issue.fixLabel || 'Auto-fix'}`;
         fixBtn.style.cssText = `
-          background: #2196f3;
+          background: ${palette.fixBtn};
           color: white;
           border: none;
           padding: 6px 12px;
@@ -665,8 +733,8 @@ const createA11yDialog = () => {
           font-size: 13px;
           margin-left: 68px;
         `;
-        fixBtn.onmouseover = () => fixBtn.style.background = '#1976d2';
-        fixBtn.onmouseout = () => fixBtn.style.background = '#2196f3';
+        fixBtn.onmouseover = () => fixBtn.style.background = palette.fixBtnHover;
+        fixBtn.onmouseout = () => fixBtn.style.background = palette.fixBtn;
         fixBtn.onclick = () => {
           autoFixA11yIssue(issue);
           fixBtn.textContent = '✓ Fixed';

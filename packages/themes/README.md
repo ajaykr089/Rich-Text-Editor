@@ -1,457 +1,183 @@
 # @editora/themes
 
-<div align="center">
-  <img src="../../images/editora_logo_blocks.svg" alt="Editora Logo" width="200" height="auto">
-</div>
+Themes and design tokens for Editora editor UIs (React wrapper + Web Component).
 
-<div align="center">
-  <img src="../../images/theme-comparison.png" alt="Editora Themes - Light vs Dark Theme Comparison" width="800" style="border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
-  <p><em>Themes and styling system with built-in light/dark mode support</em></p>
-</div>
-
-Themes and styling system for Editora Rich Text Editor with built-in light/dark mode support and customizable design tokens.
-
-## 📦 Installation
+## Installation
 
 ```bash
 npm install @editora/themes
 ```
 
-## 🎯 Overview
+## Built-in Themes
 
-The themes package provides a comprehensive styling system using CSS variables, making it easy to customize the editor's appearance and support multiple themes.
+- `default` (`@editora/themes/themes/default.css`)
+- `dark` (`@editora/themes/themes/dark.css`)
+- `acme` (`@editora/themes/themes/acme.css`)
 
-## ✨ Features
+## Quick Start
 
-- **Light & Dark Themes**: Pre-built themes with automatic system detection
-- **CSS Variables**: Fully customizable using CSS custom properties
-- **Responsive**: Mobile-friendly and adaptive layouts
-- **Accessible**: High contrast ratios and WCAG compliance
-- **Modern Design**: Clean, professional appearance
-- **Easy Customization**: Override any variable to match your brand
-
-## 🚀 Quick Start
-
-### Basic Usage
+### React
 
 ```tsx
+import { EditoraEditor } from "@editora/react";
+import { BoldPlugin, ItalicPlugin } from "@editora/plugins";
 
 import "@editora/themes/themes/default.css";
-import { EditoraEditor } from '@editora/react';
+import "@editora/themes/themes/acme.css";
 
-function App() {
-  return <EditoraEditor theme="light" />;
-}
-```
-
-### With Theme Toggle
-
-```tsx
-
-import "@editora/themes/themes/default.css";
-import { EditoraEditor } from '@editora/react';
-import { useState } from 'react';
-
-function App() {
-  const [theme, setTheme] = useState<'light' | 'dark'>('light');
-
+export default function App() {
   return (
-    <div data-theme={theme}>
-      <button onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}>
-        Toggle Theme
-      </button>
-      
-      <EditoraEditor theme={theme} />
+    <div data-theme="acme">
+      <EditoraEditor plugins={[BoldPlugin(), ItalicPlugin()]} />
     </div>
   );
 }
 ```
 
-### Auto Theme Detection
+Use `data-theme="light"`, `data-theme="dark"`, or `data-theme="acme"` on a wrapper.
 
-```tsx
+### Web Component
 
-import "@editora/themes/themes/default.css";
-import { EditoraEditor } from '@editora/react';
+```html
+<link rel="stylesheet" href="/node_modules/@editora/core/dist/webcomponent.min.css" />
+<link rel="stylesheet" href="/node_modules/@editora/themes/themes/acme.css" />
+<script type="module" src="/node_modules/@editora/core/dist/webcomponent.js"></script>
 
-function App() {
-  return <EditoraEditor theme="auto" />;
-}
+<editora-editor
+  theme="acme"
+  plugins="bold italic underline history"
+  toolbar-items="undo redo | bold italic underline"
+  height="320"
+></editora-editor>
 ```
 
-## 🎨 Built-in Themes
+Use `theme="light"`, `theme="dark"`, or `theme="acme"` on `<editora-editor>`.
 
-### Light Theme (Default)
+## Create A Custom Theme From Scratch
 
-Clean, professional light theme suitable for most applications.
+### 1) Start from base theme
 
-```tsx
-<EditoraEditor theme="light" />
-```
-
-### Dark Theme
-
-Modern dark theme with comfortable colors for low-light environments.
-
-```tsx
-<EditoraEditor theme="dark" />
-```
-
-### Auto Theme
-
-Automatically matches system preferences.
-
-```tsx
-<EditoraEditor theme="auto" />
-```
-
-## 🔧 Customization
-
-### CSS Variables
-
-All theme colors and sizes use CSS variables for easy customization.
-
-#### Color Variables
+Create `my-theme.css` and load `default.css` first:
 
 ```css
-:root {
-  /* Primary colors */
-  --editora-primary: #0066cc;
-  --editora-primary-hover: #0052a3;
-  --editora-primary-active: #003d7a;
-  
-  /* Background colors */
-  --editora-bg: #ffffff;
-  --editora-bg-secondary: #f5f5f5;
-  --editora-bg-tertiary: #e0e0e0;
-  
-  /* Text colors */
-  --editora-text: #000000;
-  --editora-text-secondary: #666666;
-  --editora-text-muted: #999999;
-  
-  /* Border colors */
-  --editora-border: #cccccc;
-  --editora-border-focus: #0066cc;
-  
-  /* Toolbar */
-  --editora-toolbar-bg: #f5f5f5;
-  --editora-toolbar-border: #cccccc;
-  --editora-toolbar-button-hover: #e0e0e0;
-  --editora-toolbar-button-active: #d0d0d0;
-  
-  /* Content area */
-  --editora-content-bg: #ffffff;
-  --editora-content-padding: 16px;
-  
-  /* Selection */
-  --editora-selection-bg: rgba(0, 102, 204, 0.2);
-  
-  /* Status colors */
-  --editora-error: #dc3545;
-  --editora-warning: #ffc107;
-  --editora-success: #28a745;
-  --editora-info: #17a2b8;
+@import "@editora/themes/themes/default.css";
+```
+
+### 2) Scope your theme
+
+Choose one scope that works for both React and Web Component:
+
+```css
+:is([data-theme="my-brand"], .editora-theme-my-brand) {
+  /* tokens */
 }
 ```
 
-#### Dark Theme Variables
+### 3) Override design tokens
+
+Use the real token names used by Editora (`--rte-*`):
 
 ```css
-[data-theme="dark"] {
-  --editora-primary: #3399ff;
-  --editora-primary-hover: #5cadff;
-  --editora-primary-active: #1f8cff;
-  
-  --editora-bg: #1e1e1e;
-  --editora-bg-secondary: #2d2d2d;
-  --editora-bg-tertiary: #3d3d3d;
-  
-  --editora-text: #ffffff;
-  --editora-text-secondary: #cccccc;
-  --editora-text-muted: #999999;
-  
-  --editora-border: #444444;
-  --editora-border-focus: #3399ff;
-  
-  --editora-toolbar-bg: #2d2d2d;
-  --editora-toolbar-border: #444444;
-  --editora-toolbar-button-hover: #3d3d3d;
-  --editora-toolbar-button-active: #4d4d4d;
-  
-  --editora-content-bg: #1e1e1e;
-  
-  --editora-selection-bg: rgba(51, 153, 255, 0.3);
+:is([data-theme="my-brand"], .editora-theme-my-brand) {
+  --rte-color-primary: #1d4ed8;
+  --rte-color-primary-hover: #1e40af;
+  --rte-color-text-primary: #0f172a;
+  --rte-color-text-secondary: #334155;
+  --rte-color-text-muted: #64748b;
+  --rte-color-bg-primary: #ffffff;
+  --rte-color-bg-secondary: #f8fafc;
+  --rte-color-bg-tertiary: #e2e8f0;
+  --rte-color-border: #cbd5e1;
+  --rte-color-border-light: #dbe3ee;
+  --rte-color-border-focus: #1d4ed8;
+  --rte-shadow: 0 6px 16px rgba(15, 23, 42, 0.1);
+  --rte-shadow-lg: 0 16px 28px rgba(15, 23, 42, 0.16);
 }
 ```
 
-#### Size Variables
+### 4) Add component overrides
+
+Tokens handle most styling, but buttons/dropdowns/content usually need explicit overrides:
 
 ```css
-:root {
-  /* Font sizes */
-  --editora-font-size-sm: 12px;
-  --editora-font-size-base: 14px;
-  --editora-font-size-lg: 16px;
-  
-  /* Spacing */
-  --editora-spacing-xs: 4px;
-  --editora-spacing-sm: 8px;
-  --editora-spacing-md: 16px;
-  --editora-spacing-lg: 24px;
-  --editora-spacing-xl: 32px;
-  
-  /* Border radius */
-  --editora-radius-sm: 2px;
-  --editora-radius-md: 4px;
-  --editora-radius-lg: 8px;
-  
-  /* Shadows */
-  --editora-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
-  --editora-shadow-md: 0 2px 4px rgba(0, 0, 0, 0.1);
-  --editora-shadow-lg: 0 4px 8px rgba(0, 0, 0, 0.15);
-  
-  /* Z-indexes */
-  --editora-z-dropdown: 1000;
-  --editora-z-modal: 2000;
-  --editora-z-tooltip: 3000;
+:is([data-theme="my-brand"], .editora-theme-my-brand) :is(.rte-toolbar, .editora-toolbar) {
+  background: #f4f8ff;
+  border-color: var(--rte-color-border);
+}
+
+:is([data-theme="my-brand"], .editora-theme-my-brand) :is(.rte-toolbar-button, .editora-toolbar-button) {
+  background: #ffffff;
+  border-color: var(--rte-color-border);
+  color: var(--rte-color-text-secondary);
+}
+
+:is([data-theme="my-brand"], .editora-theme-my-brand) :is(.rte-content, .editora-content) {
+  background: #ffffff;
+  color: var(--rte-color-text-primary);
 }
 ```
 
-### Custom Theme Example
+### 5) Load and activate the theme
+
+- React: import CSS + set wrapper `data-theme="my-brand"`.
+- Web Component: include CSS + set `theme="my-brand"` on `<editora-editor>`.
+
+## Modify An Existing Theme
+
+### Option A: Extend dark theme
 
 ```css
-/* custom-theme.css */
+@import "@editora/themes/themes/default.css";
+@import "@editora/themes/themes/dark.css";
 
-import "@editora/themes/themes/default.css";
-
-:root {
-  /* Brand colors */
-  --editora-primary: #7c3aed;
-  --editora-primary-hover: #6d28d9;
-  --editora-primary-active: #5b21b6;
-  
-  /* Custom toolbar */
-  --editora-toolbar-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  --editora-toolbar-button-hover: rgba(255, 255, 255, 0.1);
-  
-  /* Rounded corners */
-  --editora-radius-md: 12px;
-  
-  /* Custom font */
-  --editora-font-family: 'Inter', system-ui, sans-serif;
-}
-```
-
-## 💡 Usage Examples
-
-### Brand Customization
-
-```css
-/* Match your brand colors */
-:root {
-  --editora-primary: #ff6b6b;
-  --editora-primary-hover: #ff5252;
-  --editora-toolbar-bg: #ffffff;
-  --editora-border: #e0e0e0;
+:is([data-theme="dark"], .editora-theme-dark) {
+  --rte-color-primary: #22d3ee;
+  --rte-color-primary-hover: #06b6d4;
 }
 
-.my-editor {
+:is([data-theme="dark"], .editora-theme-dark) .rte-toolbar-button {
   border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 ```
 
-### Compact Mode
+### Option B: Extend acme theme
 
 ```css
-/* Smaller toolbar and spacing */
-:root {
-  --editora-toolbar-height: 32px;
-  --editora-spacing-md: 8px;
-  --editora-font-size-base: 12px;
+@import "@editora/themes/themes/default.css";
+@import "@editora/themes/themes/acme.css";
+
+:is([data-theme="acme"], .editora-theme-acme) {
+  --rte-color-primary: #7c3aed;
+  --rte-color-primary-hover: #6d28d9;
 }
 ```
 
-### High Contrast Mode
+### Safe override strategy
 
-```css
-/* Improve accessibility */
-[data-theme="high-contrast"] {
-  --editora-bg: #000000;
-  --editora-text: #ffffff;
-  --editora-border: #ffffff;
-  --editora-primary: #ffff00;
-}
-```
+1. Keep selectors scoped (`[data-theme="..."]` / `.editora-theme-...`).
+2. Prefer token overrides first, component selectors second.
+3. Override both React and Web Component class names where needed:
+   - React classes: `.rte-*`
+   - Web Component classes: `.editora-*`
 
-### Minimal Theme
+## New `acme` Theme Notes
 
-```css
-/* Clean, distraction-free editing */
-:root {
-  --editora-toolbar-bg: transparent;
-  --editora-toolbar-border: none;
-  --editora-border: transparent;
-}
+`acme.css` is intentionally shared across both renderers:
 
-.rte-toolbar {
-  border-bottom: 1px solid var(--editora-border);
-}
-```
+- React support via `[data-theme="acme"]`
+- Web Component support via `.editora-theme-acme` (set automatically from `theme="acme"`)
 
-## 📱 Responsive Styles
+## Verification Checklist
 
-The theme automatically adapts to different screen sizes:
+After adding/changing a theme, verify:
 
-```css
-/* Mobile adjustments */
-@media (max-width: 768px) {
-  :root {
-    --editora-toolbar-height: 48px; /* Larger touch targets */
-    --editora-font-size-base: 16px; /* Prevent zoom on iOS */
-    --editora-spacing-md: 12px;
-  }
-}
+1. Toolbar buttons (normal/hover/active/disabled)
+2. Dropdown menus and inputs (including font-size input placeholder)
+3. Editor content colors + placeholder visibility
+4. Status bar + floating toolbar
+5. Dialogs and plugin overlays in both light/dark/custom scopes
+6. Multi-instance behavior with different themes on the same page
 
-/* Tablet */
-@media (min-width: 769px) and (max-width: 1024px) {
-  :root {
-    --editora-content-padding: 20px;
-  }
-}
+## License
 
-/* Desktop */
-@media (min-width: 1025px) {
-  :root {
-    --editora-content-padding: 24px;
-  }
-}
-```
-
-## 🌙 Dark Mode Implementation
-
-### System Preference Detection
-
-```tsx
-import { useEffect, useState } from 'react';
-
-function useTheme() {
-  const [theme, setTheme] = useState<'light' | 'dark'>('light');
-
-  useEffect(() => {
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    setTheme(mediaQuery.matches ? 'dark' : 'light');
-
-    const handler = (e: MediaQueryListEvent) => {
-      setTheme(e.matches ? 'dark' : 'light');
-    };
-
-    mediaQuery.addEventListener('change', handler);
-    return () => mediaQuery.removeEventListener('change', handler);
-  }, []);
-
-  return theme;
-}
-
-function App() {
-  const theme = useTheme();
-  
-  return (
-    <div data-theme={theme}>
-      <EditoraEditor />
-    </div>
-  );
-}
-```
-
-### Manual Theme Toggle
-
-```tsx
-function App() {
-  const [theme, setTheme] = useState(() => {
-    return localStorage.getItem('theme') || 'light';
-  });
-
-  const toggleTheme = () => {
-    const newTheme = theme === 'light' ? 'dark' : 'light';
-    setTheme(newTheme);
-    localStorage.setItem('theme', newTheme);
-  };
-
-  return (
-    <div data-theme={theme}>
-      <button onClick={toggleTheme}>
-        {theme === 'light' ? '🌙' : '☀️'}
-      </button>
-      <EditoraEditor />
-    </div>
-  );
-}
-```
-
-## 🎨 Component-Specific Styling
-
-### Toolbar Customization
-
-```css
-.rte-toolbar {
-  background: linear-gradient(to right, #667eea, #764ba2);
-  border-radius: 8px 8px 0 0;
-}
-
-.rte-toolbar-button {
-  color: white;
-  border-radius: 4px;
-  transition: all 0.2s;
-}
-
-.rte-toolbar-button:hover {
-  background: rgba(255, 255, 255, 0.2);
-  transform: translateY(-1px);
-}
-```
-
-### Content Area Styling
-
-```css
-.rte-content {
-  font-family: 'Georgia', serif;
-  font-size: 18px;
-  line-height: 1.6;
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 40px;
-}
-
-.rte-content h1 {
-  color: var(--editora-primary);
-  border-bottom: 2px solid var(--editora-border);
-  padding-bottom: 0.3em;
-}
-```
-
-### Dialog Styling
-
-```css
-.rte-dialog {
-  border-radius: var(--editora-radius-lg);
-  box-shadow: var(--editora-shadow-lg);
-}
-
-.rte-dialog-header {
-  background: var(--editora-bg-secondary);
-  border-radius: var(--editora-radius-lg) var(--editora-radius-lg) 0 0;
-}
-```
-
-## 📄 License
-
-MIT © [Ajay Kumar](https://github.com/ajaykr089)
-
-## 🔗 Links
-
-- [Documentation](https://github.com/ajaykr089/Editora#readme)
-- [GitHub Repository](https://github.com/ajaykr089/Editora)
-- [Issue Tracker](https://github.com/ajaykr089/Editora/issues)
-- [npm Package](https://www.npmjs.com/package/@editora/themes)
+MIT

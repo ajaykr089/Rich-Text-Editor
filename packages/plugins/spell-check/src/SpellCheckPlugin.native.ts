@@ -51,6 +51,621 @@ let isSpellCheckEnabled = false;
 let mutationObserver: MutationObserver | null = null;
 let debounceTimeout: number | null = null;
 let sidePanelElement: HTMLElement | null = null;
+let activeEditorElement: HTMLElement | null = null;
+let contextMenuListener: ((e: MouseEvent) => void) | null = null;
+let isContextMenuAttached = false;
+let pendingToggleEditorElement: HTMLElement | null = null;
+let isToggleTriggerTrackingAttached = false;
+let observerSuspendDepth = 0;
+
+const MUTATION_OBSERVER_OPTIONS: MutationObserverInit = {
+  characterData: true,
+  childList: true,
+  subtree: true
+};
+
+const SPELLCHECK_STYLE_ID = 'rte-spellcheck-styles';
+const COMMAND_EDITOR_CONTEXT_KEY = '__editoraCommandEditorRoot';
+
+function consumeCommandEditorContextEditor(): HTMLElement | null {
+  if (typeof window === 'undefined') return null;
+
+  const explicitContext = (window as any)[COMMAND_EDITOR_CONTEXT_KEY] as HTMLElement | null | undefined;
+  if (!(explicitContext instanceof HTMLElement)) return null;
+
+  (window as any)[COMMAND_EDITOR_CONTEXT_KEY] = null;
+
+  const root =
+    (explicitContext.closest('[data-editora-editor], .rte-editor, .editora-editor, editora-editor') as HTMLElement | null) ||
+    (explicitContext.matches('[data-editora-editor], .rte-editor, .editora-editor, editora-editor')
+      ? explicitContext
+      : null);
+
+  if (root) {
+    const content = getEditorContentFromHost(root);
+    if (content) return content;
+    if (root.getAttribute('contenteditable') === 'true') return root;
+  }
+
+  if (explicitContext.getAttribute('contenteditable') === 'true') {
+    return explicitContext;
+  }
+
+  const nearestEditable = explicitContext.closest('[contenteditable="true"]');
+  return nearestEditable instanceof HTMLElement ? nearestEditable : null;
+}
+
+function ensureSpellCheckStyles(): void {
+  let style = document.getElementById(SPELLCHECK_STYLE_ID) as HTMLStyleElement | null;
+  if (!style) {
+    style = document.createElement('style');
+    style.id = SPELLCHECK_STYLE_ID;
+    document.head.appendChild(style);
+  }
+
+  style.textContent = `
+    .rte-spell-check-panel {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      width: min(360px, calc(100% - 24px));
+      max-height: min(560px, calc(100% - 24px));
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      border-radius: 12px;
+      border: 1px solid #d7dbe3;
+      background: #ffffff;
+      color: #1f2937;
+      box-shadow: 0 16px 40px rgba(15, 23, 42, 0.18);
+      z-index: 1200;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+
+    .rte-spell-check-panel,
+    .rte-spell-check-panel * {
+      box-sizing: border-box;
+    }
+
+    .editora-theme-dark .rte-spell-check-panel {
+      border-color: #4b5563;
+      background: #1f2937;
+      color: #e5e7eb;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+    }
+
+    .rte-spellcheck-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 16px 12px;
+      border-bottom: 1px solid #eceff5;
+    }
+
+    .editora-theme-dark .rte-spellcheck-header {
+      border-bottom-color: #374151;
+    }
+
+    .rte-spellcheck-title {
+      margin: 0;
+      font-size: 15px;
+      font-weight: 650;
+    }
+
+    .rte-spellcheck-subtitle {
+      margin: 2px 0 0;
+      font-size: 12px;
+      color: #64748b;
+    }
+
+    .editora-theme-dark .rte-spellcheck-subtitle {
+      color: #9ca3af;
+    }
+
+    .rte-spellcheck-close {
+      appearance: none;
+      border: none;
+      background: transparent;
+      font-size: 20px;
+      line-height: 1;
+      color: #6b7280;
+      cursor: pointer;
+      border-radius: 8px;
+      width: 30px;
+      height: 30px;
+      display: grid;
+      place-items: center;
+    }
+
+    .rte-spellcheck-close:hover {
+      background: rgba(15, 23, 42, 0.06);
+      color: #0f172a;
+    }
+
+    .editora-theme-dark .rte-spellcheck-close {
+      color: #9ca3af;
+    }
+
+    .editora-theme-dark .rte-spellcheck-close:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: #f3f4f6;
+    }
+
+    .rte-spellcheck-stats {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      padding: 12px 16px;
+      border-bottom: 1px solid #eceff5;
+    }
+
+    .editora-theme-dark .rte-spellcheck-stats {
+      border-bottom-color: #374151;
+    }
+
+    .rte-spellcheck-stat {
+      border-radius: 10px;
+      background: #f8fafc;
+      border: 1px solid #e5e7eb;
+      padding: 8px 10px;
+      display: grid;
+      gap: 2px;
+    }
+
+    .editora-theme-dark .rte-spellcheck-stat {
+      background: #111827;
+      border-color: #374151;
+    }
+
+    .rte-spellcheck-stat-label {
+      font-size: 11px;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .editora-theme-dark .rte-spellcheck-stat-label {
+      color: #9ca3af;
+    }
+
+    .rte-spellcheck-stat-value {
+      font-size: 16px;
+      font-weight: 700;
+      color: #111827;
+    }
+
+    .editora-theme-dark .rte-spellcheck-stat-value {
+      color: #f3f4f6;
+    }
+
+    .rte-spellcheck-list {
+      flex: 1 1 auto;
+      min-height: 0;
+      max-height: 100%;
+      overflow-y: auto;
+      overflow-x: hidden;
+      overscroll-behavior: contain;
+      padding: 10px 12px 12px;
+      display: grid;
+      gap: 8px;
+      scrollbar-width: thin;
+      scrollbar-color: #cbd5e1 #f1f5f9;
+    }
+
+    .rte-spellcheck-list::-webkit-scrollbar {
+      width: 10px;
+    }
+
+    .rte-spellcheck-list::-webkit-scrollbar-track {
+      background: #f1f5f9;
+      border-radius: 999px;
+    }
+
+    .rte-spellcheck-list::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 999px;
+      border: 2px solid #f1f5f9;
+    }
+
+    .rte-spellcheck-list::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+
+    .rte-spellcheck-empty {
+      padding: 18px 14px;
+      text-align: center;
+      color: #64748b;
+      font-size: 13px;
+      border-radius: 10px;
+      border: 1px dashed #d1d5db;
+      background: #f8fafc;
+    }
+
+    .editora-theme-dark .rte-spellcheck-empty {
+      color: #9ca3af;
+      border-color: #4b5563;
+      background: #111827;
+    }
+
+    .editora-theme-dark .rte-spellcheck-list {
+      scrollbar-color: #4b5563 #1f2937;
+    }
+
+    .editora-theme-dark .rte-spellcheck-list::-webkit-scrollbar-track {
+      background: #1f2937;
+    }
+
+    .editora-theme-dark .rte-spellcheck-list::-webkit-scrollbar-thumb {
+      background: #4b5563;
+      border-color: #1f2937;
+    }
+
+    .editora-theme-dark .rte-spellcheck-list::-webkit-scrollbar-thumb:hover {
+      background: #64748b;
+    }
+
+    .rte-spellcheck-item {
+      border-radius: 10px;
+      border: 1px solid #e5e7eb;
+      background: #f8fafc;
+      overflow: visible;
+    }
+
+    .editora-theme-dark .rte-spellcheck-item {
+      border-color: #4b5563;
+      background: #111827;
+    }
+
+    .rte-spell-check-panel .rte-spellcheck-word-header {
+      all: unset;
+      width: 100%;
+      padding: 10px 11px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      cursor: pointer;
+      text-align: left;
+      color: #111827;
+      font-size: 14px;
+      line-height: 1.35;
+      user-select: none;
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .rte-spell-check-panel .rte-spellcheck-word {
+      font-weight: 700;
+      color: #c62828;
+      word-break: break-word;
+      flex: 1;
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .editora-theme-dark .rte-spell-check-panel .rte-spellcheck-word-header {
+      color: #e5e7eb !important;
+    }
+
+    .editora-theme-dark .rte-spell-check-panel .rte-spellcheck-word {
+      color: #f87171 !important;
+    }
+
+    .rte-spell-check-panel .rte-spellcheck-caret {
+      color: #64748b;
+      font-size: 12px;
+      min-width: 12px;
+      text-align: right;
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .rte-spell-check-panel .rte-spellcheck-suggestions {
+      display: none;
+      border-top: 1px solid #e5e7eb;
+      padding: 9px 11px 11px;
+      color: #334155;
+      font-size: 12px;
+      line-height: 1.4;
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .editora-theme-dark .rte-spell-check-panel .rte-spellcheck-suggestions {
+      border-top-color: #374151;
+      color: #d1d5db !important;
+    }
+
+    .rte-spell-check-panel .rte-spellcheck-suggestions.show {
+      display: block;
+    }
+
+    .rte-spell-check-panel .rte-spellcheck-actions {
+      margin-top: 8px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .rte-spell-check-panel .rte-spellcheck-btn {
+      all: unset;
+      border-radius: 8px;
+      border: 1px solid #d1d5db;
+      background: #fff;
+      color: #1f2937;
+      font-size: 12px;
+      font-weight: 550;
+      padding: 5px 8px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .rte-spell-check-panel .rte-spellcheck-btn:hover {
+      background: #f3f4f6;
+    }
+
+    .rte-spell-check-panel .rte-spellcheck-btn.primary {
+      border-color: #2563eb;
+      background: #2563eb;
+      color: #fff;
+    }
+
+    .rte-spell-check-panel .rte-spellcheck-btn.primary:hover {
+      background: #1d4ed8;
+    }
+
+    .editora-theme-dark .rte-spell-check-panel .rte-spellcheck-btn {
+      border-color: #4b5563;
+      background: #1f2937;
+      color: #f3f4f6 !important;
+    }
+
+    .editora-theme-dark .rte-spell-check-panel .rte-spellcheck-btn:hover {
+      background: #374151;
+    }
+
+    .editora-theme-dark .rte-spell-check-panel .rte-spellcheck-btn.primary {
+      border-color: #60a5fa;
+      background: #2563eb;
+      color: #fff;
+    }
+
+    .rte-spellcheck-menu {
+      position: fixed;
+      background: #ffffff;
+      border: 1px solid #d1d5db;
+      border-radius: 10px;
+      box-shadow: 0 12px 30px rgba(15, 23, 42, 0.2);
+      z-index: 1300;
+      padding: 6px 0;
+      min-width: 180px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 13px;
+      color: #111827;
+    }
+
+    .rte-spellcheck-menu-item {
+      padding: 8px 14px;
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+
+    .rte-spellcheck-menu-item:hover {
+      background: #f3f4f6;
+    }
+
+    .rte-spellcheck-menu-item.meta {
+      color: #64748b;
+    }
+
+    .rte-spellcheck-menu-item.positive {
+      color: #1d4ed8;
+    }
+
+    .editora-theme-dark .rte-spellcheck-menu {
+      background: #1f2937;
+      border-color: #4b5563;
+      color: #e5e7eb;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+    }
+
+    .editora-theme-dark .rte-spellcheck-menu-item:hover {
+      background: #374151;
+    }
+
+    .editora-theme-dark .rte-spellcheck-menu-item.meta {
+      color: #9ca3af;
+    }
+
+    .editora-theme-dark .rte-spellcheck-menu-item.positive {
+      color: #93c5fd;
+    }
+
+    :is([theme="dark"], [data-theme="dark"], .dark, .editora-theme-dark) .rte-spell-check-panel {
+      border-color: #4b5563;
+      background: #1f2937;
+      color: #e5e7eb;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+    }
+
+    :is([theme="dark"], [data-theme="dark"], .dark, .editora-theme-dark) .rte-spellcheck-header {
+      border-bottom-color: #374151;
+    }
+
+    :is([theme="dark"], [data-theme="dark"], .dark, .editora-theme-dark) .rte-spellcheck-subtitle {
+      color: #9ca3af;
+    }
+
+    :is([theme="dark"], [data-theme="dark"], .dark, .editora-theme-dark) .rte-spellcheck-item {
+      border-color: #4b5563;
+      background: #111827;
+    }
+
+    :is([theme="dark"], [data-theme="dark"], .dark, .editora-theme-dark) .rte-spellcheck-list {
+      scrollbar-color: #4b5563 #1f2937;
+    }
+
+    :is([theme="dark"], [data-theme="dark"], .dark, .editora-theme-dark) .rte-spellcheck-list::-webkit-scrollbar-track {
+      background: #1f2937;
+    }
+
+    :is([theme="dark"], [data-theme="dark"], .dark, .editora-theme-dark) .rte-spellcheck-list::-webkit-scrollbar-thumb {
+      background: #4b5563;
+      border-color: #1f2937;
+    }
+
+    :is([theme="dark"], [data-theme="dark"], .dark, .editora-theme-dark) .rte-spellcheck-list::-webkit-scrollbar-thumb:hover {
+      background: #64748b;
+    }
+
+    :is([theme="dark"], [data-theme="dark"], .dark, .editora-theme-dark) .rte-spell-check-panel .rte-spellcheck-word-header {
+      color: #e5e7eb !important;
+    }
+
+    :is([theme="dark"], [data-theme="dark"], .dark, .editora-theme-dark) .rte-spell-check-panel .rte-spellcheck-word {
+      color: #f87171 !important;
+    }
+
+    :is([theme="dark"], [data-theme="dark"], .dark, .editora-theme-dark) .rte-spell-check-panel .rte-spellcheck-suggestions {
+      border-top-color: #374151;
+      color: #d1d5db !important;
+    }
+
+    :is([theme="dark"], [data-theme="dark"], .dark, .editora-theme-dark) .rte-spell-check-panel .rte-spellcheck-btn {
+      border-color: #4b5563;
+      background: #1f2937;
+      color: #f3f4f6 !important;
+    }
+
+    :is([theme="dark"], [data-theme="dark"], .dark, .editora-theme-dark) .rte-spell-check-panel .rte-spellcheck-btn:hover {
+      background: #374151;
+    }
+
+    :is([theme="dark"], [data-theme="dark"], .dark, .editora-theme-dark) .rte-spell-check-panel .rte-spellcheck-btn.primary {
+      border-color: #60a5fa;
+      background: #2563eb;
+      color: #fff;
+    }
+
+    :is([theme="dark"], [data-theme="dark"], .dark, .editora-theme-dark) .rte-spellcheck-menu {
+      background: #1f2937;
+      border-color: #4b5563;
+      color: #e5e7eb;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+    }
+
+    :is([theme="dark"], [data-theme="dark"], .dark, .editora-theme-dark) .rte-spellcheck-menu-item:hover {
+      background: #374151;
+    }
+
+    :is([theme="dark"], [data-theme="dark"], .dark, .editora-theme-dark) .rte-spellcheck-menu-item.meta {
+      color: #9ca3af;
+    }
+
+    :is([theme="dark"], [data-theme="dark"], .dark, .editora-theme-dark) .rte-spellcheck-menu-item.positive {
+      color: #93c5fd;
+    }
+  `;
+}
+
+function getSpellcheckEditor(): HTMLElement | null {
+  if (activeEditorElement && document.contains(activeEditorElement)) {
+    return activeEditorElement;
+  }
+  const resolved = findActiveEditor();
+  if (resolved) activeEditorElement = resolved;
+  return resolved;
+}
+
+function setActiveEditorFromNode(node: Node | null): void {
+  if (!node) return;
+  const element = (node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement) as HTMLElement | null;
+  const editor = element?.closest('[contenteditable="true"]') as HTMLElement | null;
+  if (editor) {
+    activeEditorElement = editor;
+  }
+}
+
+function getEditorContentFromHost(host: Element | null): HTMLElement | null {
+  if (!host) return null;
+  const content = host.querySelector('[contenteditable="true"]');
+  return content instanceof HTMLElement ? content : null;
+}
+
+function attachToggleTriggerTracking(): void {
+  if (isToggleTriggerTrackingAttached) return;
+
+  const handler = (event: Event) => {
+    const target = event.target as HTMLElement | null;
+    if (!target) return;
+
+    const trigger = target.closest(
+      '.editora-toolbar-button[data-command="toggleSpellCheck"], .rte-toolbar-button[data-command="toggleSpellCheck"]'
+    ) as HTMLElement | null;
+    if (!trigger) return;
+
+    const host = trigger.closest('[data-editora-editor]');
+    const editor = getEditorContentFromHost(host);
+    if (editor) {
+      pendingToggleEditorElement = editor;
+      activeEditorElement = editor;
+    }
+  };
+
+  document.addEventListener('pointerdown', handler, true);
+  isToggleTriggerTrackingAttached = true;
+}
+
+function resolveEditorForSpellCheckToggle(): HTMLElement | null {
+  const explicitContextEditor = consumeCommandEditorContextEditor();
+  if (explicitContextEditor && document.contains(explicitContextEditor)) {
+    activeEditorElement = explicitContextEditor;
+    pendingToggleEditorElement = null;
+    return explicitContextEditor;
+  }
+
+  if (pendingToggleEditorElement && document.contains(pendingToggleEditorElement)) {
+    const editor = pendingToggleEditorElement;
+    pendingToggleEditorElement = null;
+    activeEditorElement = editor;
+    return editor;
+  }
+  return findActiveEditor();
+}
+
+function suspendMutationObserver(): void {
+  observerSuspendDepth += 1;
+  if (observerSuspendDepth === 1 && mutationObserver) {
+    mutationObserver.disconnect();
+  }
+}
+
+function resumeMutationObserver(): void {
+  if (observerSuspendDepth === 0) return;
+  observerSuspendDepth -= 1;
+  if (observerSuspendDepth > 0) return;
+  if (!mutationObserver) return;
+
+  const editor = getSpellcheckEditor();
+  if (editor) {
+    mutationObserver.observe(editor, MUTATION_OBSERVER_OPTIONS);
+  }
+}
+
+function runWithObserverSuspended<T>(operation: () => T): T {
+  suspendMutationObserver();
+  try {
+    return operation();
+  } finally {
+    resumeMutationObserver();
+  }
+}
 
 // Load custom dictionary from localStorage
 const loadCustomDictionary = () => {
@@ -174,6 +789,12 @@ function tokenizeTextNode(node: Text): SpellCheckIssue[] {
  * Find the active editor element
  */
 const findActiveEditor = (): HTMLElement | null => {
+  const explicitContextEditor = consumeCommandEditorContextEditor();
+  if (explicitContextEditor && document.contains(explicitContextEditor)) {
+    activeEditorElement = explicitContextEditor;
+    return explicitContextEditor;
+  }
+
   // Try to find editor from current selection
   const selection = window.getSelection();
   if (selection && selection.rangeCount > 0) {
@@ -197,6 +818,13 @@ const findActiveEditor = (): HTMLElement | null => {
     }
     const editor = activeElement.closest('[contenteditable="true"]');
     if (editor) return editor as HTMLElement;
+
+    // If focus is on toolbar controls, resolve the editor inside the same host.
+    const hostEditor = activeElement.closest('[data-editora-editor]');
+    if (hostEditor) {
+      const content = hostEditor.querySelector('[contenteditable="true"]');
+      if (content) return content as HTMLElement;
+    }
   }
   
   // Fallback to first editor
@@ -207,7 +835,7 @@ const findActiveEditor = (): HTMLElement | null => {
  * Scan entire document for misspellings
  */
 function scanDocumentForMisspellings(): SpellCheckIssue[] {
-  const editor = findActiveEditor();
+  const editor = getSpellcheckEditor();
   if (!editor) return [];
   
   const issues: SpellCheckIssue[] = [];
@@ -236,74 +864,78 @@ function scanDocumentForMisspellings(): SpellCheckIssue[] {
  * Highlight misspelled words with red wavy underline
  */
 function highlightMisspelledWords(issues?: SpellCheckIssue[]): void {
-  const editor = findActiveEditor();
+  const editor = getSpellcheckEditor();
   if (!editor) return;
-  
+
   if (!issues) issues = scanDocumentForMisspellings();
-  
-  // Clear existing highlights
-  editor.querySelectorAll('.rte-misspelled').forEach(el => {
-    const parent = el.parentNode;
-    if (parent) {
-      while (el.firstChild) {
-        parent.insertBefore(el.firstChild, el);
+
+  runWithObserverSuspended(() => {
+    // Clear existing highlights
+    editor.querySelectorAll('.rte-misspelled').forEach(el => {
+      const parent = el.parentNode;
+      if (parent) {
+        while (el.firstChild) {
+          parent.insertBefore(el.firstChild, el);
+        }
+        parent.removeChild(el);
       }
-      parent.removeChild(el);
-    }
+    });
+
+    // Add new highlights
+    issues!.forEach(issue => {
+      if (ignoredWords.has(issue.word.toLowerCase())) return;
+
+      // Defensive check: ensure offsets are within bounds
+      const nodeLength = issue.node.data.length;
+      if (
+        issue.startOffset < 0 ||
+        issue.endOffset > nodeLength ||
+        issue.startOffset >= issue.endOffset
+      ) {
+        return;
+      }
+
+      try {
+        const range = document.createRange();
+        range.setStart(issue.node, issue.startOffset);
+        range.setEnd(issue.node, issue.endOffset);
+
+        const span = document.createElement('span');
+        span.className = 'rte-misspelled';
+        span.setAttribute('data-word', issue.word);
+        span.setAttribute('data-suggestions', issue.suggestions.join(','));
+        span.setAttribute('title', `Suggestions: ${issue.suggestions.join(', ')}`);
+        span.style.borderBottom = '2px wavy red';
+        span.style.cursor = 'pointer';
+
+        range.surroundContents(span);
+      } catch (e) {
+        // Skip if range surroundContents fails
+      }
+    });
   });
   
-  // Add new highlights
-  issues.forEach(issue => {
-    if (ignoredWords.has(issue.word.toLowerCase())) return;
-    
-    // Defensive check: ensure offsets are within bounds
-    const nodeLength = issue.node.data.length;
-    if (
-      issue.startOffset < 0 ||
-      issue.endOffset > nodeLength ||
-      issue.startOffset >= issue.endOffset
-    ) {
-      return;
-    }
-    
-    try {
-      const range = document.createRange();
-      range.setStart(issue.node, issue.startOffset);
-      range.setEnd(issue.node, issue.endOffset);
-      
-      const span = document.createElement('span');
-      span.className = 'rte-misspelled';
-      span.setAttribute('data-word', issue.word);
-      span.setAttribute('data-suggestions', issue.suggestions.join(','));
-      span.setAttribute('title', `Suggestions: ${issue.suggestions.join(', ')}`);
-      span.style.borderBottom = '2px wavy red';
-      span.style.cursor = 'pointer';
-      
-      range.surroundContents(span);
-    } catch (e) {
-      // Skip if range surroundContents fails
-    }
-  });
-  
-  // Update side panel
-  updateSidePanel();
+  // Update side panel with precomputed issues to avoid an extra scan
+  updateSidePanel(issues);
 }
 
 /**
  * Clear all spell check highlights
  */
 function clearSpellCheckHighlights(): void {
-  const editor = document.querySelector('[contenteditable="true"]');
+  const editor = getSpellcheckEditor();
   if (!editor) return;
-  
-  editor.querySelectorAll('.rte-misspelled').forEach(el => {
-    const parent = el.parentNode;
-    if (parent) {
-      while (el.firstChild) {
-        parent.insertBefore(el.firstChild, el);
+
+  runWithObserverSuspended(() => {
+    editor.querySelectorAll('.rte-misspelled').forEach(el => {
+      const parent = el.parentNode;
+      if (parent) {
+        while (el.firstChild) {
+          parent.insertBefore(el.firstChild, el);
+        }
+        parent.removeChild(el);
       }
-      parent.removeChild(el);
-    }
+    });
   });
 }
 
@@ -311,15 +943,15 @@ function clearSpellCheckHighlights(): void {
  * Replace a misspelled word with a suggestion
  */
 function replaceWord(issue: SpellCheckIssue, replacement: string): void {
-  const range = document.createRange();
-  range.setStart(issue.node, issue.startOffset);
-  range.setEnd(issue.node, issue.endOffset);
-  
-  const textNode = document.createTextNode(replacement);
-  range.deleteContents();
-  range.insertNode(textNode);
-  
-  // MutationObserver will trigger highlight and panel update
+  runWithObserverSuspended(() => {
+    const range = document.createRange();
+    range.setStart(issue.node, issue.startOffset);
+    range.setEnd(issue.node, issue.endOffset);
+
+    const textNode = document.createTextNode(replacement);
+    range.deleteContents();
+    range.insertNode(textNode);
+  });
 }
 
 /**
@@ -329,7 +961,6 @@ function ignoreWord(word: string): void {
   ignoredWords.add(word.toLowerCase());
   clearSpellCheckHighlights();
   highlightMisspelledWords();
-  updateSidePanel(); // Immediate update needed since no DOM change
 }
 
 /**
@@ -340,14 +971,13 @@ function addToDictionary(word: string): void {
   saveCustomDictionary(); // Save to localStorage
   clearSpellCheckHighlights();
   highlightMisspelledWords();
-  updateSidePanel(); // Immediate update needed since no DOM change
 }
 
 /**
  * Get spell check statistics
  */
-function getSpellCheckStats(issues?: SpellingIssue[]): { total: number; misspelled: number; accuracy: number } {
-  const editor = findActiveEditor();
+function getSpellCheckStats(issues?: SpellCheckIssue[]): { total: number; misspelled: number; accuracy: number } {
+  const editor = getSpellcheckEditor();
   if (!editor) return { total: 0, misspelled: 0, accuracy: 100 };
   
   // Use provided issues or scan if not provided
@@ -368,61 +998,47 @@ function getSpellCheckStats(issues?: SpellingIssue[]): { total: number; misspell
   };
 }
 
+function replaceMisspelledTarget(target: HTMLElement, replacement: string): void {
+  const textNode = document.createTextNode(replacement);
+  target.replaceWith(textNode);
+}
+
+function ignoreMisspelledTargetOnce(target: HTMLElement): void {
+  target.classList.remove('rte-misspelled');
+  target.removeAttribute('data-word');
+  target.removeAttribute('data-suggestions');
+  target.removeAttribute('title');
+  target.style.borderBottom = '';
+  target.style.cursor = '';
+}
+
 // ===== Context Menu =====
 
 /**
  * Show context menu for misspelled word
  */
 function showSpellCheckContextMenu(x: number, y: number, word: string, suggestions: string[], target: HTMLElement): void {
+  setActiveEditorFromNode(target);
+
   // Remove existing menus
   document.querySelectorAll('.rte-spellcheck-menu').forEach(el => el.remove());
   
   const menu = document.createElement('div');
   menu.className = 'rte-spellcheck-menu';
-  menu.style.cssText = `
-    position: fixed;
-    left: ${x}px;
-    top: ${y}px;
-    background: #fff;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-    z-index: 99999;
-    padding: 4px 0;
-    min-width: 160px;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    font-size: 13px;
-  `;
   
   // Add suggestions
   suggestions.slice(0, 5).forEach(suggestion => {
     const item = document.createElement('div');
     item.className = 'rte-spellcheck-menu-item';
     item.textContent = suggestion;
-    item.style.cssText = 'padding: 6px 16px; cursor: pointer; transition: background 0.2s;';
-    item.onmouseenter = () => item.style.backgroundColor = '#f0f0f0';
-    item.onmouseleave = () => item.style.backgroundColor = 'transparent';
     item.onclick = () => {
-      // Find the text node and create issue
-      const parent = target.parentNode;
-      if (parent) {
-        for (const node of parent.childNodes) {
-          if (node.nodeType === Node.TEXT_NODE && node.textContent?.includes(word)) {
-            const idx = node.textContent.indexOf(word);
-            const issue: SpellCheckIssue = {
-              id: `${word}-${idx}`,
-              node: node as Text,
-              startOffset: idx,
-              endOffset: idx + word.length,
-              word,
-              suggestions,
-              ignored: false
-            };
-            replaceWord(issue, suggestion);
-            break;
-          }
+      replaceMisspelledTarget(target, suggestion);
+      window.setTimeout(() => {
+        if (isSpellCheckEnabled) {
+          highlightMisspelledWords();
+          updateSidePanel();
         }
-      }
+      }, 0);
       menu.remove();
     };
     menu.appendChild(item);
@@ -437,24 +1053,18 @@ function showSpellCheckContextMenu(x: number, y: number, word: string, suggestio
   
   // Ignore Once
   const ignoreOnce = document.createElement('div');
-  ignoreOnce.className = 'rte-spellcheck-menu-item';
+  ignoreOnce.className = 'rte-spellcheck-menu-item meta';
   ignoreOnce.textContent = 'Ignore Once';
-  ignoreOnce.style.cssText = 'padding: 6px 16px; cursor: pointer; color: #666;';
-  ignoreOnce.onmouseenter = () => ignoreOnce.style.backgroundColor = '#f0f0f0';
-  ignoreOnce.onmouseleave = () => ignoreOnce.style.backgroundColor = 'transparent';
   ignoreOnce.onclick = () => {
-    target.remove();
+    ignoreMisspelledTargetOnce(target);
     menu.remove();
   };
   menu.appendChild(ignoreOnce);
   
   // Ignore All
   const ignoreAll = document.createElement('div');
-  ignoreAll.className = 'rte-spellcheck-menu-item';
+  ignoreAll.className = 'rte-spellcheck-menu-item meta';
   ignoreAll.textContent = 'Ignore All';
-  ignoreAll.style.cssText = 'padding: 6px 16px; cursor: pointer; color: #666;';
-  ignoreAll.onmouseenter = () => ignoreAll.style.backgroundColor = '#f0f0f0';
-  ignoreAll.onmouseleave = () => ignoreAll.style.backgroundColor = 'transparent';
   ignoreAll.onclick = () => {
     ignoreWord(word);
     menu.remove();
@@ -463,11 +1073,8 @@ function showSpellCheckContextMenu(x: number, y: number, word: string, suggestio
   
   // Add to Dictionary
   const addToDict = document.createElement('div');
-  addToDict.className = 'rte-spellcheck-menu-item';
+  addToDict.className = 'rte-spellcheck-menu-item positive';
   addToDict.textContent = 'Add to Dictionary';
-  addToDict.style.cssText = 'padding: 6px 16px; cursor: pointer; color: #1976d2;';
-  addToDict.onmouseenter = () => addToDict.style.backgroundColor = '#f0f0f0';
-  addToDict.onmouseleave = () => addToDict.style.backgroundColor = 'transparent';
   addToDict.onclick = () => {
     addToDictionary(word);
     menu.remove();
@@ -475,6 +1082,12 @@ function showSpellCheckContextMenu(x: number, y: number, word: string, suggestio
   menu.appendChild(addToDict);
   
   document.body.appendChild(menu);
+
+  const menuRect = menu.getBoundingClientRect();
+  const maxLeft = window.innerWidth - menuRect.width - 8;
+  const maxTop = window.innerHeight - menuRect.height - 8;
+  menu.style.left = `${Math.max(8, Math.min(x, maxLeft))}px`;
+  menu.style.top = `${Math.max(8, Math.min(y, maxTop))}px`;
   
   // Close on click outside
   const dismiss = (ev: MouseEvent) => {
@@ -490,92 +1103,113 @@ function showSpellCheckContextMenu(x: number, y: number, word: string, suggestio
  * Attach context menu to document
  */
 function attachSpellCheckContextMenu(): void {
-  document.addEventListener('contextmenu', (e) => {
+  if (isContextMenuAttached) return;
+
+  contextMenuListener = (e: MouseEvent) => {
     const target = e.target as HTMLElement;
     if (target && target.classList.contains('rte-misspelled')) {
       e.preventDefault();
+      setActiveEditorFromNode(target);
       const word = target.getAttribute('data-word')!;
       const suggestions = (target.getAttribute('data-suggestions') || '').split(',').filter(s => s);
       showSpellCheckContextMenu(e.clientX, e.clientY, word, suggestions, target);
     }
-  });
+  };
+
+  document.addEventListener('contextmenu', contextMenuListener);
+  isContextMenuAttached = true;
+}
+
+function detachSpellCheckContextMenu(): void {
+  if (!isContextMenuAttached || !contextMenuListener) return;
+  document.removeEventListener('contextmenu', contextMenuListener);
+  contextMenuListener = null;
+  isContextMenuAttached = false;
 }
 
 // ===== Side Panel =====
+
+function getEditorHost(editor: HTMLElement): HTMLElement {
+  const host = editor.closest('[data-editora-editor]') as HTMLElement | null;
+  return host || editor.parentElement || editor;
+}
 
 /**
  * Create and show side panel
  */
 function createSidePanel(): HTMLElement {
+  const editor = getSpellcheckEditor();
+  if (!editor) {
+    throw new Error('Spell check panel requested without active editor');
+  }
+
+  const host = getEditorHost(editor);
+  ensureSpellCheckStyles();
+
   const panel = document.createElement('div');
   panel.className = 'rte-spell-check-panel';
-  panel.style.cssText = `
-    position: fixed;
-    right: 0;
-    top: 0;
-    width: 350px;
-    height: 100vh;
-    background: white;
-    border-left: 1px solid #ddd;
-    box-shadow: -2px 0 4px rgba(0,0,0,0.1);
-    overflow-y: auto;
-    z-index: 10000;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    padding: 16px;
-  `;
-  
-  document.body.appendChild(panel);
+
+  const computedHostStyle = window.getComputedStyle(host);
+  if (computedHostStyle.position === 'static') {
+    host.style.position = 'relative';
+  }
+
+  host.appendChild(panel);
   return panel;
 }
 
 /**
  * Update side panel content
  */
-function updateSidePanel(): void {
+function updateSidePanel(precomputedIssues?: SpellCheckIssue[]): void {
   if (!sidePanelElement) return;
   
-  const issues = scanDocumentForMisspellings();
+  const issues = precomputedIssues || scanDocumentForMisspellings();
   const stats = getSpellCheckStats(issues); // Pass issues to avoid duplicate scan
   
   sidePanelElement.innerHTML = `
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-      <h3 style="margin: 0; font-size: 16px; font-weight: 600;">Spell Check</h3>
-      <button class="rte-spellcheck-close" style="background: none; border: none; font-size: 22px; cursor: pointer; color: #888;">✕</button>
+    <div class="rte-spellcheck-header">
+      <div>
+        <h3 class="rte-spellcheck-title">Spell Check</h3>
+        <p class="rte-spellcheck-subtitle">Review suggestions and resolve issues quickly</p>
+      </div>
+      <button class="rte-spellcheck-close" aria-label="Close spell check panel">✕</button>
     </div>
     
-    <div style="display: flex; gap: 24px; margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid #eee;">
-      <div>
-        <div style="font-size: 12px; color: #999;">Total Words</div>
-        <div style="font-size: 16px; font-weight: 600; color: #333;">${stats.total}</div>
+    <div class="rte-spellcheck-stats">
+      <div class="rte-spellcheck-stat">
+        <span class="rte-spellcheck-stat-label">Total</span>
+        <strong class="rte-spellcheck-stat-value">${stats.total}</strong>
       </div>
-      <div>
-        <div style="font-size: 12px; color: #999;">Misspelled</div>
-        <div style="font-size: 16px; font-weight: 600; color: #d32f2f;">${stats.misspelled}</div>
+      <div class="rte-spellcheck-stat">
+        <span class="rte-spellcheck-stat-label">Misspelled</span>
+        <strong class="rte-spellcheck-stat-value">${stats.misspelled}</strong>
       </div>
-      <div>
-        <div style="font-size: 12px; color: #999;">Accuracy</div>
-        <div style="font-size: 16px; font-weight: 600; color: #388e3c;">${stats.accuracy.toFixed(1)}%</div>
+      <div class="rte-spellcheck-stat">
+        <span class="rte-spellcheck-stat-label">Accuracy</span>
+        <strong class="rte-spellcheck-stat-value">${stats.accuracy.toFixed(1)}%</strong>
       </div>
     </div>
     
-    <div class="misspellings-list">
+    <div class="rte-spellcheck-list">
       ${issues.length === 0 
-        ? '<div style="padding: 12px; text-align: center; color: #999; font-size: 13px;">No spelling errors found</div>'
+        ? '<div class="rte-spellcheck-empty">No spelling errors found in this editor.</div>'
         : issues.map((issue, idx) => `
-            <div class="misspelling-item" data-word="${issue.word}" data-index="${idx}" style="padding: 8px; margin-bottom: 8px; background-color: #f5f5f5; border-radius: 4px;">
-              <div class="word-header" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;">
-                <span style="font-weight: 600; color: #d32f2f;">${issue.word}</span>
-                <button class="expand-btn" style="background: none; border: none; cursor: pointer; font-size: 12px; color: #666;">▶</button>
-              </div>
-              <div class="suggestions" style="display: none; margin-top: 8px; padding-top: 8px; border-top: 1px solid #ddd;">
+            <div class="rte-spellcheck-item" data-word="${issue.word}" data-index="${idx}">
+              <button class="rte-spellcheck-word-header" type="button">
+                <span class="rte-spellcheck-word">${issue.word}</span>
+                <span class="rte-spellcheck-caret">▶</span>
+              </button>
+              <div class="rte-spellcheck-suggestions">
                 ${issue.suggestions.length > 0 
-                  ? `<div style="font-size: 12px; font-weight: 600; color: #333; margin-bottom: 6px;">Suggestions:</div>
-                     ${issue.suggestions.map(s => `<button class="suggestion-btn" data-suggestion="${s}" style="display: inline-block; margin-right: 6px; margin-bottom: 6px; padding: 4px 8px; background-color: #1976d2; color: white; border: none; border-radius: 3px; font-size: 12px; cursor: pointer;">${s}</button>`).join('')}`
-                  : '<div style="font-size: 12px; color: #999; margin-bottom: 8px;">No suggestions</div>'
+                  ? `<div class="rte-spellcheck-actions">
+                       ${issue.suggestions.map(s => `<button class="rte-spellcheck-btn primary suggestion-btn" data-suggestion="${s}" type="button">${s}</button>`).join('')}
+                     </div>`
+                  : '<div class="rte-spellcheck-subtitle">No suggestions available</div>'
                 }
-                <div style="margin-top: 8px; display: flex; gap: 6px;">
-                  <button class="ignore-btn" style="font-size: 12px; padding: 4px 8px; background-color: white; border: 1px solid #ddd; border-radius: 3px; cursor: pointer;">Ignore</button>
-                  <button class="add-btn" style="font-size: 12px; padding: 4px 8px; background-color: white; border: 1px solid #ddd; border-radius: 3px; cursor: pointer;">Add to Dictionary</button>
+                <div class="rte-spellcheck-actions">
+                  <button class="rte-spellcheck-btn ignore-btn" type="button">Ignore</button>
+                  <button class="rte-spellcheck-btn add-btn" type="button">Add to Dictionary</button>
                 </div>
               </div>
             </div>
@@ -586,22 +1220,24 @@ function updateSidePanel(): void {
   
   // Event listeners
   const closeBtn = sidePanelElement.querySelector('.rte-spellcheck-close');
-  closeBtn?.addEventListener('click', () => {
-    toggleSpellCheck();
+  closeBtn?.addEventListener('click', (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    disableSpellCheck();
   });
   
   // Toggle expand/collapse
-  sidePanelElement.querySelectorAll('.word-header').forEach((header, idx) => {
+  sidePanelElement.querySelectorAll('.rte-spellcheck-word-header').forEach((header) => {
     header.addEventListener('click', () => {
-      const item = header.closest('.misspelling-item');
-      const suggestions = item?.querySelector('.suggestions') as HTMLElement;
-      const expandBtn = header.querySelector('.expand-btn');
+      const item = header.closest('.rte-spellcheck-item');
+      const suggestions = item?.querySelector('.rte-spellcheck-suggestions') as HTMLElement;
+      const expandBtn = header.querySelector('.rte-spellcheck-caret');
       if (suggestions && expandBtn) {
-        if (suggestions.style.display === 'none') {
-          suggestions.style.display = 'block';
+        if (!suggestions.classList.contains('show')) {
+          suggestions.classList.add('show');
           expandBtn.textContent = '▼';
         } else {
-          suggestions.style.display = 'none';
+          suggestions.classList.remove('show');
           expandBtn.textContent = '▶';
         }
       }
@@ -612,12 +1248,13 @@ function updateSidePanel(): void {
   sidePanelElement.querySelectorAll('.suggestion-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const suggestion = btn.getAttribute('data-suggestion')!;
-      const item = btn.closest('.misspelling-item');
+      const item = btn.closest('.rte-spellcheck-item');
       const word = item?.getAttribute('data-word')!;
       const issueIndex = parseInt(item?.getAttribute('data-index') || '0');
       
       if (issues[issueIndex]) {
         replaceWord(issues[issueIndex], suggestion);
+        highlightMisspelledWords();
       }
     });
   });
@@ -625,7 +1262,7 @@ function updateSidePanel(): void {
   // Ignore buttons
   sidePanelElement.querySelectorAll('.ignore-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-      const item = btn.closest('.misspelling-item');
+      const item = btn.closest('.rte-spellcheck-item');
       const word = item?.getAttribute('data-word')!;
       ignoreWord(word);
     });
@@ -634,7 +1271,7 @@ function updateSidePanel(): void {
   // Add to dictionary buttons
   sidePanelElement.querySelectorAll('.add-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-      const item = btn.closest('.misspelling-item');
+      const item = btn.closest('.rte-spellcheck-item');
       const word = item?.getAttribute('data-word')!;
       addToDictionary(word);
     });
@@ -644,12 +1281,14 @@ function updateSidePanel(): void {
 // ===== MutationObserver for incremental spell check =====
 
 function startMutationObserver(): void {
-  const editor = findActiveEditor();
+  const editor = getSpellcheckEditor();
   if (!editor) return;
   
   if (mutationObserver) mutationObserver.disconnect();
   
   mutationObserver = new MutationObserver((mutations) => {
+    if (observerSuspendDepth > 0) return;
+
     // Only trigger on text/content changes
     if (mutations.some(m => m.type === 'characterData' || m.type === 'childList')) {
       // Debounce the highlight function
@@ -657,16 +1296,13 @@ function startMutationObserver(): void {
       debounceTimeout = window.setTimeout(() => {
         if (isSpellCheckEnabled) {
           highlightMisspelledWords();
-          updateSidePanel(); // Update side panel when content changes
         }
       }, 350);
     }
   });
   
   mutationObserver.observe(editor, {
-    characterData: true,
-    childList: true,
-    subtree: true
+    ...MUTATION_OBSERVER_OPTIONS
   });
 }
 
@@ -681,35 +1317,77 @@ function stopMutationObserver(): void {
   }
 }
 
+function removeSpellcheckMenus(): void {
+  document.querySelectorAll('.rte-spellcheck-menu').forEach(el => el.remove());
+}
+
+function disableSpellCheck(): boolean {
+  if (!isSpellCheckEnabled) return false;
+
+  clearSpellCheckHighlights();
+  stopMutationObserver();
+  detachSpellCheckContextMenu();
+  removeSpellcheckMenus();
+
+  if (sidePanelElement) {
+    sidePanelElement.remove();
+    sidePanelElement = null;
+  }
+
+  activeEditorElement = null;
+  pendingToggleEditorElement = null;
+  isSpellCheckEnabled = false;
+  return false;
+}
+
 // ===== Main Toggle Function =====
 
-function toggleSpellCheck(): void {
-  isSpellCheckEnabled = !isSpellCheckEnabled;
-  
-  if (isSpellCheckEnabled) {
-    // Enable spell check
-    highlightMisspelledWords();
-    attachSpellCheckContextMenu();
-    startMutationObserver();
-    
-    // Create and show side panel
-    if (!sidePanelElement) {
-      sidePanelElement = createSidePanel();
-      updateSidePanel();
-    }
-  } else {
-    // Disable spell check
+function toggleSpellCheck(): boolean {
+  const targetEditor = resolveEditorForSpellCheckToggle();
+  if (!targetEditor) return false;
+
+  // If spell check is already enabled on another editor, switch instance
+  // in one action instead of forcing disable + enable.
+  if (isSpellCheckEnabled && activeEditorElement && activeEditorElement !== targetEditor) {
     clearSpellCheckHighlights();
     stopMutationObserver();
-    
-    // Remove side panel
+    removeSpellcheckMenus();
+
     if (sidePanelElement) {
       sidePanelElement.remove();
       sidePanelElement = null;
     }
+
+    activeEditorElement = targetEditor;
+    ensureSpellCheckStyles();
+    attachSpellCheckContextMenu();
+    highlightMisspelledWords();
+    startMutationObserver();
+    sidePanelElement = createSidePanel();
+    updateSidePanel();
+    return true;
   }
-  
-  return isSpellCheckEnabled;
+
+  // Toggle off when already enabled on the same editor
+  if (isSpellCheckEnabled) {
+    return disableSpellCheck();
+  }
+
+  // Enable on resolved target editor
+  activeEditorElement = targetEditor;
+  isSpellCheckEnabled = true;
+  ensureSpellCheckStyles();
+  attachSpellCheckContextMenu();
+  highlightMisspelledWords();
+  startMutationObserver();
+
+  if (sidePanelElement) {
+    sidePanelElement.remove();
+    sidePanelElement = null;
+  }
+  sidePanelElement = createSidePanel();
+  updateSidePanel();
+  return true;
 }
 
 // ===== Plugin Export =====
@@ -720,6 +1398,7 @@ export const SpellCheckPlugin = (): Plugin => ({
   init: () => {
     // Load custom dictionary from localStorage on plugin initialization
     loadCustomDictionary();
+    attachToggleTriggerTracking();
   },
   
   toolbar: [

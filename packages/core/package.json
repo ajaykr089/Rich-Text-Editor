@@ -1,6 +1,6 @@
 {
   "name": "@editora/core",
-  "version": "1.0.2",
+  "version": "1.0.5",
   "description": "Framework-agnostic core editor engine for Editora Rich Text Editor",
   "author": "Ajay Kumar <ajaykr089@gmail.com>",
   "license": "MIT",
@@ -45,71 +45,74 @@
   ],
   "main": "dist/index.cjs.js",
   "module": "dist/index.esm.js",
-  "browser": "dist/editora.min.js",
+  "browser": "dist/index.esm.js",
   "unpkg": "dist/editora.min.js",
   "jsdelivr": "dist/editora.min.js",
-  "types": "dist/index.d.ts",
+  "types": "index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
+      "types": "./index.d.ts",
+      "browser": "./dist/index.esm.js",
       "import": "./dist/index.esm.js",
-      "require": "./dist/index.cjs.js",
-      "browser": "./dist/editora.min.js"
+      "require": "./dist/index.cjs.js"
     },
     "./webcomponent": {
-      "types": "./dist/webcomponent/index.d.ts",
+      "types": "./index.d.ts",
+      "browser": "./dist/webcomponent.js",
       "import": "./dist/webcomponent.js",
-      "require": "./dist/webcomponent.cjs.js",
-      "browser": "./dist/webcomponent.min.js"
+      "require": "./dist/webcomponent.cjs.js"
     },
     "./webcomponent-core": {
-      "types": "./dist/webcomponent/index.d.ts",
+      "types": "./index.d.ts",
+      "browser": "./dist/webcomponent-core.js",
       "import": "./dist/webcomponent-core.js",
-      "require": "./dist/webcomponent-core.cjs.js",
-      "browser": "./dist/webcomponent-core.min.js"
+      "require": "./dist/webcomponent-core.cjs.js"
     },
     "./plugin-loader": {
-      "types": "./dist/webcomponent/index.d.ts",
+      "types": "./index.d.ts",
       "import": "./dist/plugin-loader.js",
       "require": "./dist/plugin-loader.cjs.js"
     },
     "./webcomponent.css": "./dist/webcomponent.min.css",
     "./KeyboardShortcuts": {
-      "types": "./dist/index.d.ts",
+      "types": "./index.d.ts",
       "import": "./dist/index.esm.js",
       "require": "./dist/index.cjs.js"
     },
     "./core": {
-      "types": "./dist/core/index.d.ts",
+      "types": "./index.d.ts",
       "import": "./dist/index.esm.js",
       "require": "./dist/index.cjs.js"
     },
     "./ui": {
-      "types": "./dist/ui/index.d.ts",
+      "types": "./index.d.ts",
       "import": "./dist/index.esm.js",
       "require": "./dist/index.cjs.js"
     },
     "./adapters": {
-      "types": "./dist/adapters/index.d.ts",
+      "types": "./index.d.ts",
       "import": "./dist/index.esm.js",
       "require": "./dist/index.cjs.js"
     },
     "./config": {
-      "types": "./dist/config/index.d.ts",
+      "types": "./index.d.ts",
       "import": "./dist/index.esm.js",
       "require": "./dist/index.cjs.js"
     }
   },
   "files": [
     "dist",
+    "index.d.ts",
+    "!dist/**/*.map",
     "README.md",
     "LICENSE"
   ],
   "scripts": {
     "build": "vite build && vite build --config vite.umd.config.ts && vite build --config vite.webcomponent.config.ts && vite build --config vite.webcomponent-core.config.ts && vite build --config vite.plugin-loader.config.ts",
+    "typecheck:build": "tsc -p tsconfig.build.json --noEmit",
     "dev": "vite build --watch",
     "clean": "rm -rf dist",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run typecheck:build && npm run build"
   },
   "devDependencies": {
     "typescript": "^5.0.0",

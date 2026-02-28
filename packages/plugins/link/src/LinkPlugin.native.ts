@@ -22,6 +22,7 @@ interface LinkData {
 let selectionRange: Range | null = null;
 let isEditingLink = false;
 let editingLinkElement: HTMLAnchorElement | null = null;
+const DARK_THEME_SELECTOR = '[data-theme="dark"], .dark, .editora-theme-dark';
 
 /**
  * Find editor content element
@@ -40,6 +41,93 @@ const findContentElement = (element: HTMLElement | null): HTMLElement | null => 
     current = current.parentElement;
   }
   return null;
+};
+
+const isDarkThemeFromRange = (range: Range | null): boolean => {
+  if (range) {
+    const startNode = range.startContainer;
+    const startElement = startNode.nodeType === Node.ELEMENT_NODE
+      ? (startNode as HTMLElement)
+      : startNode.parentElement;
+    if (startElement?.closest(DARK_THEME_SELECTOR)) return true;
+  }
+
+  const active = document.activeElement as HTMLElement | null;
+  if (active?.closest(DARK_THEME_SELECTOR)) return true;
+
+  return document.body.matches(DARK_THEME_SELECTOR) || document.documentElement.matches(DARK_THEME_SELECTOR);
+};
+
+const injectLinkDialogStyles = (): void => {
+  if (document.getElementById('rte-link-dialog-theme-styles')) return;
+
+  const style = document.createElement('style');
+  style.id = 'rte-link-dialog-theme-styles';
+  style.textContent = `
+    .link-dialog-overlay.rte-theme-dark .link-dialog {
+      background: #1f2937 !important;
+      border: 1px solid #4b5563 !important;
+      color: #e2e8f0 !important;
+      box-shadow: 0 18px 45px rgba(0, 0, 0, 0.6) !important;
+    }
+
+    .link-dialog-overlay.rte-theme-dark .link-dialog-header {
+      border-bottom-color: #3b4657 !important;
+      background: #222d3a !important;
+    }
+
+    .link-dialog-overlay.rte-theme-dark .link-dialog-header h3,
+    .link-dialog-overlay.rte-theme-dark label {
+      color: #e2e8f0 !important;
+    }
+
+    .link-dialog-overlay.rte-theme-dark .link-dialog-close {
+      color: #94a3b8 !important;
+    }
+
+    .link-dialog-overlay.rte-theme-dark .link-dialog-close:hover {
+      background: #334155 !important;
+      color: #f8fafc !important;
+      border-radius: 4px;
+    }
+
+    .link-dialog-overlay.rte-theme-dark .link-dialog-footer {
+      border-top-color: #3b4657 !important;
+      background: #222d3a !important;
+    }
+
+    .link-dialog-overlay.rte-theme-dark input[type='text'],
+    .link-dialog-overlay.rte-theme-dark input[type='url'] {
+      background: #111827 !important;
+      border-color: #4b5563 !important;
+      color: #e2e8f0 !important;
+    }
+
+    .link-dialog-overlay.rte-theme-dark input[type='text']::placeholder,
+    .link-dialog-overlay.rte-theme-dark input[type='url']::placeholder {
+      color: #94a3b8 !important;
+    }
+
+    .link-dialog-overlay.rte-theme-dark .btn-cancel {
+      background: #334155 !important;
+      border-color: #4b5563 !important;
+      color: #e2e8f0 !important;
+    }
+
+    .link-dialog-overlay.rte-theme-dark .btn-cancel:hover {
+      background: #475569 !important;
+      border-color: #64748b !important;
+    }
+
+    .link-dialog-overlay.rte-theme-dark .btn-submit {
+      background: #3b82f6 !important;
+    }
+
+    .link-dialog-overlay.rte-theme-dark .btn-submit:hover {
+      background: #2563eb !important;
+    }
+  `;
+  document.head.appendChild(style);
 };
 
 /**
@@ -126,10 +214,16 @@ const handleInsertLink = (linkData: LinkData): void => {
 /**
  * Create and show link dialog
  */
-const showLinkDialog = (initialData: Partial<LinkData> & { isEditing?: boolean }): void => {
+const showLinkDialog = (
+  initialData: Partial<LinkData> & { isEditing?: boolean },
+  isDarkTheme: boolean
+): void => {
+  injectLinkDialogStyles();
+
   // Create overlay
   const overlay = document.createElement('div');
   overlay.className = 'link-dialog-overlay';
+  if (isDarkTheme) overlay.classList.add('rte-theme-dark');
   overlay.style.cssText = `
     position: fixed;
     top: 0;
@@ -265,6 +359,7 @@ export const openLinkDialog = (): boolean => {
 
   const range = selection.getRangeAt(0).cloneRange();
   selectionRange = range;
+  const isDarkTheme = isDarkThemeFromRange(range);
 
   const selectedText = selection.toString() || '';
 
@@ -286,7 +381,7 @@ export const openLinkDialog = (): boolean => {
       target: (linkElement.target as '_blank' | '_self') || '_self',
       title: linkElement.title || '',
       isEditing: true
-    });
+    }, isDarkTheme);
   } else {
     // Insert mode
     isEditingLink = false;
@@ -296,7 +391,7 @@ export const openLinkDialog = (): boolean => {
       url: '',
       target: '_self',
       isEditing: false
-    });
+    }, isDarkTheme);
   }
 
   return true;

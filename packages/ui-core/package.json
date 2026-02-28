@@ -1,16 +1,16 @@
 {
   "name": "@editora/ui-core",
   "version": "0.1.0",
-  "description": "Editora UI core: lightweight web components and reactivity",
+  "description": "Framework-agnostic Web Components and primitives for the Editora UI ecosystem",
   "main": "dist/index.js",
   "module": "dist/index.esm.js",
   "types": "dist/index.d.ts",
   "files": ["dist"],
   "scripts": {
-    "build:tsc": "tsc -p . --emitDeclarationOnly --outDir dist",
-    "build": "vite build && npm run build:tsc",
+    "build:tsc": "npm --prefix ../icons run build:tsc && node ../../node_modules/typescript/bin/tsc -p . --emitDeclarationOnly --noEmit false --outDir dist",
+    "build": "npm --prefix ../icons run build:tsc && node ../../node_modules/vite/bin/vite.js build && npm run build:tsc",
     "test": "vitest",
-    "dev": "vite build --watch",
+    "dev": "node ../../node_modules/vite/bin/vite.js build --watch",
     "clean": "rimraf dist",
     "prepare": "npm run build"
   },
@@ -22,7 +22,21 @@
     "typescript": "^5.0.0"
   },
   "publishConfig": { "access": "public" },
-  "keywords": ["editora","ui","web-components","reactivity"],
+  "dependencies": {
+    "@editora/icons": "^0.1.0"
+  },
+  "keywords": [
+    "editora",
+    "editora ui ecosystem",
+    "ui-core",
+    "design-system",
+    "web-components",
+    "typescript",
+    "reactivity",
+    "admin-ui",
+    "accessible-ui"
+  ],
+  "author": "Ajay Kumar <ajaykr089@gmail.com>",
   "license": "MIT",
   "sideEffects": true
 }

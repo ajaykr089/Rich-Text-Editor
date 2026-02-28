@@ -75,10 +75,10 @@
     <p>Simple drop-in replacement with zero configuration:</p>
     
     <pre class="code-block"><code>&lt;!-- Core Bundle (~56KB) - Recommended --&gt;
-&lt;script src="dist/webcomponent-core.min.js"&gt;&lt;/script&gt;
+&lt;script type="module" src="dist/webcomponent-core.js"&gt;&lt;/script&gt;
 
 &lt;!-- Full Bundle (~60KB + lazy chunks) - All plugins --&gt;
-&lt;!-- &lt;script src="dist/webcomponent.min.js"&gt;&lt;/script&gt; --&gt;
+&lt;!-- &lt;script type="module" src="dist/webcomponent.js"&gt;&lt;/script&gt; --&gt;
 
 &lt;editora-editor height="400"&gt;
   &lt;p&gt;Start typing...&lt;/p&gt;
@@ -235,7 +235,7 @@ const editor = Editora.init('#editor3', {
   </div>
 
     <!-- Load the editor script (Core Bundle - Optimized) -->
-    <script src="https://cdn.jsdelivr.net/npm/@editora/core/dist/webcomponent-core.min.js"></script>
+    <script type="module" src="https://cdn.jsdelivr.net/npm/@editora/core/dist/webcomponent-core.js"></script>
   
     </main>
 

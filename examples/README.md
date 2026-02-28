@@ -1,6 +1,6 @@
 # Editora Examples
 
-This directory contains example projects demonstrating different use cases of the Editora Rich Text Editor (v1.0.1).
+This directory contains example projects demonstrating different use cases of the Editora Rich Text Editor (v1.0.3).
 
 ## 📁 Examples
 
@@ -56,6 +56,44 @@ open examples/webcomponent-all-plugins.html
 open examples/webcomponent-toolbar-test.html
 ```
 
+#### Integration Lab (`web/webcomponent-integration-lab.html`)
+Multi-instance command-routing test harness for safe webcomponent verification before React parity work.
+
+```bash
+# from repo root
+python3 -m http.server 8000
+# open
+http://localhost:8000/examples/web/webcomponent-integration-lab.html
+```
+
+#### Security + Autosave Lab (`web/webcomponent-security-autosave-lab.html`)
+Dedicated multi-instance harness for validating:
+- `autosave` (`enabled`, `intervalMs`, `storageKey`, `provider`, `apiUrl`)
+- `security` (`sanitizeOnInput`, `sanitizeOnPaste`)
+- Runtime config updates via `setConfig(...)`
+
+```bash
+# from repo root
+python3 -m http.server 8000
+# open
+http://localhost:8000/examples/web/webcomponent-security-autosave-lab.html
+```
+
+#### Performance + Accessibility Lab (`web/webcomponent-performance-accessibility-lab.html`)
+Dedicated harness for validating:
+- `performance.debounceInputMs`
+- `performance.viewportOnlyScan`
+- `accessibility.enableARIA`
+- `accessibility.keyboardNavigation`
+- `accessibility.checker`
+
+```bash
+# from repo root
+python3 -m http.server 8000
+# open
+http://localhost:8000/examples/web/webcomponent-performance-accessibility-lab.html
+```
+
 Features:
 - Zero framework dependencies
 - Declarative plugin configuration
@@ -79,6 +117,22 @@ Includes:
 - Code examples
 - Plugin documentation
 - Keyboard shortcuts guide
+
+### 5. Hospital Management Admin (`hospital-management/`)
+Frontend-first SaaS-grade hospital admin dashboard built with the Editora UI ecosystem.
+
+```bash
+cd examples/hospital-management
+npm install
+npm run dev
+```
+
+Includes:
+- App shell (sidebar/topbar/breadcrumb/command palette/quick actions)
+- Auth UX (login, forgot password, role-guarded routing, forbidden/not-found)
+- Dashboard, Patients, Appointments, Staff/RBAC, Wards, Pharmacy, Lab, Billing, Reports, Settings
+- In-memory API + TanStack Query + RHF/Zod forms
+- Toasts, confirmations, loading/empty/error states
 
 ### 6. Collaborative Editor (`collaborative/`)
 Editor with comments, mentions, and real-time collaboration features.

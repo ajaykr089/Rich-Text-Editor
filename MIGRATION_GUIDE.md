@@ -390,8 +390,10 @@ dist/
   index.cjs.js          # CommonJS (Node.js)
   editora.umd.js        # UMD (browser globals)
   editora.min.js        # Minified IIFE (CDN-ready)
-  webcomponent.esm.js   # Web component ESM
-  webcomponent.min.js   # Web component standalone
+  webcomponent.js        # Web component ESM (use with type="module")
+  webcomponent.min.js    # Web component standalone UMD bundle
+  webcomponent-core.js   # Core-only web component ESM
+  webcomponent-core.min.js # Core-only standalone UMD bundle
   index.d.ts            # TypeScript types
 ```
 
@@ -426,6 +428,9 @@ import { ConfigResolver, PluginLoader } from '@editora/core/config';
 <script src="https://unpkg.com/@editora/core@latest/dist/editora.min.js"></script>
 
 <!-- Web component only -->
+<script type="module" src="https://unpkg.com/@editora/core@latest/dist/webcomponent.js"></script>
+
+<!-- Legacy standalone web component (non-module script) -->
 <script src="https://unpkg.com/@editora/core@latest/dist/webcomponent.min.js"></script>
 ```
 
@@ -433,6 +438,7 @@ import { ConfigResolver, PluginLoader } from '@editora/core/config';
 
 ```html
 <script src="https://cdn.jsdelivr.net/npm/@editora/core@latest/dist/editora.min.js"></script>
+<script type="module" src="https://cdn.jsdelivr.net/npm/@editora/core@latest/dist/webcomponent.js"></script>
 ```
 
 ## Testing

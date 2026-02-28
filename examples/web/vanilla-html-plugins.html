@@ -101,7 +101,7 @@
         <h3>🔌 Separate Plugin Loading</h3>
         <p>This example loads plugins individually for better control:</p>
         <ul>
-            <li><strong>Core:</strong> <code>https://cdn.jsdelivr.net/npm/@editora/core/dist/webcomponent-core.min.js</code></li>
+            <li><strong>Core:</strong> <code>https://cdn.jsdelivr.net/npm/@editora/core/dist/webcomponent-core.js</code></li>
             <li><strong>Plugins:</strong> <code>https://cdn.jsdelivr.net/npm/@editora/plugins/dist/plugins.min.js</code></li>
             <li><strong>Benefits:</strong> Smaller initial bundle, load plugins as needed</li>
         </ul>
@@ -112,7 +112,7 @@
             <div class="plugin-item">✓ ItalicPlugin</div>
             <div class="plugin-item">✓ UnderlinePlugin</div>
             <div class="plugin-item">✓ LinkPlugin</div>
-            <div class="plugin-item">✓ ImagePlugin</div>
+            <div class="plugin-item">✓ MediaManagerPlugin</div>
             <div class="plugin-item">✓ HeadingPlugin</div>
             <div class="plugin-item">✓ ListPlugin</div>
             <div class="plugin-item">✓ HistoryPlugin</div>
@@ -120,7 +120,7 @@
     </div>
 
     <!-- Core Bundle -->
-    <script src="https://cdn.jsdelivr.net/npm/@editora/core/dist/webcomponent-core.min.js"></script>
+    <script type="module" src="https://cdn.jsdelivr.net/npm/@editora/core/dist/webcomponent-core.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@editora/core/dist/webcomponent-core.min.css">
 
     <!-- Individual Plugins (when available) -->
