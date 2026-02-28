@@ -5,7 +5,10 @@
   "main": "dist/index.cjs.js",
   "module": "dist/index.esm.js",
   "types": "dist/index.d.ts",
-  "files": ["dist","src"],
+  "files": [
+    "dist",
+    "src"
+  ],
   "scripts": {
     "build": "vite build",
     "dev": "vite build --watch",
@@ -15,7 +18,7 @@
     "@editora/ui-core": "^0.1.0"
   },
   "dependencies": {
-    "@editora/ui-core": "workspace:*"
+    "@editora/ui-core": "^0.1.0"
   },
   "devDependencies": {
     "vite": "^7.3.1",

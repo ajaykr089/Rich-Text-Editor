@@ -1,11 +1,13 @@
 {
   "name": "@editora/ui-core",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Framework-agnostic Web Components and primitives for the Editora UI ecosystem",
   "main": "dist/index.js",
   "module": "dist/index.esm.js",
   "types": "dist/index.d.ts",
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build:tsc": "npm --prefix ../icons run build:tsc && node ../../node_modules/typescript/bin/tsc -p . --emitDeclarationOnly --noEmit false --outDir dist",
     "build": "npm --prefix ../icons run build:tsc && node ../../node_modules/vite/bin/vite.js build && npm run build:tsc",
@@ -21,9 +23,11 @@
     "vite": "^7.3.1",
     "typescript": "^5.0.0"
   },
-  "publishConfig": { "access": "public" },
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
-    "@editora/icons": "^0.1.0"
+    "@editora/icons": "^0.1.2"
   },
   "keywords": [
     "editora",

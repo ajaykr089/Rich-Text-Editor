@@ -1,11 +1,13 @@
 {
   "name": "@editora/ui-react",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "description": "React wrappers and hooks for Web Components in the Editora UI ecosystem",
   "main": "dist/index.js",
   "module": "dist/index.esm.js",
   "types": "dist/index.d.ts",
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "vite build",
     "dev": "vite build --watch",
@@ -20,8 +22,8 @@
     "@types/react-dom": "^18.2.0"
   },
   "peerDependencies": {
-    "react": "^16.8 || ^17 || ^18",
-    "react-dom": "^16.8 || ^17 || ^18"
+    "react": ">=16.8 <21",
+    "react-dom": ">=16.8 <21"
   },
   "dependencies": {
     "@editora/ui-core": "^0.1.0"
