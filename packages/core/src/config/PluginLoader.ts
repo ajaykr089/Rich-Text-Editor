@@ -5,9 +5,12 @@
 import { Plugin } from '../plugins/Plugin';
 
 export interface PluginLoadConfig {
+  enabled?: boolean;
+  provider?: 'browser' | 'local' | 'api';
   mode?: 'local' | 'api' | 'hybrid';
   apiUrl?: string;
   fallbackToLocal?: boolean;
+  [key: string]: any;
 }
 
 export class PluginLoader {

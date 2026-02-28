@@ -62,6 +62,8 @@ const EditorCore: React.FC<RichTextEditorProps> = (props) => {
   const apiRef = useRef<EditorAPI | null>(null);
   const onInitRef = useRef(props.onInit);
   const onDestroyRef = useRef(props.onDestroy);
+  const onChangeRef = useRef(props.onChange);
+  const changeSubscribersRef = useRef(new Set<(html: string) => void>());
   const editorContainerRef = useRef<HTMLDivElement>(null);
   const statusBarRef = useRef<StatusBar | null>(null);
   const statusBarElementRef = useRef<HTMLDivElement>(null);
@@ -70,7 +72,19 @@ const EditorCore: React.FC<RichTextEditorProps> = (props) => {
   useEffect(() => {
     onInitRef.current = props.onInit;
     onDestroyRef.current = props.onDestroy;
+    onChangeRef.current = props.onChange;
   });
+
+  const handleContentChange = (html: string) => {
+    onChangeRef.current?.(html);
+    changeSubscribersRef.current.forEach((subscriber) => {
+      try {
+        subscriber(html);
+      } catch (error) {
+        console.error('Editora onChange subscriber failed:', error);
+      }
+    });
+  };
 
   const editor = useMemo(() => {
     const pluginManager = new PluginManager();
@@ -104,6 +118,7 @@ const EditorCore: React.FC<RichTextEditorProps> = (props) => {
       },
       execCommand: (name: string, value?: any) => {
         if (typeof window !== 'undefined' && (window as any).executeEditorCommand) {
+          (window as any).__editoraCommandEditorRoot = editorContainerRef.current || null;
           (window as any).executeEditorCommand(name, value);
         }
       },
@@ -127,8 +142,10 @@ const EditorCore: React.FC<RichTextEditorProps> = (props) => {
         }
       },
       onChange: (fn: (html: string) => void) => {
-        // Subscribe to changes and return unsubscribe function
-        return () => {};
+        changeSubscribersRef.current.add(fn);
+        return () => {
+          changeSubscribersRef.current.delete(fn);
+        };
       },
       getState: () => ({
         plugins: config.plugins,
@@ -147,6 +164,7 @@ const EditorCore: React.FC<RichTextEditorProps> = (props) => {
     }
     
     return () => {
+      changeSubscribersRef.current.clear();
       if (onDestroyRef.current) {
         onDestroyRef.current();
       }
@@ -173,6 +191,11 @@ const EditorCore: React.FC<RichTextEditorProps> = (props) => {
           return !!activeElement && (activeElement === contentEl || contentEl.contains(activeElement));
         };
 
+        const isEditorInViewport = () => {
+          const rect = contentEl.getBoundingClientRect();
+          return rect.bottom >= 0 && rect.top <= window.innerHeight;
+        };
+
         const getSelectionRangeInEditor = (): Range | null => {
           const selection = window.getSelection();
           if (!selection || selection.rangeCount === 0) return null;
@@ -183,6 +206,11 @@ const EditorCore: React.FC<RichTextEditorProps> = (props) => {
         };
 
         const updateStatusBar = (fromSelectionEvent = false) => {
+          const viewportOnlyScan = config.performance.viewportOnlyScan !== false;
+          if (viewportOnlyScan && !isEditorInViewport() && !hasFocusWithinEditor()) {
+            return;
+          }
+
           const rangeInEditor = getSelectionRangeInEditor();
           const isRelevantSelectionChange = !!rangeInEditor || hasFocusWithinEditor();
 
@@ -251,7 +279,7 @@ const EditorCore: React.FC<RichTextEditorProps> = (props) => {
         statusBarRef.current = null;
       }
     };
-  }, [config.statusbar.enabled, config.statusbar.position]);
+  }, [config.statusbar.enabled, config.statusbar.position, config.performance.viewportOnlyScan]);
 
   const floatingToolbarEnabled = config.toolbar.floating ?? false;
   const toolbarPosition = (config.toolbar as any).position || 'top';
@@ -265,6 +293,7 @@ const EditorCore: React.FC<RichTextEditorProps> = (props) => {
         id={config.id}
         data-editora-editor
         className={`rte-editor ${config.className || ""}`}
+        lang={config.language.locale}
         dir={config.language.direction}
         style={{
           display: 'flex',
@@ -279,6 +308,7 @@ const EditorCore: React.FC<RichTextEditorProps> = (props) => {
             sticky={stickyToolbar}
             floating={floatingToolbarEnabled}
             showMoreOptions={showMoreOptions}
+            itemsOverride={config.toolbar.items}
           />
         )}
         <EditorContent 
@@ -286,12 +316,15 @@ const EditorCore: React.FC<RichTextEditorProps> = (props) => {
           defaultValue={config.defaultValue}
           value={config.value}
           placeholder={config.placeholder}
-          onChange={config.onChange}
+          onChange={handleContentChange}
           pasteConfig={config.paste}
           contentConfig={config.content}
           securityConfig={config.security}
           performanceConfig={config.performance}
+          accessibilityConfig={config.accessibility}
           autosaveConfig={config.autosave}
+          contextMenuConfig={config.contextMenu}
+          spellcheckConfig={config.spellcheck}
         />
         {toolbarPosition === 'bottom' && (
           <Toolbar 
@@ -300,11 +333,13 @@ const EditorCore: React.FC<RichTextEditorProps> = (props) => {
             sticky={stickyToolbar}
             floating={floatingToolbarEnabled}
             showMoreOptions={showMoreOptions}
+            itemsOverride={config.toolbar.items}
           />
         )}
         <FloatingToolbar
           editor={editor}
           isEnabled={floatingToolbarEnabled}
+          viewportOnlyScan={config.performance.viewportOnlyScan}
         />
         {config.statusbar.enabled && (
           <div 

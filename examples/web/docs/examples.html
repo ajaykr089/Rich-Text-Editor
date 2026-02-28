@@ -89,6 +89,10 @@
                     <strong>Regression Test:</strong> Run the automated DOM-shape check for formatting sequence regressions.
                     <a href="../formatting-dom-regression-test.html" style="margin-left: 8px;">Open Regression Test →</a>
                   </div>
+                  <div class="alert alert-success" style="margin-bottom: 1.5rem;">
+                    <strong>Theme Verification:</strong> Compare default, dark, and the new acme theme.
+                    <a href="../theme-acme.html" style="margin-left: 8px;">Open Acme Theme Demo →</a>
+                  </div>
 
                   <h2>Bundle Options</h2>
                   <p>Editora offers two bundle sizes to fit your needs:</p>
@@ -176,6 +180,7 @@
 import { EditoraEditor } from '@editora/react';
 
 import "@editora/themes/themes/default.css";
+import "@editora/themes/themes/acme.css";
 
 import {
   BoldPlugin,
@@ -188,16 +193,18 @@ function MyEditor() {
   const [content, setContent] = useState('&lt;p&gt;Start writing...&lt;/p&gt;');
 
   return (
-    &lt;EditoraEditor
-      value={content}
-      onChange={setContent}
-      plugins={[
-        BoldPlugin(),
-        ItalicPlugin(),
-        HeadingPlugin(),
-        HistoryPlugin()
-      ]}
-    /&gt;
+    &lt;div data-theme="acme"&gt;
+      &lt;EditoraEditor
+        value={content}
+        onChange={setContent}
+        plugins={[
+          BoldPlugin(),
+          ItalicPlugin(),
+          HeadingPlugin(),
+          HistoryPlugin()
+        ]}
+      /&gt;
+    &lt;/div&gt;
   );
 }</code></pre>
 
@@ -581,6 +588,7 @@ export class AppComponent implements AfterViewInit {
                                     <li><a href="../webcomponent-advanced.html">Web Component Advanced</a> - Advanced features</li>
                                     <li><a href="../webcomponent-all-plugins.html">All Plugins</a> - Complete plugin showcase</li>
                                     <li><a href="../webcomponent-toolbar-test.html">Toolbar Test</a> - Toolbar configurations</li>
+                                    <li><a href="../webcomponent-performance-accessibility-lab.html">Performance + A11y Lab</a> - Runtime config verification</li>
                                     <li><a href="../statusbar-demo.html">Status Bar Demo</a> - Status bar features</li>
                                 </ul>
                             </div>

@@ -4,11 +4,13 @@ import { Editor } from '@editora/core';
 interface FloatingToolbarProps {
   editor: Editor;
   isEnabled: boolean;
+  viewportOnlyScan?: boolean;
 }
 
 export const FloatingToolbar: React.FC<FloatingToolbarProps> = ({
   editor,
-  isEnabled
+  isEnabled,
+  viewportOnlyScan = true,
 }) => {
   const [isVisible, setIsVisible] = useState(false);
   const [position, setPosition] = useState({ top: 0, left: 0 });
@@ -83,6 +85,17 @@ export const FloatingToolbar: React.FC<FloatingToolbarProps> = ({
         setIsVisible(false);
         selectionRef.current = null;
         return;
+      }
+
+      if (viewportOnlyScan) {
+        const rect = editorElement.getBoundingClientRect();
+        const inViewport = rect.bottom >= 0 && rect.top <= window.innerHeight;
+        const hasFocus = document.activeElement === editorElement || editorElement.contains(document.activeElement);
+        if (!inViewport && !hasFocus) {
+          setIsVisible(false);
+          selectionRef.current = null;
+          return;
+        }
       }
 
       // Only show toolbar if there's actual text selected (not just whitespace)
@@ -162,10 +175,14 @@ export const FloatingToolbar: React.FC<FloatingToolbarProps> = ({
         clearTimeout(showTimeoutRef.current);
       }
     };
-  }, [isEnabled]);
+  }, [isEnabled, viewportOnlyScan]);
 
   const handleCommand = (command: string, value?: string) => {
     if (!selectionRef.current) return;
+
+    if (typeof window !== 'undefined') {
+      (window as any).__editoraCommandEditorRoot = editorContainerRef.current || null;
+    }
 
     const contentEl = editorContainerRef.current?.querySelector('.rte-content') as HTMLElement;
     if (contentEl) {

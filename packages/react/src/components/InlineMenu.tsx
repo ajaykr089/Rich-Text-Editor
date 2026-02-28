@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 export interface InlineMenuOption {
   label: string;
@@ -23,59 +23,70 @@ export const InlineMenu: React.FC<InlineMenuProps> = ({
   className = ''
 }) => {
   const menuRef = useRef<HTMLDivElement>(null);
-  const [position, setPosition] = useState({ top: 0, left: 0 });
+  const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
+
+  const calculatePosition = () => {
+    if (!isOpen || !anchorRef.current) return;
+
+    const anchorRect = anchorRef.current.getBoundingClientRect();
+    const menuRect = menuRef.current?.getBoundingClientRect();
+    const menuWidth = menuRect?.width || 120;
+    const menuHeight = menuRect?.height || options.length * 36;
+    const margin = 8;
+    const gap = 4;
+
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+
+    let top = anchorRect.bottom + gap;
+    let left = anchorRect.left;
+
+    if (left + menuWidth > viewportWidth - margin) {
+      left = viewportWidth - menuWidth - margin;
+    }
+    if (left < margin) {
+      left = margin;
+    }
+
+    if (top + menuHeight > viewportHeight - margin) {
+      top = anchorRect.top - menuHeight - gap;
+    }
+    if (top < margin) {
+      top = margin;
+    }
+
+    setPosition({ top, left });
+  };
+
+  useLayoutEffect(() => {
+    if (!isOpen) {
+      setPosition(null);
+      return;
+    }
+
+    calculatePosition();
+    const rafId = window.requestAnimationFrame(calculatePosition);
+
+    return () => {
+      window.cancelAnimationFrame(rafId);
+    };
+  }, [isOpen, options.length, anchorRef]);
 
   useEffect(() => {
-    if (isOpen && anchorRef.current) {
-      const anchorRect = anchorRef.current.getBoundingClientRect();
+    if (!isOpen) return;
 
-      // Use estimated menu dimensions since menu might not be rendered yet
-      const estimatedMenuWidth = 120; // minWidth from style
-      const estimatedMenuHeight = options.length * 36; // approximate height per item
+    const handleReposition = () => {
+      calculatePosition();
+    };
 
-      // Position the menu below the anchor element
-      let top = anchorRect.bottom + 4;
-      let left = anchorRect.left;
+    window.addEventListener('resize', handleReposition);
+    window.addEventListener('scroll', handleReposition, true);
 
-      // Adjust if menu goes off screen
-      const viewportWidth = window.innerWidth;
-      const viewportHeight = window.innerHeight;
-
-      if (left + estimatedMenuWidth > viewportWidth) {
-        left = viewportWidth - estimatedMenuWidth - 8;
-      }
-
-      if (top + estimatedMenuHeight > viewportHeight) {
-        top = anchorRect.top - estimatedMenuHeight - 4;
-      }
-
-      setPosition({ top, left });
-    }
-  }, [isOpen, anchorRef, options.length]);
-
-  // Update position after menu is rendered for more precise positioning
-  useEffect(() => {
-    if (isOpen && anchorRef.current && menuRef.current) {
-      const anchorRect = anchorRef.current.getBoundingClientRect();
-      const menuRect = menuRef.current.getBoundingClientRect();
-
-      let top = anchorRect.bottom + 4;
-      let left = anchorRect.left;
-
-      const viewportWidth = window.innerWidth;
-      const viewportHeight = window.innerHeight;
-
-      if (left + menuRect.width > viewportWidth) {
-        left = viewportWidth - menuRect.width - 8;
-      }
-
-      if (top + menuRect.height > viewportHeight) {
-        top = anchorRect.top - menuRect.height - 4;
-      }
-
-      setPosition({ top, left });
-    }
-  }, [isOpen]);
+    return () => {
+      window.removeEventListener('resize', handleReposition);
+      window.removeEventListener('scroll', handleReposition, true);
+    };
+  }, [isOpen, options.length, anchorRef]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -109,8 +120,9 @@ export const InlineMenu: React.FC<InlineMenuProps> = ({
       ref={menuRef}
       className={`rte-inline-menu ${className}`}
       style={{
-        top: position.top,
-        left: position.left
+        top: position?.top ?? -9999,
+        left: position?.left ?? -9999,
+        visibility: position ? 'visible' : 'hidden'
       }}
     >
       {options.map((option) => (

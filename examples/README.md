@@ -66,6 +66,34 @@ python3 -m http.server 8000
 http://localhost:8000/examples/web/webcomponent-integration-lab.html
 ```
 
+#### Security + Autosave Lab (`web/webcomponent-security-autosave-lab.html`)
+Dedicated multi-instance harness for validating:
+- `autosave` (`enabled`, `intervalMs`, `storageKey`, `provider`, `apiUrl`)
+- `security` (`sanitizeOnInput`, `sanitizeOnPaste`)
+- Runtime config updates via `setConfig(...)`
+
+```bash
+# from repo root
+python3 -m http.server 8000
+# open
+http://localhost:8000/examples/web/webcomponent-security-autosave-lab.html
+```
+
+#### Performance + Accessibility Lab (`web/webcomponent-performance-accessibility-lab.html`)
+Dedicated harness for validating:
+- `performance.debounceInputMs`
+- `performance.viewportOnlyScan`
+- `accessibility.enableARIA`
+- `accessibility.keyboardNavigation`
+- `accessibility.checker`
+
+```bash
+# from repo root
+python3 -m http.server 8000
+# open
+http://localhost:8000/examples/web/webcomponent-performance-accessibility-lab.html
+```
+
 Features:
 - Zero framework dependencies
 - Declarative plugin configuration

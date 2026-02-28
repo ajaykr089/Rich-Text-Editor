@@ -33,7 +33,9 @@
       "require": "./dist/index.cjs.js"
     },
     "./themes/*": "./src/themes/*.css",
-    "./themes/default.css": "./src/themes/default.css"
+    "./themes/default.css": "./src/themes/default.css",
+    "./themes/dark.css": "./src/themes/dark.css",
+    "./themes/acme.css": "./src/themes/acme.css"
   },
   "files": [
     "dist",

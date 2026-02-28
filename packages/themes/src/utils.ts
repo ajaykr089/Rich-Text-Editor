@@ -30,7 +30,10 @@ export function setGlobalTheme(themeName: ThemeName): void {
  */
 export function getCurrentTheme(): ThemeName {
   const theme = document.documentElement.getAttribute('data-theme');
-  return (theme === 'dark' ? 'dark' : 'light') as ThemeName;
+  if (theme === 'dark' || theme === 'acme' || theme === 'light') {
+    return theme;
+  }
+  return 'light';
 }
 
 /**
@@ -38,7 +41,7 @@ export function getCurrentTheme(): ThemeName {
  */
 export function toggleTheme(): ThemeName {
   const current = getCurrentTheme();
-  const next = current === 'light' ? 'dark' : 'light';
+  const next = current === 'dark' ? 'light' : 'dark';
   setGlobalTheme(next);
   return next;
 }

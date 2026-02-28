@@ -41,12 +41,24 @@ interface EditorContentProps {
     debounceInputMs?: number;
     viewportOnlyScan?: boolean;
   };
+  accessibilityConfig?: {
+    enableARIA?: boolean;
+    keyboardNavigation?: boolean;
+    checker?: boolean;
+  };
   autosaveConfig?: {
     enabled?: boolean;
     intervalMs?: number;
     storageKey?: string;
     provider?: 'localStorage' | 'api';
     apiUrl?: string;
+  };
+  contextMenuConfig?: {
+    enabled?: boolean;
+  };
+  spellcheckConfig?: {
+    enabled?: boolean;
+    provider?: 'browser' | 'local' | 'api';
   };
 }
 
@@ -60,7 +72,10 @@ export const EditorContent: React.FC<EditorContentProps> = ({
   contentConfig,
   securityConfig,
   performanceConfig,
-  autosaveConfig
+  accessibilityConfig,
+  autosaveConfig,
+  contextMenuConfig,
+  spellcheckConfig,
 }) => {
   const contentRef = useRef<HTMLDivElement>(null);
   const isControlled = value !== undefined;
@@ -132,6 +147,28 @@ export const EditorContent: React.FC<EditorContentProps> = ({
   useEffect(() => {
     if (!contentRef.current) return;
 
+    const el = contentRef.current;
+    const ariaEnabled = accessibilityConfig?.enableARIA !== false;
+
+    if (ariaEnabled) {
+      el.setAttribute('role', 'textbox');
+      el.setAttribute('aria-multiline', 'true');
+      const label = placeholder?.trim();
+      if (label) {
+        el.setAttribute('aria-label', label);
+      } else {
+        el.removeAttribute('aria-label');
+      }
+    } else {
+      el.removeAttribute('role');
+      el.removeAttribute('aria-multiline');
+      el.removeAttribute('aria-label');
+    }
+  }, [accessibilityConfig?.enableARIA, placeholder]);
+
+  useEffect(() => {
+    if (!contentRef.current) return;
+
     const handleInput = () => {
       if (!contentRef.current) return;
 
@@ -188,9 +225,18 @@ export const EditorContent: React.FC<EditorContentProps> = ({
       // Get pasted content
       let pastedHTML = e.clipboardData?.getData('text/html');
       const pastedText = e.clipboardData?.getData('text/plain');
+      const isWordLikeHTML = !!pastedHTML && /class=["'][^"']*Mso|xmlns:w=|urn:schemas-microsoft-com:office/i.test(pastedHTML);
       
       // If clean paste is enabled, strip formatting
       if (pasteConfig?.clean || !pasteConfig?.keepFormatting) {
+        if (pastedText) {
+          document.execCommand('insertText', false, pastedText);
+        }
+        return;
+      }
+
+      // If Word conversion is disabled, fallback to plain text for Word/Office payloads.
+      if (pasteConfig?.convertWord === false && isWordLikeHTML) {
         if (pastedText) {
           document.execCommand('insertText', false, pastedText);
         }
@@ -236,6 +282,12 @@ export const EditorContent: React.FC<EditorContentProps> = ({
         target.style.display = 'inline-block';
       }
     };
+
+    const handleContextMenu = (e: MouseEvent) => {
+      if (contextMenuConfig?.enabled === false) {
+        e.preventDefault();
+      }
+    };
     
     const handleFocusOrBlur = () => {
       if (!contentRef.current) return;
@@ -249,6 +301,7 @@ export const EditorContent: React.FC<EditorContentProps> = ({
     el.addEventListener('input', handleInput);
     el.addEventListener('paste', handlePaste);
     el.addEventListener('click', handleClick);
+    el.addEventListener('contextmenu', handleContextMenu);
     el.addEventListener('focus', handleFocusOrBlur);
     el.addEventListener('blur', handleFocusOrBlur);
 
@@ -262,13 +315,22 @@ export const EditorContent: React.FC<EditorContentProps> = ({
       el.removeEventListener('input', handleInput);
       el.removeEventListener('paste', handlePaste);
       el.removeEventListener('click', handleClick);
+      el.removeEventListener('contextmenu', handleContextMenu);
       el.removeEventListener('focus', handleFocusOrBlur);
       el.removeEventListener('blur', handleFocusOrBlur);
     };
-  }, [editor, onChange, pasteConfig, contentConfig, securityConfig, performanceConfig, placeholder]);
+  }, [editor, onChange, pasteConfig, contentConfig, securityConfig, performanceConfig, placeholder, contextMenuConfig]);
+
+  const nativeSpellcheckEnabled =
+    (spellcheckConfig?.enabled ?? false) &&
+    (spellcheckConfig?.provider ?? 'browser') === 'browser';
 
   useEffect(() => {
     if (!contentRef.current || typeof window === 'undefined') return;
+
+    if (accessibilityConfig?.keyboardNavigation === false) {
+      return;
+    }
 
     const manager = new KeyboardShortcutManager();
     const el = contentRef.current;
@@ -276,6 +338,8 @@ export const EditorContent: React.FC<EditorContentProps> = ({
     const handleKeyDown = (event: KeyboardEvent) => {
       manager.handleKeyDown(event, (command, params) => {
         if (typeof window !== 'undefined' && (window as any).executeEditorCommand) {
+          const editorContainer = contentRef.current?.closest('[data-editora-editor]') as HTMLElement | null;
+          (window as any).__editoraCommandEditorRoot = editorContainer || null;
           (window as any).executeEditorCommand(command, params);
         }
       });
@@ -286,13 +350,18 @@ export const EditorContent: React.FC<EditorContentProps> = ({
     return () => {
       el.removeEventListener('keydown', handleKeyDown as any);
     };
-  }, []);
+  }, [accessibilityConfig?.keyboardNavigation]);
 
   return (
     <div
       ref={contentRef}
       contentEditable
       suppressContentEditableWarning
+      spellCheck={nativeSpellcheckEnabled}
+      tabIndex={accessibilityConfig?.keyboardNavigation === false ? -1 : 0}
+      aria-keyshortcuts={accessibilityConfig?.keyboardNavigation === false ? undefined : 'Ctrl+B Ctrl+I Ctrl+U Ctrl+Z Ctrl+Y'}
+      data-viewport-only-scan={performanceConfig?.viewportOnlyScan ? 'true' : 'false'}
+      data-a11y-checker={accessibilityConfig?.checker ? 'true' : 'false'}
       className="rte-content"
       style={{
         minHeight: "200px",

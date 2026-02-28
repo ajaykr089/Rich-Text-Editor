@@ -14,7 +14,8 @@ export {
  */
 export const themes = {
   light: 'light',
-  dark: 'dark'
+  dark: 'dark',
+  acme: 'acme',
 } as const;
 
 export type ThemeName = keyof typeof themes;

@@ -55,15 +55,25 @@
     "prepublishOnly": "npm run build"
   },
   "peerDependencies": {
-    "@editora/core": "^1.0.0",
-    "react": ">=16.8.0",
-    "react-dom": ">=16.8.0"
+    "@editora/core": "^1.0.3",
+    "@editora/plugins": "^1.0.3",
+    "@editora/themes": "^1.0.3",
+    "react": ">=16.8.0 <20",
+    "react-dom": ">=16.8.0 <20"
+  },
+  "peerDependenciesMeta": {
+    "@editora/plugins": {
+      "optional": true
+    },
+    "@editora/themes": {
+      "optional": true
+    }
   },
   "dependencies": {
-    "@editora/core": "^1.0.3",
     "@editora/light-code-editor": "^1.0.2"
   },
   "devDependencies": {
+    "@editora/core": "^1.0.3",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
     "typescript": "^5.0.0",

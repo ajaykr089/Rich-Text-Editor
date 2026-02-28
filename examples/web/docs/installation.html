@@ -105,7 +105,7 @@
 
                             <h4>For React Projects</h4>
                             <p>Install the React integration package:</p>
-                            <pre><code>npm install @editora/react, @editora/plugins react react-dom</code></pre>
+                            <pre><code>npm install @editora/react @editora/core @editora/plugins @editora/themes react react-dom</code></pre>
 
                             <h4>Quick Start</h4>
                             <pre><code class="language-javascript">import { Editor } from '@editora/core';
@@ -120,6 +120,8 @@ const editor = new Editor({
 import { EditoraEditor } from '@editora/react';
 
 import "@editora/themes/themes/default.css";
+import "@editora/themes/themes/dark.css";
+import "@editora/themes/themes/acme.css";
 import {
   BoldPlugin,
   ItalicPlugin,
@@ -131,18 +133,25 @@ function App() {
   const [content, setContent] = useState('&lt;p&gt;Hello from React!&lt;/p&gt;');
 
   return (
-    &lt;EditoraEditor
-      value={content}
-      onChange={setContent}
-      plugins={[
-        BoldPlugin(),
-        ItalicPlugin(),
-        HeadingPlugin(),
-        HistoryPlugin()
-      ]}
-    /&gt;
+    &lt;div data-theme="acme"&gt;
+      &lt;EditoraEditor
+        value={content}
+        onChange={setContent}
+        plugins={[
+          BoldPlugin(),
+          ItalicPlugin(),
+          HeadingPlugin(),
+          HistoryPlugin()
+        ]}
+      /&gt;
+    &lt;/div&gt;
   );
 }</code></pre>
+
+                            <h4>Theme Scoping</h4>
+                            <pre><code class="language-jsx">&lt;div data-theme="light"&gt;...&lt;/div&gt;
+&lt;div data-theme="dark"&gt;...&lt;/div&gt;
+&lt;div data-theme="acme"&gt;...&lt;/div&gt;</code></pre>
                         </div>
 
                         <!-- Yarn Tab -->
@@ -152,7 +161,7 @@ function App() {
                             <pre><code>yarn add @editora/core</code></pre>
 
                             <h4>For React Projects</h4>
-                            <pre><code>yarn add @editora/react react react-dom</code></pre>
+                            <pre><code>yarn add @editora/react @editora/core @editora/plugins @editora/themes react react-dom</code></pre>
 
                             <p class="alert alert-info">
                                 💡 Yarn usage is identical to npm. All other examples in this guide use npm but work the same with Yarn.

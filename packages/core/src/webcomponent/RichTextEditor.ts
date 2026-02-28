@@ -8,6 +8,8 @@ import { ToolbarRenderer } from '../ui/ToolbarRenderer';
 import { FloatingToolbar } from '../ui/FloatingToolbar';
 import { StatusBar } from '../ui/StatusBar';
 import { getCursorPosition, countLines, calculateTextStats, getSelectionInfo } from '../utils/statusBarUtils';
+import { KeyboardShortcutManager } from '../KeyboardShortcuts';
+import { sanitizeInputHTML, sanitizePastedHTML } from '../utils/sanitizeHTML';
 import { ConfigResolver, EditorConfigDefaults } from '../config/ConfigResolver';
 import { PluginLoader } from '../config/PluginLoader';
 import { Plugin } from '../plugins/Plugin';
@@ -73,6 +75,11 @@ export class RichTextEditorElement extends HTMLElement {
   private selectionChangeHandler?: () => void;
   private jsConfig?: EditorConfigDefaults;
   private isInitialized = false;
+  private autosaveTimer?: ReturnType<typeof setInterval>;
+  private contentChangeDebounceTimer?: ReturnType<typeof setTimeout>;
+  private keyboardShortcutManager = new KeyboardShortcutManager();
+  private lastAutosavedContent = '';
+  private loadedPlugins: Plugin[] = [];
 
   // Observed attributes for reactive updates
   static get observedAttributes(): string[] {
@@ -83,13 +90,41 @@ export class RichTextEditorElement extends HTMLElement {
       'plugins',
       'toolbar',
       'toolbar-items',
+      'toolbar-floating',
+      'toolbar-sticky',
       'readonly',
       'disabled',
       'theme',
       'placeholder',
       'autofocus',
+      'autosave',
+      'autosave-enabled',
+      'autosave-interval-ms',
+      'autosave-storage-key',
+      'autosave-provider',
+      'autosave-api-url',
+      'accessibility',
+      'accessibility-enable-aria',
+      'accessibility-keyboard-navigation',
+      'accessibility-checker',
+      'performance',
+      'performance-debounce-input-ms',
+      'performance-viewport-only-scan',
       'language',
+      'language-locale',
+      'language-direction',
       'spellcheck',
+      'spellcheck-enabled',
+      'spellcheck-provider',
+      'context-menu',
+      'context-menu-enabled',
+      'paste',
+      'paste-clean',
+      'paste-keep-formatting',
+      'paste-convert-word',
+      'security',
+      'security-sanitize-on-paste',
+      'security-sanitize-on-input',
       'statusbar',
     ];
   }
@@ -222,6 +257,7 @@ export class RichTextEditorElement extends HTMLElement {
     
     // Load plugins
     const plugins = await this.loadPlugins();
+    this.loadedPlugins = plugins;
     
     // Initialize plugins (call init hooks)
     plugins.forEach(plugin => {
@@ -236,7 +272,9 @@ export class RichTextEditorElement extends HTMLElement {
     });
     
     // Get initial content before clearing innerHTML
-    const initialContent = this.getAttribute('data-initial-content') || '';
+    const initialContent =
+      this.restoreAutosavedContent() ??
+      (this.getAttribute('data-initial-content') || '');
     
     // Create editor engine
     this.engine = new EditorEngine({
@@ -250,6 +288,7 @@ export class RichTextEditorElement extends HTMLElement {
     
     // Setup event listeners
     this.setupEventListeners();
+    this.startAutosave();
     
     // Mark as initialized
     this.isInitialized = true;
@@ -309,29 +348,431 @@ export class RichTextEditorElement extends HTMLElement {
       (Array.isArray(this.config.plugins) && this.config.plugins.length > 0)
     );
     
+    const accessibility = this.getAccessibilityConfig();
+    const shouldForceA11yChecker = accessibility.checker === true;
+
     if (hasPluginConfig) {
       if (typeof this.config.plugins === 'string') {
-        // Parse plugin string
-        const loadedPlugins = await this.pluginLoader.parsePluginString(this.config.plugins);
-        plugins.push(...loadedPlugins);
+        const pluginNames = this.config.plugins.split(/\s+/).filter(Boolean);
+        if (shouldForceA11yChecker && !pluginNames.includes('a11yChecker')) {
+          pluginNames.push('a11yChecker');
+        }
+        for (const pluginName of pluginNames) {
+          const plugin = await this.pluginLoader.load(pluginName, this.getPluginLoadConfig(pluginName));
+          if (plugin) plugins.push(plugin);
+        }
       } else if (Array.isArray(this.config.plugins)) {
         // Already plugin instances or names
         for (const p of this.config.plugins) {
           if (typeof p === 'string') {
-            const plugin = await this.pluginLoader.load(p);
+            const plugin = await this.pluginLoader.load(p, this.getPluginLoadConfig(p));
             if (plugin) plugins.push(plugin);
           } else {
             plugins.push(p as Plugin);
           }
         }
+
+        if (shouldForceA11yChecker && !plugins.some((plugin) => plugin?.name === 'a11yChecker')) {
+          const plugin = await this.pluginLoader.load('a11yChecker', this.getPluginLoadConfig('a11yChecker'));
+          if (plugin) plugins.push(plugin);
+        }
       }
     } else {
       // No plugins specified - load all registered plugins
       const registeredNames = this.pluginLoader.getRegisteredPluginNames();
-      const loadedPlugins = await this.pluginLoader.loadMultiple(registeredNames);
-      plugins.push(...loadedPlugins);
+      for (const pluginName of registeredNames) {
+        const plugin = await this.pluginLoader.load(pluginName, this.getPluginLoadConfig(pluginName));
+        if (plugin) plugins.push(plugin);
+      }
     }
     return plugins;
+  }
+
+  private resolveToolbarItems(): string | undefined {
+    const toolbarItems = (this.config as any).toolbarItems;
+    if (typeof toolbarItems === 'string') return toolbarItems;
+    if (Array.isArray(toolbarItems)) return toolbarItems.join(' ');
+
+    const toolbar = this.config.toolbar;
+    if (typeof toolbar === 'string') return toolbar;
+    if (!toolbar || typeof toolbar !== 'object') return undefined;
+
+    const items = (toolbar as any).items;
+    if (typeof items === 'string') return items;
+    if (Array.isArray(items)) return items.join(' ');
+    return undefined;
+  }
+
+  private isToolbarStickyEnabled(): boolean {
+    const toolbar = this.config.toolbar;
+    if (!toolbar || typeof toolbar !== 'object') return false;
+    return Boolean((toolbar as any).sticky);
+  }
+
+  private isToolbarFloatingEnabled(): boolean {
+    const toolbar = this.config.toolbar;
+    if (!toolbar || typeof toolbar !== 'object') return false;
+    return Boolean((toolbar as any).floating);
+  }
+
+  private isStatusbarEnabled(): boolean {
+    const statusbar = this.config.statusbar;
+    if (typeof statusbar === 'boolean') return statusbar;
+    if (statusbar && typeof statusbar === 'object') {
+      return (statusbar as any).enabled !== false;
+    }
+    return false;
+  }
+
+  private getStatusbarPosition(): 'top' | 'bottom' {
+    const statusbar = this.config.statusbar;
+    if (statusbar && typeof statusbar === 'object' && (statusbar as any).position === 'top') {
+      return 'top';
+    }
+    return 'bottom';
+  }
+
+  private getLanguageConfig(): { locale: string; direction: 'ltr' | 'rtl' } {
+    const language = this.config.language;
+    if (typeof language === 'string') {
+      return { locale: language, direction: 'ltr' };
+    }
+
+    if (language && typeof language === 'object') {
+      return {
+        locale: (language as any).locale || 'en',
+        direction: (language as any).direction === 'rtl' ? 'rtl' : 'ltr',
+      };
+    }
+
+    return { locale: 'en', direction: 'ltr' };
+  }
+
+  private getAccessibilityConfig(): {
+    enableARIA: boolean;
+    keyboardNavigation: boolean;
+    checker: boolean;
+  } {
+    const accessibility = this.config.accessibility;
+    if (typeof accessibility === 'boolean') {
+      return {
+        enableARIA: accessibility,
+        keyboardNavigation: accessibility,
+        checker: false,
+      };
+    }
+
+    if (accessibility && typeof accessibility === 'object') {
+      return {
+        enableARIA: (accessibility as any).enableARIA !== false,
+        keyboardNavigation: (accessibility as any).keyboardNavigation !== false,
+        checker: Boolean((accessibility as any).checker),
+      };
+    }
+
+    return {
+      enableARIA: true,
+      keyboardNavigation: true,
+      checker: false,
+    };
+  }
+
+  private getPerformanceConfig(): {
+    debounceInputMs: number;
+    viewportOnlyScan: boolean;
+  } {
+    const performance = this.config.performance;
+    if (typeof performance === 'boolean') {
+      return {
+        debounceInputMs: 100,
+        viewportOnlyScan: performance,
+      };
+    }
+
+    if (performance && typeof performance === 'object') {
+      const debounceInputMs = Number((performance as any).debounceInputMs ?? 100);
+      return {
+        debounceInputMs:
+          Number.isFinite(debounceInputMs) && debounceInputMs >= 0 ? debounceInputMs : 100,
+        viewportOnlyScan: (performance as any).viewportOnlyScan !== false,
+      };
+    }
+
+    return {
+      debounceInputMs: 100,
+      viewportOnlyScan: true,
+    };
+  }
+
+  private isEditorInViewport(): boolean {
+    if (!this.contentElement || typeof window === 'undefined') return true;
+    const rect = this.contentElement.getBoundingClientRect();
+    return rect.bottom >= 0 && rect.top <= window.innerHeight;
+  }
+
+  private applyAccessibilitySettings(): void {
+    if (!this.contentElement) return;
+
+    const accessibility = this.getAccessibilityConfig();
+    if (accessibility.enableARIA) {
+      this.contentElement.setAttribute('role', 'textbox');
+      this.contentElement.setAttribute('aria-multiline', 'true');
+      this.contentElement.setAttribute('aria-disabled', this.config.readonly ? 'true' : 'false');
+      const label = typeof this.config.placeholder === 'string' ? this.config.placeholder.trim() : '';
+      if (label) {
+        this.contentElement.setAttribute('aria-label', label);
+      } else {
+        this.contentElement.removeAttribute('aria-label');
+      }
+    } else {
+      this.contentElement.removeAttribute('role');
+      this.contentElement.removeAttribute('aria-multiline');
+      this.contentElement.removeAttribute('aria-disabled');
+      this.contentElement.removeAttribute('aria-label');
+    }
+
+    this.contentElement.tabIndex = accessibility.keyboardNavigation ? 0 : -1;
+  }
+
+  private applyLanguageSettings(): void {
+    if (!this.contentElement) return;
+    const language = this.getLanguageConfig();
+    this.contentElement.setAttribute('lang', language.locale);
+    this.contentElement.setAttribute('dir', language.direction);
+  }
+
+  private getSpellcheckConfig(): {
+    enabled: boolean;
+    provider: 'browser' | 'local' | 'api';
+    mode?: 'local' | 'api' | 'hybrid';
+  } {
+    const spellcheck = this.config.spellcheck;
+    if (typeof spellcheck === 'boolean') {
+      return {
+        enabled: spellcheck,
+        provider: 'browser',
+      };
+    }
+
+    if (spellcheck && typeof spellcheck === 'object') {
+      const provider = ((spellcheck as any).provider || 'browser') as 'browser' | 'local' | 'api';
+      return {
+        enabled: Boolean((spellcheck as any).enabled),
+        provider,
+        mode: (spellcheck as any).mode,
+      };
+    }
+
+    return { enabled: false, provider: 'browser' };
+  }
+
+  private applySpellcheckSettings(): void {
+    if (!this.contentElement) return;
+    const spellcheck = this.getSpellcheckConfig();
+    const browserSpellcheckEnabled = spellcheck.enabled && spellcheck.provider === 'browser';
+    this.contentElement.spellcheck = browserSpellcheckEnabled;
+    this.contentElement.setAttribute('spellcheck', browserSpellcheckEnabled ? 'true' : 'false');
+  }
+
+  private executeCommand(command: string, value?: any): boolean {
+    if (typeof window !== 'undefined') {
+      (window as any).__editoraCommandEditorRoot = this;
+    }
+    const plugin = this.loadedPlugins.find((p) => p.commands && p.commands[command]);
+    if (plugin && plugin.commands) {
+      const commandFn = plugin.commands[command];
+      if (typeof commandFn === 'function') {
+        try {
+          if (command === 'toggleFullscreen') {
+            commandFn(this as any);
+          } else {
+            commandFn(value);
+          }
+          return true;
+        } catch (error) {
+          console.error(`[RichTextEditor] Error executing native command ${command}:`, error);
+          return false;
+        }
+      }
+    }
+
+    return this.engine?.execCommand(command, value) || false;
+  }
+
+  private getPluginLoadConfig(pluginName: string): Record<string, any> | undefined {
+    const pluginConfig = this.config.pluginConfig;
+    if (pluginConfig && typeof pluginConfig === 'object') {
+      const direct = (pluginConfig as Record<string, unknown>)[pluginName];
+      if (direct && typeof direct === 'object') {
+        return direct as Record<string, any>;
+      }
+    }
+
+    const aliasMap: Record<string, string[]> = {
+      spellCheck: ['spellcheck', 'spellCheck'],
+    };
+
+    const candidateKeys = [
+      pluginName,
+      pluginName.toLowerCase(),
+      ...(aliasMap[pluginName] || []),
+    ];
+
+    for (const key of candidateKeys) {
+      const value = (this.config as any)[key];
+      if (value && typeof value === 'object' && !Array.isArray(value)) {
+        return value as Record<string, any>;
+      }
+    }
+
+    return undefined;
+  }
+
+  private getContentSanitizeConfig(): {
+    allowedTags?: string[];
+    allowedAttributes?: Record<string, string[]>;
+    sanitize?: boolean;
+  } {
+    const contentConfig = this.config.contentConfig;
+    if (contentConfig && typeof contentConfig === 'object') {
+      return contentConfig as any;
+    }
+    return { sanitize: true };
+  }
+
+  private getSecurityConfig(): {
+    sanitizeOnPaste?: boolean;
+    sanitizeOnInput?: boolean;
+  } {
+    const security = this.config.security;
+    if (security && typeof security === 'object') {
+      return security as any;
+    }
+    return { sanitizeOnPaste: true, sanitizeOnInput: true };
+  }
+
+  private getAutosaveConfig(): {
+    enabled: boolean;
+    intervalMs: number;
+    storageKey: string;
+    provider: 'localStorage' | 'api';
+    apiUrl?: string;
+  } {
+    const autosave = this.config.autosave;
+    if (typeof autosave === 'boolean') {
+      return {
+        enabled: autosave,
+        intervalMs: 30000,
+        storageKey: 'rte-autosave',
+        provider: 'localStorage',
+      };
+    }
+
+    if (autosave && typeof autosave === 'object') {
+      const intervalMs = Number((autosave as any).intervalMs ?? (autosave as any).interval ?? 30000);
+      return {
+        enabled: Boolean((autosave as any).enabled),
+        intervalMs: Number.isFinite(intervalMs) && intervalMs > 0 ? intervalMs : 30000,
+        storageKey: String((autosave as any).storageKey || 'rte-autosave'),
+        provider: ((autosave as any).provider || 'localStorage') as 'localStorage' | 'api',
+        apiUrl: (autosave as any).apiUrl,
+      };
+    }
+
+    return {
+      enabled: false,
+      intervalMs: 30000,
+      storageKey: 'rte-autosave',
+      provider: 'localStorage',
+    };
+  }
+
+  private persistAutosave(content: string): void {
+    const autosave = this.getAutosaveConfig();
+    if (!autosave.enabled) return;
+    if (content === this.lastAutosavedContent) return;
+
+    this.lastAutosavedContent = content;
+
+    if (autosave.provider === 'localStorage') {
+      try {
+        localStorage.setItem(autosave.storageKey, content);
+        localStorage.setItem(`${autosave.storageKey}-timestamp`, Date.now().toString());
+      } catch (error) {
+        console.error('[RichTextEditor] Failed to save autosave content to localStorage:', error);
+      }
+      return;
+    }
+
+    if (autosave.provider === 'api' && autosave.apiUrl) {
+      fetch(autosave.apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content, timestamp: Date.now() }),
+      }).catch((error) => {
+        console.error('[RichTextEditor] Failed to save autosave content to API:', error);
+      });
+    }
+  }
+
+  private restoreAutosavedContent(): string | null {
+    const autosave = this.getAutosaveConfig();
+    if (!autosave.enabled) return null;
+    if (autosave.provider !== 'localStorage') return null;
+
+    try {
+      const content = localStorage.getItem(autosave.storageKey);
+      if (content) {
+        this.lastAutosavedContent = content;
+        return content;
+      }
+    } catch (error) {
+      console.error('[RichTextEditor] Failed to restore autosaved content:', error);
+    }
+    return null;
+  }
+
+  private stopAutosave(): void {
+    if (this.autosaveTimer) {
+      clearInterval(this.autosaveTimer);
+      this.autosaveTimer = undefined;
+    }
+  }
+
+  private startAutosave(): void {
+    this.stopAutosave();
+    const autosave = this.getAutosaveConfig();
+    if (!autosave.enabled || !this.contentElement) return;
+
+    this.autosaveTimer = setInterval(() => {
+      this.persistAutosave(this.contentElement?.innerHTML || '');
+    }, autosave.intervalMs);
+  }
+
+  private insertHTMLAtSelection(html: string): void {
+    if (!this.contentElement) return;
+
+    const selection = window.getSelection();
+    if (selection && selection.rangeCount > 0) {
+      const range = selection.getRangeAt(0);
+      range.deleteContents();
+
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = html;
+
+      const fragment = document.createDocumentFragment();
+      while (tempDiv.firstChild) {
+        fragment.appendChild(tempDiv.firstChild);
+      }
+
+      range.insertNode(fragment);
+      range.collapse(false);
+      selection.removeAllRanges();
+      selection.addRange(range);
+    } else {
+      this.contentElement.focus();
+      document.execCommand('insertHTML', false, html);
+    }
   }
 
   /**
@@ -351,16 +792,11 @@ export class RichTextEditorElement extends HTMLElement {
       this.toolbarElement = document.createElement('div');
       this.toolbarElement.className = 'editora-toolbar-container';
       this.appendChild(this.toolbarElement);
-      
-      // Support both toolbar and toolbarItems attributes
-      const toolbarItems = (this.config as any).toolbarItems || this.config.toolbar;
-      
+
       this.toolbar = new ToolbarRenderer(
         {
-          items: typeof toolbarItems === 'string' ? toolbarItems : undefined,
-          sticky: this.config.toolbar && typeof this.config.toolbar === 'object'
-            ? (this.config.toolbar as any).sticky
-            : false,
+          items: this.resolveToolbarItems(),
+          sticky: this.isToolbarStickyEnabled(),
           position: 'top',
         },
         plugins,
@@ -395,30 +831,7 @@ export class RichTextEditorElement extends HTMLElement {
           }
         }
         
-        // Try to find the command in loaded plugins first (for native commands)
-        
-        const plugin = plugins.find(p => p.commands && p.commands[command]);
-        if (plugin && plugin.commands) {
-          const commandFn = plugin.commands[command];
-          if (typeof commandFn === 'function') {
-            // Call native command directly
-            try {
-              // Pass editor element for fullscreen command
-              if (command === 'toggleFullscreen') {
-                const result = commandFn(this);
-                return result;
-              } else {
-                const result = commandFn(value);
-                return result;
-              }
-            } catch (error) {
-              console.error(`[RichTextEditor] Error executing native command ${command}:`, error);
-              return false;
-            }
-          }
-        }
-        // Fallback to engine command (ProseMirror-style)
-        return this.engine?.execCommand(command, value) || false;
+        return this.executeCommand(command, value);
       });
       
       this.toolbar.render(this.toolbarElement);
@@ -431,8 +844,9 @@ export class RichTextEditorElement extends HTMLElement {
     this.contentElement = document.createElement('div');
     this.contentElement.className = 'editora-content rte-content'; // Add rte-content class for plugin helpers
     this.contentElement.contentEditable = this.config.readonly ? 'false' : 'true';
-    this.contentElement.setAttribute('role', 'textbox');
-    this.contentElement.setAttribute('aria-multiline', 'true');
+    this.applyLanguageSettings();
+    this.applyAccessibilitySettings();
+    this.applySpellcheckSettings();
     
     if (this.config.placeholder) {
       this.contentElement.setAttribute('data-placeholder', this.config.placeholder);
@@ -479,7 +893,7 @@ export class RichTextEditorElement extends HTMLElement {
     this.appendChild(this.contentElement);
     
     // Floating toolbar
-    if (this.config.toolbar && typeof this.config.toolbar === 'object' && (this.config.toolbar as any).floating) {
+    if (this.isToolbarFloatingEnabled()) {
       this.floatingToolbar = new FloatingToolbar({ enabled: true });
       this.floatingToolbar.create(this);
     }
@@ -489,12 +903,12 @@ export class RichTextEditorElement extends HTMLElement {
       this.appendChild(statusBarSlot);
     } else {
       // Create default status bar if configured
-      if (this.config.statusbar) {
+      if (this.isStatusbarEnabled()) {
         this.statusBarElement = document.createElement('div');
         this.statusBarElement.className = 'editora-statusbar-container';
         this.appendChild(this.statusBarElement);
         
-        this.statusBar = new StatusBar({ position: 'bottom' });
+        this.statusBar = new StatusBar({ position: this.getStatusbarPosition() });
         this.statusBar.create(this.statusBarElement);
       }
     }
@@ -510,18 +924,100 @@ export class RichTextEditorElement extends HTMLElement {
    */
   private setupEventListeners(): void {
     if (!this.contentElement || !this.engine) return;
+    const shortcutManager = this.keyboardShortcutManager;
     
     // Content change
     this.contentElement.addEventListener('input', () => {
-      const html = this.contentElement!.innerHTML;
-      
-      this.dispatchEvent(new CustomEvent('content-change', {
-        detail: { html },
-        bubbles: true,
-      }));
+      if (!this.contentElement) return;
+      let html = this.contentElement.innerHTML;
+      const performanceConfig = this.getPerformanceConfig();
+      const contentConfig = this.getContentSanitizeConfig();
+      const securityConfig = this.getSecurityConfig();
+
+      if (securityConfig.sanitizeOnInput !== false && contentConfig.sanitize !== false) {
+        const sanitized = sanitizeInputHTML(html, contentConfig, securityConfig);
+        if (sanitized !== html) {
+          const selection = window.getSelection();
+          const range = selection && selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
+          this.contentElement.innerHTML = sanitized;
+
+          if (range && selection) {
+            try {
+              selection.removeAllRanges();
+              selection.addRange(range);
+            } catch {
+              // Selection restoration may fail if DOM changed significantly.
+            }
+          }
+          html = sanitized;
+        }
+      }
+
+      if (this.contentChangeDebounceTimer) {
+        clearTimeout(this.contentChangeDebounceTimer);
+      }
+
+      const emitChange = () => {
+        this.dispatchEvent(new CustomEvent('content-change', {
+          detail: { html },
+          bubbles: true,
+        }));
+      };
+
+      if (performanceConfig.debounceInputMs > 0) {
+        this.contentChangeDebounceTimer = setTimeout(emitChange, performanceConfig.debounceInputMs);
+      } else {
+        emitChange();
+      }
       
       // Update status bar
       this.updateStatusBar();
+    });
+
+    this.contentElement.addEventListener('contextmenu', (e) => {
+      const contextMenuConfig = this.config.contextMenu;
+      const isDisabled =
+        contextMenuConfig === false ||
+        (typeof contextMenuConfig === 'object' &&
+          contextMenuConfig !== null &&
+          (contextMenuConfig as any).enabled === false);
+      if (isDisabled) {
+        e.preventDefault();
+      }
+    });
+
+    this.contentElement.addEventListener('paste', (e: ClipboardEvent) => {
+      e.preventDefault();
+
+      const pasteConfig = this.config.paste || {};
+      let pastedHTML = e.clipboardData?.getData('text/html') || '';
+      const pastedText = e.clipboardData?.getData('text/plain') || '';
+      const contentConfig = this.getContentSanitizeConfig();
+      const securityConfig = this.getSecurityConfig();
+      const isWordLikeHTML =
+        !!pastedHTML && /class=["'][^"']*Mso|xmlns:w=|urn:schemas-microsoft-com:office/i.test(pastedHTML);
+
+      if ((pasteConfig.clean || !pasteConfig.keepFormatting) && pastedText) {
+        document.execCommand('insertText', false, pastedText);
+        return;
+      }
+
+      if (pasteConfig.convertWord === false && isWordLikeHTML && pastedText) {
+        document.execCommand('insertText', false, pastedText);
+        return;
+      }
+
+      if (pastedHTML) {
+        if (securityConfig.sanitizeOnPaste !== false && contentConfig.sanitize !== false) {
+          pastedHTML = sanitizePastedHTML(pastedHTML, contentConfig, securityConfig);
+        }
+        this.insertHTMLAtSelection(pastedHTML);
+        return;
+      }
+
+      if (pastedText) {
+        document.execCommand('insertText', false, pastedText);
+      }
     });
     
     // Focus/blur
@@ -531,9 +1027,27 @@ export class RichTextEditorElement extends HTMLElement {
     });
     
     this.contentElement.addEventListener('blur', () => {
+      if (this.contentChangeDebounceTimer) {
+        clearTimeout(this.contentChangeDebounceTimer);
+        this.contentChangeDebounceTimer = undefined;
+      }
+      if (this.contentElement) {
+        this.dispatchEvent(new CustomEvent('content-change', {
+          detail: { html: this.contentElement.innerHTML },
+          bubbles: true,
+        }));
+      }
       this.dispatchEvent(new Event('editor-blur', { bubbles: true }));
       this.updateFloatingToolbar();
       this.updateStatusBar();
+    });
+
+    this.contentElement.addEventListener('keydown', (event: KeyboardEvent) => {
+      const accessibility = this.getAccessibilityConfig();
+      if (!accessibility.keyboardNavigation) return;
+      shortcutManager.handleKeyDown(event, (command, params) => {
+        this.executeCommand(command, params);
+      });
     });
     
     // Selection change for floating toolbar and status bar
@@ -544,6 +1058,11 @@ export class RichTextEditorElement extends HTMLElement {
         !!activeElement &&
         !!this.contentElement &&
         (activeElement === this.contentElement || this.contentElement.contains(activeElement));
+
+      const performance = this.getPerformanceConfig();
+      if (performance.viewportOnlyScan && !this.isEditorInViewport() && !hasFocusWithinEditor) {
+        return;
+      }
 
       // Ignore selection changes that belong to other editors/DOM areas.
       if (!rangeInEditor && !hasFocusWithinEditor) {
@@ -576,6 +1095,14 @@ export class RichTextEditorElement extends HTMLElement {
    */
   private updateFloatingToolbar(): void {
     if (!this.floatingToolbar) return;
+    const performance = this.getPerformanceConfig();
+    const hasFocusWithinEditor =
+      document.activeElement === this.contentElement ||
+      (!!this.contentElement && this.contentElement.contains(document.activeElement));
+    if (performance.viewportOnlyScan && !this.isEditorInViewport() && !hasFocusWithinEditor) {
+      this.floatingToolbar.hide();
+      return;
+    }
     
     const range = this.getSelectionRangeInEditor();
     if (!range) {
@@ -600,6 +1127,13 @@ export class RichTextEditorElement extends HTMLElement {
    */
   private updateStatusBar(): void {
     if (!this.statusBar || !this.contentElement) return;
+    const performance = this.getPerformanceConfig();
+    const hasFocusWithinEditor =
+      document.activeElement === this.contentElement ||
+      this.contentElement.contains(document.activeElement);
+    if (performance.viewportOnlyScan && !this.isEditorInViewport() && !hasFocusWithinEditor) {
+      return;
+    }
 
     const text = this.contentElement.textContent || '';
     const { words, chars } = calculateTextStats(text);
@@ -634,6 +1168,7 @@ export class RichTextEditorElement extends HTMLElement {
       case 'readonly':
         if (this.contentElement) {
           this.contentElement.contentEditable = value === 'true' ? 'false' : 'true';
+          this.applyAccessibilitySettings();
         }
         if (this.engine) {
           this.engine.setReadonly(value === 'true');
@@ -656,11 +1191,62 @@ export class RichTextEditorElement extends HTMLElement {
       case 'placeholder':
         if (this.contentElement) {
           this.contentElement.setAttribute('data-placeholder', value);
+          this.applyAccessibilitySettings();
         }
+        break;
+
+      case 'accessibility':
+      case 'accessibility-enable-aria':
+      case 'accessibility-keyboard-navigation':
+      case 'accessibility-checker':
+        this.applyAccessibilitySettings();
+        break;
+
+      case 'performance':
+      case 'performance-debounce-input-ms':
+      case 'performance-viewport-only-scan':
+        // Event handlers read latest performance config dynamically.
+        break;
+
+      case 'language':
+      case 'language-locale':
+      case 'language-direction':
+        this.applyLanguageSettings();
+        break;
+
+      case 'spellcheck':
+      case 'spellcheck-enabled':
+      case 'spellcheck-provider':
+        this.applySpellcheckSettings();
+        break;
+
+      case 'autosave':
+      case 'autosave-enabled':
+      case 'autosave-interval-ms':
+      case 'autosave-storage-key':
+      case 'autosave-provider':
+      case 'autosave-api-url':
+        this.startAutosave();
+        break;
+
+      case 'security':
+      case 'security-sanitize-on-paste':
+      case 'security-sanitize-on-input':
+      case 'paste':
+      case 'paste-clean':
+      case 'paste-keep-formatting':
+      case 'paste-convert-word':
+      case 'context-menu':
+      case 'context-menu-enabled':
+        // Event handlers read latest config on each invocation.
         break;
         
       case 'toolbar':
+      case 'toolbar-items':
+      case 'toolbar-floating':
+      case 'toolbar-sticky':
       case 'plugins':
+      case 'statusbar':
         // These require re-initialization
         if (this.isConnected) {
           this.destroy();
@@ -708,7 +1294,7 @@ export class RichTextEditorElement extends HTMLElement {
       },
       
       execCommand: (name: string, value?: any) => {
-        return this.engine?.execCommand(name, value) || false;
+        return this.executeCommand(name, value);
       },
       
       focus: () => {
@@ -742,6 +1328,16 @@ export class RichTextEditorElement extends HTMLElement {
    * Destroy the editor
    */
   private destroy(): void {
+    if (this.contentChangeDebounceTimer) {
+      clearTimeout(this.contentChangeDebounceTimer);
+      this.contentChangeDebounceTimer = undefined;
+    }
+
+    if (this.contentElement) {
+      this.persistAutosave(this.contentElement.innerHTML || '');
+    }
+    this.stopAutosave();
+
     if (this.selectionChangeHandler) {
       document.removeEventListener('selectionchange', this.selectionChangeHandler);
       this.selectionChangeHandler = undefined;
@@ -753,6 +1349,10 @@ export class RichTextEditorElement extends HTMLElement {
     this.statusBar?.destroy();
     
     this.innerHTML = '';
+    this.contentElement = undefined;
+    this.toolbarElement = undefined;
+    this.statusBarElement = undefined;
+    this.loadedPlugins = [];
     this.isInitialized = false;
     
     this.dispatchEvent(new Event('editor-destroy', { bubbles: true }));
@@ -771,7 +1371,7 @@ export class RichTextEditorElement extends HTMLElement {
   }
 
   public execCommand(name: string, value?: any): boolean {
-    return this.engine?.execCommand(name, value) || false;
+    return this.executeCommand(name, value);
   }
 
   public focus(): void {

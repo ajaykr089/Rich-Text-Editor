@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { EditoraEditor } from "@editora/react";
 import "@editora/themes/themes/default.css";
 import "@editora/themes/themes/dark.css";
+import "@editora/themes/themes/acme.css";
 
 // Import the Web Component build
 // import "../../packages/core/dist/webcomponent.esm.js";
@@ -454,10 +455,14 @@ export const Test6Placeholder: Story = {
  */
 export const Test7ThemeSwitcherEditorOnly: Story = {
   render: () => {
-    const [themeA, setThemeA] = useState<"default" | "dark">("default");
-    const [themeB, setThemeB] = useState<"default" | "dark">("dark");
+    const [themeA, setThemeA] = useState<"default" | "dark" | "acme">("default");
+    const [themeB, setThemeB] = useState<"default" | "dark" | "acme">("dark");
 
-    const toggleTheme = (theme: "default" | "dark") => (theme === "dark" ? "default" : "dark");
+    const cycleTheme = (theme: "default" | "dark" | "acme") => {
+      if (theme === "default") return "dark";
+      if (theme === "dark") return "acme";
+      return "default";
+    };
 
     return (
       <div>
@@ -467,11 +472,11 @@ export const Test7ThemeSwitcherEditorOnly: Story = {
             Switches only editor themes using wrapper-level attributes (`data-theme`).
           </p>
           <Flex style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-            <button onClick={() => setThemeA(toggleTheme(themeA))} style={{ padding: "8px 16px" }}>
-              Toggle Editor A
+            <button onClick={() => setThemeA(cycleTheme(themeA))} style={{ padding: "8px 16px" }}>
+              Cycle Editor A
             </button>
-            <button onClick={() => setThemeB(toggleTheme(themeB))} style={{ padding: "8px 16px" }}>
-              Toggle Editor B
+            <button onClick={() => setThemeB(cycleTheme(themeB))} style={{ padding: "8px 16px" }}>
+              Cycle Editor B
             </button>
             <button
               onClick={() => {
@@ -491,6 +496,15 @@ export const Test7ThemeSwitcherEditorOnly: Story = {
             >
               Set Both Default
             </button>
+            <button
+              onClick={() => {
+                setThemeA("acme");
+                setThemeB("acme");
+              }}
+              style={{ padding: "8px 16px" }}
+            >
+              Set Both Acme
+            </button>
           </Flex>
           <p style={{ margin: "12px 0 0 0", fontSize: "13px" }}>
             Current themes: <strong>Editor A = {themeA}</strong>, <strong>Editor B = {themeB}</strong>
@@ -498,8 +512,22 @@ export const Test7ThemeSwitcherEditorOnly: Story = {
         </Box>
 
         <Grid style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
-          <div data-theme={themeA} style={{ padding: "10px", borderRadius: "8px", background: themeA === "dark" ? "#0b1220" : "#ffffff" }}>
-            <h4 style={{ margin: "0 0 8px 0", color: themeA === "dark" ? "#f8fafc" : "#111827" }}>Editor A</h4>
+          <div
+            data-theme={themeA}
+            style={{
+              padding: "10px",
+              borderRadius: "8px",
+              background: themeA === "dark" ? "#0b1220" : themeA === "acme" ? "#eef4fb" : "#ffffff",
+            }}
+          >
+            <h4
+              style={{
+                margin: "0 0 8px 0",
+                color: themeA === "dark" ? "#f8fafc" : themeA === "acme" ? "#0f4f4a" : "#111827",
+              }}
+            >
+              Editor A
+            </h4>
             <EditoraEditor
               plugins={allNativePlugins}
               toolbar={{ showMoreOptions: false }}
@@ -509,8 +537,22 @@ export const Test7ThemeSwitcherEditorOnly: Story = {
             />
           </div>
 
-          <div data-theme={themeB} style={{ padding: "10px", borderRadius: "8px", background: themeB === "dark" ? "#0b1220" : "#ffffff" }}>
-            <h4 style={{ margin: "0 0 8px 0", color: themeB === "dark" ? "#f8fafc" : "#111827" }}>Editor B</h4>
+          <div
+            data-theme={themeB}
+            style={{
+              padding: "10px",
+              borderRadius: "8px",
+              background: themeB === "dark" ? "#0b1220" : themeB === "acme" ? "#eef4fb" : "#ffffff",
+            }}
+          >
+            <h4
+              style={{
+                margin: "0 0 8px 0",
+                color: themeB === "dark" ? "#f8fafc" : themeB === "acme" ? "#0f4f4a" : "#111827",
+              }}
+            >
+              Editor B
+            </h4>
             <EditoraEditor
               plugins={allNativePlugins}
               toolbar={{ showMoreOptions: false }}

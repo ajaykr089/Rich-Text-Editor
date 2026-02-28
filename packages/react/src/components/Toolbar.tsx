@@ -1,8 +1,14 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Editor } from '@editora/core';
 import { ToolbarItem } from '@editora/core';
 import { EditorIcons, EditorIconName } from './EditorIcons';
 import { InlineMenu, InlineMenuOption } from './InlineMenu';
+
+type ToolbarItemLike = ToolbarItem | {
+  type: 'separator';
+  command: string;
+  label: string;
+};
 
 interface ToolbarProps {
   editor: Editor;
@@ -10,14 +16,105 @@ interface ToolbarProps {
   sticky?: boolean;
   floating?: boolean;
   showMoreOptions?: boolean;
+  itemsOverride?: string[] | ToolbarItem[];
 }
+
+const normalizeToolbarToken = (value: string): string =>
+  value.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+const COMMAND_ALIASES: Record<string, string> = {
+  undo: 'undo',
+  redo: 'redo',
+  bold: 'toggleBold',
+  italic: 'toggleItalic',
+  underline: 'toggleUnderline',
+  strikethrough: 'toggleStrikethrough',
+  textcolor: 'openTextColorPicker',
+  backgroundcolor: 'openBackgroundColorPicker',
+  fontsize: 'setFontSize',
+  increasefontsize: 'increaseFontSize',
+  decreasefontsize: 'decreaseFontSize',
+  heading: 'setHeading',
+  paragraph: 'setHeading',
+  textalignment: 'setTextAlignment',
+  direction: 'setDirectionLTR',
+  bullist: 'toggleBulletList',
+  numlist: 'toggleOrderedList',
+  checklist: 'toggleChecklist',
+  indent: 'increaseIndent',
+  outdent: 'decreaseIndent',
+  link: 'openLinkDialog',
+  image: 'insertImage',
+  video: 'insertVideo',
+  table: 'insertTable',
+  clearformatting: 'clearFormatting',
+};
+
+const resolveToolbarItems = (
+  pluginItems: ToolbarItem[],
+  itemsOverride?: string[] | ToolbarItem[],
+): ToolbarItemLike[] => {
+  if (!Array.isArray(itemsOverride) || itemsOverride.length === 0) {
+    return pluginItems;
+  }
+
+  const hasStringItems = itemsOverride.every((item) => typeof item === 'string');
+  if (!hasStringItems) {
+    return itemsOverride as ToolbarItem[];
+  }
+
+  const byNormalizedCommand = new Map<string, ToolbarItem>();
+  const byNormalizedLabel = new Map<string, ToolbarItem>();
+
+  pluginItems.forEach((item) => {
+    byNormalizedCommand.set(normalizeToolbarToken(item.command || ''), item);
+    byNormalizedLabel.set(normalizeToolbarToken(item.label || ''), item);
+  });
+
+  const tokens = (itemsOverride as string[])
+    .flatMap((entry) => entry.split(/\s+/))
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+
+  const resolved: ToolbarItemLike[] = [];
+  let separatorCount = 0;
+
+  tokens.forEach((token) => {
+    if (token === '|') {
+      separatorCount += 1;
+      resolved.push({
+        type: 'separator',
+        command: `__separator__${separatorCount}`,
+        label: '|',
+      });
+      return;
+    }
+
+    const normalizedToken = normalizeToolbarToken(token);
+    const aliasCommand = COMMAND_ALIASES[normalizedToken];
+    const directMatch =
+      byNormalizedCommand.get(normalizedToken) ||
+      (aliasCommand ? byNormalizedCommand.get(normalizeToolbarToken(aliasCommand)) : undefined) ||
+      byNormalizedLabel.get(normalizedToken) ||
+      pluginItems.find((item) =>
+        normalizeToolbarToken(item.command || '').includes(normalizedToken),
+      );
+
+    if (directMatch) {
+      resolved.push(directMatch);
+    }
+  });
+
+  return resolved.length > 0 ? resolved : pluginItems;
+};
 
 export const Toolbar: React.FC<ToolbarProps> = ({
   editor,
   position = 'top',
   sticky = false,
   floating = false,
-  showMoreOptions = true
+  showMoreOptions = true,
+  itemsOverride,
 }) => {
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [openInlineMenu, setOpenInlineMenu] = useState<string | null>(null);
@@ -30,7 +127,10 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   const toolbarRef = useRef<HTMLDivElement>(null);
   const itemsContainerRef = useRef<HTMLDivElement>(null);
   const moreButtonRef = useRef<HTMLButtonElement>(null);
-  const items = editor.pluginManager.getToolbarItems();
+  const items = useMemo(
+    () => resolveToolbarItems(editor.pluginManager.getToolbarItems(), itemsOverride),
+    [editor, itemsOverride],
+  );
 
   const updateStoredSelection = (range: Range | null) => {
     storedSelectionRef.current = range;
@@ -42,6 +142,12 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   const getEditorContentElement = (): HTMLElement | null => {
     const editorContainer = toolbarRef.current?.closest('[data-editora-editor]');
     return (editorContainer?.querySelector('.rte-content') as HTMLElement) || null;
+  };
+
+  const setActiveCommandEditorContext = () => {
+    if (typeof window === 'undefined') return;
+    const editorContainer = toolbarRef.current?.closest('[data-editora-editor]') as HTMLElement | null;
+    (window as any).__editoraCommandEditorRoot = editorContainer || null;
   };
 
   const getSelectionInEditor = (): Range | null => {
@@ -217,7 +323,12 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   };
 
   const handleCommand = (command: string, value?: string) => {
-    restoreSelectionToEditor(shouldPreferExpandedSelection(command));
+    setActiveCommandEditorContext();
+    const skipSelectionRestore =
+      command === 'addComment' || command === 'toggleComments';
+    if (!skipSelectionRestore) {
+      restoreSelectionToEditor(shouldPreferExpandedSelection(command));
+    }
 
     const nativeInlineCommandMap: Record<string, string> = {
       toggleBold: 'bold',
@@ -295,11 +406,12 @@ export const Toolbar: React.FC<ToolbarProps> = ({
     const isToolbarAction = target.closest('.rte-toolbar-button, .rte-toolbar-dropdown-item, .rte-toolbar-more-button');
     if (!isToolbarAction) return;
 
+    setActiveCommandEditorContext();
     captureSelectionFromEditor();
     e.preventDefault();
   };
 
-  const renderToolbarItems = (items: ToolbarItem[]) => {
+  const renderToolbarItems = (items: ToolbarItemLike[]) => {
     {
       return items.map((item, idx) => (
         <div
@@ -312,7 +424,9 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                 : "flex",
           }}
         >
-          {item.type === "dropdown" ? (
+          {item.type === "separator" ? (
+            <div className="rte-toolbar-separator" aria-hidden="true" />
+          ) : item.type === "dropdown" ? (
             <div className="rte-toolbar-dropdown">
                 <button
                   className="rte-toolbar-button"
@@ -446,7 +560,9 @@ export const Toolbar: React.FC<ToolbarProps> = ({
               (item, idx) =>
                 idx >= (visibleCount || 0) && (
                   <div key={idx} className="rte-toolbar-item">
-                    {item.type === "dropdown" ? (
+                    {item.type === "separator" ? (
+                      <div className="rte-toolbar-separator" aria-hidden="true" />
+                    ) : item.type === "dropdown" ? (
                       <div className="rte-toolbar-dropdown">
                         <button
                           className="rte-toolbar-button"
