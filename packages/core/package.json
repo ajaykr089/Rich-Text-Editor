@@ -1,6 +1,6 @@
 {
   "name": "@editora/core",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Framework-agnostic core editor engine for Editora Rich Text Editor",
   "author": "Ajay Kumar <ajaykr089@gmail.com>",
   "license": "MIT",
@@ -48,60 +48,61 @@
   "browser": "dist/index.esm.js",
   "unpkg": "dist/editora.min.js",
   "jsdelivr": "dist/editora.min.js",
-  "types": "dist/index.d.ts",
+  "types": "index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
+      "types": "./index.d.ts",
       "browser": "./dist/index.esm.js",
       "import": "./dist/index.esm.js",
       "require": "./dist/index.cjs.js"
     },
     "./webcomponent": {
-      "types": "./dist/webcomponent/index.d.ts",
+      "types": "./index.d.ts",
       "browser": "./dist/webcomponent.js",
       "import": "./dist/webcomponent.js",
       "require": "./dist/webcomponent.cjs.js"
     },
     "./webcomponent-core": {
-      "types": "./dist/webcomponent/index.d.ts",
+      "types": "./index.d.ts",
       "browser": "./dist/webcomponent-core.js",
       "import": "./dist/webcomponent-core.js",
       "require": "./dist/webcomponent-core.cjs.js"
     },
     "./plugin-loader": {
-      "types": "./dist/webcomponent/index.d.ts",
+      "types": "./index.d.ts",
       "import": "./dist/plugin-loader.js",
       "require": "./dist/plugin-loader.cjs.js"
     },
     "./webcomponent.css": "./dist/webcomponent.min.css",
     "./KeyboardShortcuts": {
-      "types": "./dist/index.d.ts",
+      "types": "./index.d.ts",
       "import": "./dist/index.esm.js",
       "require": "./dist/index.cjs.js"
     },
     "./core": {
-      "types": "./dist/core/index.d.ts",
+      "types": "./index.d.ts",
       "import": "./dist/index.esm.js",
       "require": "./dist/index.cjs.js"
     },
     "./ui": {
-      "types": "./dist/ui/index.d.ts",
+      "types": "./index.d.ts",
       "import": "./dist/index.esm.js",
       "require": "./dist/index.cjs.js"
     },
     "./adapters": {
-      "types": "./dist/adapters/index.d.ts",
+      "types": "./index.d.ts",
       "import": "./dist/index.esm.js",
       "require": "./dist/index.cjs.js"
     },
     "./config": {
-      "types": "./dist/config/index.d.ts",
+      "types": "./index.d.ts",
       "import": "./dist/index.esm.js",
       "require": "./dist/index.cjs.js"
     }
   },
   "files": [
     "dist",
+    "index.d.ts",
     "!dist/**/*.map",
     "README.md",
     "LICENSE"

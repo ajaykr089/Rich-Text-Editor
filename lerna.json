@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/lerna/schemas/lerna-schema.json",
-  "version": "1.0.2",
+  "version": "1.0.4",
   "packages": [
     "packages/*"
   ],
@@ -24,7 +24,7 @@
       "allowBranch": [
         "main",
         "develop",
-        "v1.0.2"
+        "v1.0.4"
       ]
     }
   }
