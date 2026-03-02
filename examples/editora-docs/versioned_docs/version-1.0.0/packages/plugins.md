@@ -1,0 +1,68 @@
+# @editora/plugins
+
+Aggregated plugin package with native plugin factories.
+
+## Why use it
+
+- Faster setup than installing many plugin packages manually
+- Shared compatibility line with `@editora/core`
+- Consistent command/toolbar integration patterns
+
+## Coverage areas
+
+- Formatting and typography
+- Lists, alignment, and structure
+- Media and embeds
+- Workflow features (preview, print, fullscreen)
+- Quality features (accessibility, spell-check)
+- Collaboration and productivity plugins
+
+## Example
+
+```ts
+import {
+  BoldPlugin,
+  ItalicPlugin,
+  UnderlinePlugin,
+  HistoryPlugin,
+  TablePlugin,
+  SpellCheckPlugin,
+} from "@editora/plugins";
+
+const plugins = [
+  BoldPlugin(),
+  ItalicPlugin(),
+  UnderlinePlugin(),
+  HistoryPlugin(),
+  TablePlugin(),
+  SpellCheckPlugin(),
+];
+```
+
+## Bundle strategy
+
+- Start with essential plugins
+- Add heavy dialog-driven plugins only when needed
+- Prefer subpath imports in performance-sensitive apps
+
+## API Surface
+
+- Factory exports for native and advanced plugins
+- Plugin configuration helpers (for media/document managers)
+- Lite entry for smaller imports (`@editora/plugins/lite`)
+
+## Config Matrix
+
+| Import Strategy | Use Case |
+| --- | --- |
+| Package-root imports | Fast onboarding |
+| Subpath imports | Bundle-size optimization |
+| `@editora/plugins/lite` | Lightweight default stack |
+| Dynamic import for heavy plugins | Route/context-based loading |
+
+## Validation Checklist
+
+- Loaded plugin list matches toolbar command set
+- Heavy plugins are lazy-loaded where appropriate
+- Multi-instance command execution remains isolated
+- Plugin order does not cause command shadowing conflicts

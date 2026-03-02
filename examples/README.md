@@ -100,8 +100,8 @@ Features:
 - Customizable toolbar layouts
 - All 37+ native plugins available
 
-### 4. Documentation Website (`web/`)
-Complete documentation website with examples, API reference, and guides.
+### 4. Legacy Static Docs (`web/`)
+Legacy static HTML documentation website.
 
 ```bash
 cd examples/web
@@ -118,7 +118,21 @@ Includes:
 - Plugin documentation
 - Keyboard shortcuts guide
 
-### 5. Hospital Management Admin (`hospital-management/`)
+### 5. Professional Docs (Docusaurus) (`editora-docs/`)
+Modern documentation site with structured navigation, themed UI, package references, and migration-ready markdown content.
+
+```bash
+cd examples/editora-docs
+npm install
+npm run start
+```
+
+Includes:
+- Professional landing page and docs layout
+- Getting started, guides, package docs, plugin docs, and API/FAQ sections
+- Mapped coverage of existing `examples/web/docs` topics
+
+### 6. Hospital Management Admin (`hospital-management/`)
 Frontend-first SaaS-grade hospital admin dashboard built with the Editora UI ecosystem.
 
 ```bash
@@ -134,7 +148,7 @@ Includes:
 - In-memory API + TanStack Query + RHF/Zod forms
 - Toasts, confirmations, loading/empty/error states
 
-### 6. Collaborative Editor (`collaborative/`)
+### 7. Collaborative Editor (`collaborative/`)
 Editor with comments, mentions, and real-time collaboration features.
 
 ```bash
