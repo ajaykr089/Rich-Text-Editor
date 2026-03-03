@@ -48,6 +48,9 @@ const COMMAND_ALIASES: Record<string, string> = {
   image: 'insertImage',
   video: 'insertVideo',
   table: 'insertTable',
+  trackchanges: 'toggleTrackChanges',
+  accepttrackchanges: 'acceptAllTrackChanges',
+  rejecttrackchanges: 'rejectAllTrackChanges',
   clearformatting: 'clearFormatting',
 };
 
@@ -118,6 +121,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   showMoreOptions = true,
   itemsOverride,
 }) => {
+  const [trackChangesEnabled, setTrackChangesEnabled] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [openInlineMenu, setOpenInlineMenu] = useState<string | null>(null);
   const [visibleCount, setVisibleCount] = useState<number | null>(null);
@@ -179,6 +183,24 @@ export const Toolbar: React.FC<ToolbarProps> = ({
       updateStoredSelection(range);
     }
   };
+
+  useEffect(() => {
+    const editorContainer = toolbarRef.current?.closest('[data-editora-editor]') as HTMLElement | null;
+    if (!editorContainer) return;
+
+    const contentEl = editorContainer.querySelector('.rte-content, .editora-content') as HTMLElement | null;
+    setTrackChangesEnabled(contentEl?.getAttribute('data-track-changes') === 'true');
+
+    const handleTrackChangesToggle = (event: Event) => {
+      const custom = event as CustomEvent<{ enabled?: boolean }>;
+      setTrackChangesEnabled(Boolean(custom.detail?.enabled));
+    };
+
+    editorContainer.addEventListener('editora:track-changes-toggle', handleTrackChangesToggle as EventListener);
+    return () => {
+      editorContainer.removeEventListener('editora:track-changes-toggle', handleTrackChangesToggle as EventListener);
+    };
+  }, []);
 
   useEffect(() => {
     const handleSelectionChange = () => {
@@ -462,6 +484,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   ) => {
     return itemsToRender.map((item, idx) => {
       const itemCommand = item.command || '';
+      const isActive = itemCommand === 'toggleTrackChanges' && trackChangesEnabled;
       return (
         <div
           key={idx}
@@ -481,9 +504,9 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           ) : item.type === "dropdown" ? (
             <div className="rte-toolbar-dropdown">
                 <button
-                  className="rte-toolbar-button"
+                  className={`rte-toolbar-button ${isActive ? "active" : ""}`}
                   data-command={itemCommand}
-                  data-active="false"
+                  data-active={isActive ? "true" : "false"}
                   onMouseDown={(e) => {
                     e.preventDefault();
                     captureSelectionFromEditor();
@@ -511,9 +534,9 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           ) : item.type === "inline-menu" ? (
             <button
               ref={getButtonRef(itemCommand)}
-              className="rte-toolbar-button"
+              className={`rte-toolbar-button ${isActive ? "active" : ""}`}
               data-command={itemCommand}
-              data-active="false"
+              data-active={isActive ? "true" : "false"}
               onMouseDown={(e) => {
                 e.preventDefault();
                 captureSelectionFromEditor();
@@ -554,9 +577,9 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             </div>
           ) : (
             <button
-              className="rte-toolbar-button"
+              className={`rte-toolbar-button ${isActive ? "active" : ""}`}
               data-command={itemCommand}
-              data-active="false"
+              data-active={isActive ? "true" : "false"}
               onMouseDown={(e) => {
                 e.preventDefault();
                 captureSelectionFromEditor();

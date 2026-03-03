@@ -38,6 +38,7 @@ const pluginEntryNames = [
   'spell-check',
   'strikethrough',
   'table',
+  'track-changes',
   'template',
   'text-alignment',
   'text-color',

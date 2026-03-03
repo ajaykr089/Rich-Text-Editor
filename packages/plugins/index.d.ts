@@ -40,6 +40,12 @@ export interface MergeTagPluginOptions {
   tokenTemplate?: string | ((tag: MergeTagItem & { key: string; category: string }) => string);
 }
 
+export interface TrackChangesPluginOptions {
+  author?: string;
+  enabledByDefault?: boolean;
+  includeTimestamp?: boolean;
+}
+
 export interface Template {
   id: string;
   name: string;
@@ -77,6 +83,7 @@ export function SpecialCharactersPlugin(): Plugin;
 export function EmojisPlugin(): Plugin;
 export function EmbedIframePlugin(): Plugin;
 export function AnchorPlugin(): Plugin;
+export function TrackChangesPlugin(options?: TrackChangesPluginOptions): Plugin;
 
 export function MediaManagerPlugin(): Plugin;
 export function setMediaManagerConfig(config: Partial<MediaManagerConfig>): void;

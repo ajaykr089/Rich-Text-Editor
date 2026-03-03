@@ -22,6 +22,7 @@ const advancedPluginRegistry: Record<string, () => Promise<any>> = {
   'capitalization': () => import("../../../plugins/capitalization/src/CapitalizationPlugin.native").then(m => m.CapitalizationPlugin()),
   'link': () => import("../../../plugins/link/src/LinkPlugin.native").then(m => m.LinkPlugin()),
   'table': () => import("../../../plugins/table/src/TablePlugin.native").then(m => m.TablePlugin()),
+  'trackChanges': () => import("../../../plugins/track-changes/src/TrackChangesPlugin.native").then(m => m.TrackChangesPlugin()),
   'anchor': () => import("../../../plugins/anchor/src/AnchorPlugin.native").then(m => m.AnchorPlugin()),
   'embedIframe': () => import("../../../plugins/embed-iframe/src/EmbedIframePlugin.native").then(m => m.EmbedIframePlugin()),
   'math': () => import("../../../plugins/math/src/MathPlugin.native").then(m => m.MathPlugin()),

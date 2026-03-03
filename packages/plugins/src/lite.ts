@@ -22,6 +22,7 @@ export { IndentPlugin } from '../indent/src/index';
 export { DirectionPlugin } from '../direction/src/index';
 export { CapitalizationPlugin } from '../capitalization/src/index';
 export { AnchorPlugin } from '../anchor/src/index';
+export { TrackChangesPlugin, type TrackChangesPluginOptions } from '../track-changes/src/index';
 export { PageBreakPlugin } from '../page-break/src/index';
 export { FootnotePlugin } from '../footnote/src/index';
 export { FullscreenPlugin } from '../fullscreen/src/index';

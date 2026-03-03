@@ -79,6 +79,9 @@ export class ToolbarRenderer {
       link: "openLinkDialog",
       image: "openImageDialog",
       table: "insertTable",
+      trackChanges: "toggleTrackChanges",
+      acceptTrackChanges: "acceptAllTrackChanges",
+      rejectTrackChanges: "rejectAllTrackChanges",
       anchor: "insertAnchor",
       code: "toggleSourceView",
       blockquote: "toggleBlockquote",
@@ -284,7 +287,8 @@ export class ToolbarRenderer {
    */
   private createGroupButton(button: ToolbarButton): HTMLElement {
     const el = document.createElement("div");
-    el.className = "editora-toolbar-group-button";
+    const groupClass = button.label.toLowerCase().replace(/\s+/g, "-");
+    el.className = `editora-toolbar-group-button ${groupClass}`;
     el.title = button.label;
     // Optionally add a label or icon for the group itself
     if (button.icon) {
@@ -300,7 +304,7 @@ export class ToolbarRenderer {
     // Recursively render group items
     if (button.items && button.items.length) {
       const itemsContainer = document.createElement("div");
-      itemsContainer.className = "editora-toolbar-group-items";
+      itemsContainer.className = `editora-toolbar-group-items ${groupClass}`;
       button.items.forEach((child) => {
         this.appendToolbarButton(itemsContainer, child);
       });

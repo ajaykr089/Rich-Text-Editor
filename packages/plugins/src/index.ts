@@ -27,6 +27,7 @@ export { SpecialCharactersPlugin } from '../special-characters/src/index';
 export { EmojisPlugin } from '../emojis/src/index';
 export { EmbedIframePlugin } from '../embed-iframe/src/index';
 export { AnchorPlugin } from '../anchor/src/index';
+export { TrackChangesPlugin, type TrackChangesPluginOptions } from '../track-changes/src/index';
 
 // Regular plugins (with React components - 13 total)
 export { MediaManagerPlugin, setMediaManagerConfig, getMediaManagerConfig } from '../media-manager/src/index';

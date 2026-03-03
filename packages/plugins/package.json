@@ -276,6 +276,12 @@
       "require": "./dist/table.cjs.js",
       "default": "./dist/table.esm.js"
     },
+    "./track-changes": {
+      "types": "./index.d.ts",
+      "import": "./dist/track-changes.esm.js",
+      "require": "./dist/track-changes.cjs.js",
+      "default": "./dist/track-changes.esm.js"
+    },
     "./template": {
       "types": "./index.d.ts",
       "import": "./dist/template.esm.js",

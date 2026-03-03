@@ -49,7 +49,8 @@ import {
   CommentsPlugin,
   DocumentManagerPlugin,
   FullscreenPlugin,
-  TemplatePlugin
+  TemplatePlugin,
+  TrackChangesPlugin,
 } from "@editora/plugins";
 import { Box, Flex, Grid} from '@editora/ui-react';
 
@@ -125,7 +126,8 @@ const allNativePlugins = [
   FullscreenPlugin(),
   TemplatePlugin(),
   HistoryPlugin(),
-  FootnotePlugin()
+  FootnotePlugin(),
+  TrackChangesPlugin()
 ];
 
 /**
