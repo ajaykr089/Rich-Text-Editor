@@ -1,0 +1,39 @@
+{
+  "name": "@editora/conditional-content",
+  "version": "1.0.0",
+  "description": "Conditional content plugin for Editora Rich Text Editor with if/else blocks, audience/locale targeting, and preview mode",
+  "main": "dist/index.cjs.js",
+  "module": "dist/index.esm.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "vite build"
+  },
+  "keywords": [
+    "editor",
+    "conditional-content",
+    "if-else",
+    "template-logic",
+    "audience-targeting",
+    "locale-targeting"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ajaykr089/Editora.git"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@editora/core": "^1.0.7"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.esm.js",
+      "require": "./dist/index.cjs.js",
+      "default": "./dist/index.esm.js"
+    }
+  }
+}

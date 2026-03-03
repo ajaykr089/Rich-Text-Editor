@@ -113,6 +113,8 @@ export class ToolbarRenderer {
       toggleComments: "toggleComments",
       footnote: "insertFootnote",
       mergeTags: "insertMergeTag",
+      dataBinding: "openDataBindingDialog",
+      dataBindingPreview: "openDataBindingDialog",
       mention: "insertMention",
       slash: "openSlashCommands",
       slashCommands: "openSlashCommands",

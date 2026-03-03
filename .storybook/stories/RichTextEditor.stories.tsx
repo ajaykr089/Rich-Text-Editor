@@ -54,6 +54,8 @@ import {
   MentionPlugin,
   SlashCommandsPlugin,
   VersionDiffPlugin,
+  ConditionalContentPlugin,
+  DataBindingPlugin,
 } from "@editora/plugins";
 import { Box, Flex, Grid} from '@editora/ui-react';
 
@@ -132,6 +134,13 @@ const allNativePlugins = [
   FootnotePlugin(),
   TrackChangesPlugin(),
   VersionDiffPlugin(),
+  ConditionalContentPlugin(),
+  DataBindingPlugin({
+    data: {
+      user: { firstName: "Ava", lastName: "Miller" },
+      order: { total: 1234.56, createdAt: "2026-03-03T12:00:00Z" },
+    },
+  }),
   SlashCommandsPlugin(),
   MentionPlugin({
     items: [

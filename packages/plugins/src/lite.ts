@@ -38,6 +38,23 @@ export {
   type VersionDiffOpenArgs,
 } from '../version-diff/src/index';
 export {
+  ConditionalContentPlugin,
+  type ConditionalContentPluginOptions,
+  type ConditionalContentLabels,
+  type ConditionalBlockConfig,
+  type ConditionalContentDialogArgs,
+} from '../conditional-content/src/index';
+export {
+  DataBindingPlugin,
+  type DataBindingPluginOptions,
+  type DataBindingTokenConfig,
+  type DataBindingDialogArgs,
+  type DataBindingFormat,
+  type DataBindingApiConfig,
+  type DataBindingApiRequestContext,
+  type DataBindingLabels,
+} from '../data-binding/src/index';
+export {
   SlashCommandsPlugin,
   type SlashCommandsPluginOptions,
   type SlashCommandItem,

@@ -96,6 +96,18 @@
       "require": "./dist/capitalization.cjs.js",
       "default": "./dist/capitalization.esm.js"
     },
+    "./conditional-content": {
+      "types": "./index.d.ts",
+      "import": "./dist/conditional-content.esm.js",
+      "require": "./dist/conditional-content.cjs.js",
+      "default": "./dist/conditional-content.esm.js"
+    },
+    "./data-binding": {
+      "types": "./index.d.ts",
+      "import": "./dist/data-binding.esm.js",
+      "require": "./dist/data-binding.cjs.js",
+      "default": "./dist/data-binding.esm.js"
+    },
     "./checklist": {
       "types": "./index.d.ts",
       "import": "./dist/checklist.esm.js",

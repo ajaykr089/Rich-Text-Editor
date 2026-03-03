@@ -80,6 +80,117 @@ export interface VersionDiffPluginOptions {
   labels?: VersionDiffLabels;
 }
 
+export interface ConditionalContentLabels {
+  dialogTitleInsert?: string;
+  dialogTitleEdit?: string;
+  conditionLabel?: string;
+  conditionPlaceholder?: string;
+  audienceLabel?: string;
+  audiencePlaceholder?: string;
+  localeLabel?: string;
+  localePlaceholder?: string;
+  elseLabel?: string;
+  saveText?: string;
+  cancelText?: string;
+  blockIfLabel?: string;
+  blockElseLabel?: string;
+  allAudiencesText?: string;
+  allLocalesText?: string;
+}
+
+export interface ConditionalBlockConfig {
+  condition?: string;
+  audience?: string[];
+  locale?: string[];
+  hasElse?: boolean;
+}
+
+export interface ConditionalContentDialogArgs extends ConditionalBlockConfig {
+  target?: "insert" | "edit";
+}
+
+export interface ConditionalContentPluginOptions {
+  defaultCondition?: string;
+  defaultAudience?: string[];
+  defaultLocale?: string[];
+  enableElseByDefault?: boolean;
+  labels?: ConditionalContentLabels;
+  context?: Record<string, unknown> | (() => Record<string, unknown>);
+  getContext?: (context: { editor: HTMLElement; editorRoot: HTMLElement }) => Record<string, unknown> | Promise<Record<string, unknown>>;
+  currentAudience?: string | string[];
+  currentLocale?: string | string[];
+  evaluateCondition?: (condition: string, context: Record<string, unknown>) => boolean;
+}
+
+export type DataBindingFormat = "text" | "number" | "currency" | "date" | "json";
+
+export interface DataBindingLabels {
+  dialogTitleInsert?: string;
+  dialogTitleEdit?: string;
+  keyLabel?: string;
+  keyPlaceholder?: string;
+  fallbackLabel?: string;
+  fallbackPlaceholder?: string;
+  formatLabel?: string;
+  currencyLabel?: string;
+  currencyPlaceholder?: string;
+  saveText?: string;
+  cancelText?: string;
+  previewOnText?: string;
+  previewOffText?: string;
+  tokenAriaPrefix?: string;
+}
+
+export interface DataBindingTokenConfig {
+  key: string;
+  fallback?: string;
+  format?: DataBindingFormat;
+  currency?: string;
+}
+
+export interface DataBindingDialogArgs extends Partial<DataBindingTokenConfig> {
+  target?: "insert" | "edit";
+}
+
+export interface DataBindingApiRequestContext {
+  editor: HTMLElement;
+  editorRoot: HTMLElement;
+  signal: AbortSignal;
+}
+
+export interface DataBindingApiConfig {
+  url: string;
+  method?: string;
+  headers?: Record<string, string> | ((ctx: DataBindingApiRequestContext) => Record<string, string>);
+  credentials?: RequestCredentials;
+  mode?: RequestMode;
+  cache?: RequestCache;
+  params?: Record<string, string> | ((ctx: DataBindingApiRequestContext) => Record<string, string>);
+  body?:
+    | Record<string, unknown>
+    | BodyInit
+    | ((ctx: DataBindingApiRequestContext) => Record<string, unknown> | BodyInit | undefined);
+  buildRequest?: (ctx: DataBindingApiRequestContext) => { url: string; init?: RequestInit };
+  responseType?: "json" | "text";
+  responsePath?: string;
+  transformResponse?: (response: unknown, ctx: DataBindingApiRequestContext) => Record<string, unknown>;
+  timeoutMs?: number;
+  onError?: (error: unknown, ctx: DataBindingApiRequestContext) => void;
+}
+
+export interface DataBindingPluginOptions {
+  data?: Record<string, unknown> | (() => Record<string, unknown> | Promise<Record<string, unknown>>);
+  getData?: (context: { editor: HTMLElement; editorRoot: HTMLElement }) => Record<string, unknown> | Promise<Record<string, unknown>>;
+  api?: DataBindingApiConfig;
+  cacheTtlMs?: number;
+  labels?: DataBindingLabels;
+  defaultFormat?: DataBindingFormat;
+  defaultFallback?: string;
+  locale?: string;
+  numberFormatOptions?: Intl.NumberFormatOptions;
+  dateFormatOptions?: Intl.DateTimeFormatOptions;
+}
+
 export interface MentionItem {
   id: string;
   label: string;
@@ -204,6 +315,8 @@ export function AnchorPlugin(): Plugin;
 export function MentionPlugin(options?: MentionPluginOptions): Plugin;
 export function TrackChangesPlugin(options?: TrackChangesPluginOptions): Plugin;
 export function VersionDiffPlugin(options?: VersionDiffPluginOptions): Plugin;
+export function ConditionalContentPlugin(options?: ConditionalContentPluginOptions): Plugin;
+export function DataBindingPlugin(options?: DataBindingPluginOptions): Plugin;
 export function SlashCommandsPlugin(options?: SlashCommandsPluginOptions): Plugin;
 
 export function MediaManagerPlugin(): Plugin;

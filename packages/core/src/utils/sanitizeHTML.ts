@@ -21,13 +21,13 @@ const DEFAULT_ALLOWED_TAGS = [
   'a', 'img', 'video', 'audio',
   'table', 'thead', 'tbody', 'tr', 'th', 'td',
   'blockquote', 'pre', 'code',
-  'span', 'div',
+  'span', 'div', 'section',
   'sup', 'sub',
   'hr'
 ];
 
 const DEFAULT_ALLOWED_ATTRIBUTES: Record<string, string[]> = {
-  '*': ['class', 'style', 'id', 'data-*'],
+  '*': ['class', 'style', 'id', 'data-*', 'role', 'aria-*', 'tabindex', 'contenteditable', 'spellcheck'],
   a: ['href', 'target', 'rel', 'title'],
   img: ['src', 'alt', 'width', 'height', 'loading'],
   video: ['src', 'controls', 'width', 'height', 'autoplay', 'loop', 'muted'],

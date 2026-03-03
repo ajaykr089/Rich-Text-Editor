@@ -1160,6 +1160,17 @@ function ensureStylesInjected(): void {
     .editora-toolbar-group-items.track-changes .editora-toolbar-item:last-child .editora-toolbar-button {
       border-right: none;
     }
+
+    :is([data-theme="dark"], .dark, .editora-theme-dark, .rte-theme-dark) .rte-toolbar-group-items.track-changes,
+    :is([data-theme="dark"], .dark, .editora-theme-dark, .rte-theme-dark) .editora-toolbar-group-items.track-changes {
+      border-color: #656567;
+    }
+
+    :is([data-theme="dark"], .dark, .editora-theme-dark, .rte-theme-dark) .rte-toolbar-group-items.track-changes .rte-toolbar-button,
+    :is([data-theme="dark"], .dark, .editora-theme-dark, .rte-theme-dark) .editora-toolbar-group-items.track-changes .editora-toolbar-button {
+      border-right-color: #656567;
+    }
+
     .rte-toolbar-button[data-command="toggleTrackChanges"].active,
     .editora-toolbar-button[data-command="toggleTrackChanges"].active {
       background-color: rgba(22, 163, 74, 0.1);

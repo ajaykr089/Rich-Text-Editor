@@ -449,9 +449,11 @@ function renderSideDiffHtml(
 
 function isOpenVersionDiffShortcut(event: KeyboardEvent): boolean {
   const hasPrimaryModifier = event.metaKey || event.ctrlKey;
-  const key = event.key.toLowerCase();
-  const modAltD = hasPrimaryModifier && event.altKey && !event.shiftKey && key === 'd';
-  const fallbackF8 = !event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey && key === 'f8';
+  const rawKey = typeof event.key === 'string' ? event.key : '';
+  const key = rawKey.toLowerCase();
+  const code = typeof event.code === 'string' ? event.code.toLowerCase() : '';
+  const modAltD = hasPrimaryModifier && event.altKey && !event.shiftKey && (key === 'd' || code === 'keyd');
+  const fallbackF8 = !event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey && (key === 'f8' || code === 'f8');
   return modAltD || fallbackF8;
 }
 

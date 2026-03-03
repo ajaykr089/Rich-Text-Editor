@@ -52,6 +52,8 @@ const COMMAND_ALIASES: Record<string, string> = {
   accepttrackchanges: 'acceptAllTrackChanges',
   rejecttrackchanges: 'rejectAllTrackChanges',
   clearformatting: 'clearFormatting',
+  databinding: 'openDataBindingDialog',
+  databindingpreview: 'openDataBindingDialog',
 };
 
 const resolveToolbarItems = (
