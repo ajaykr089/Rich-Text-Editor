@@ -62,6 +62,8 @@ const pluginRegistry: Record<string, () => Promise<any>> = {
   'print': () => import("../../../plugins/print/src/PrintPlugin.native").then(m => m.PrintPlugin()),
   'preview': () => import("../../../plugins/preview/src/PreviewPlugin.native").then(m => m.PreviewPlugin()),
   'specialCharacters': () => import("../../../plugins/special-characters/src/SpecialCharactersPlugin.native").then(m => m.SpecialCharactersPlugin()),
+  'slashCommands': () => import("../../../plugins/slash-commands/src/SlashCommandsPlugin.native").then(m => m.SlashCommandsPlugin()),
+  'slash-commands': () => import("../../../plugins/slash-commands/src/SlashCommandsPlugin.native").then(m => m.SlashCommandsPlugin()),
   'spellCheck': () => import("../../../plugins/spell-check/src/SpellCheckPlugin.native").then(m => m.SpellCheckPlugin()),
   'emojis': () => import("../../../plugins/emojis/src/EmojisPlugin.native").then(m => m.EmojisPlugin()),
   'a11yChecker': () => import("../../../plugins/a11y-checker/src/A11yCheckerPlugin.native").then(m => m.A11yCheckerPlugin()),

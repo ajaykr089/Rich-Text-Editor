@@ -618,6 +618,8 @@ export class RichTextEditorElement extends HTMLElement {
       trackChanges: ['trackchanges', 'track-changes', 'trackChanges'],
       mentions: ['mention', 'mentions'],
       mention: ['mention', 'mentions'],
+      slashCommands: ['slashcommands', 'slash-commands', 'slashCommands'],
+      'slash-commands': ['slashcommands', 'slash-commands', 'slashCommands'],
     };
 
     const candidateKeys = [

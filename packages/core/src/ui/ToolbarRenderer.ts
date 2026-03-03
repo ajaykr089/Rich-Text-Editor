@@ -114,6 +114,8 @@ export class ToolbarRenderer {
       footnote: "insertFootnote",
       mergeTags: "insertMergeTag",
       mention: "insertMention",
+      slash: "openSlashCommands",
+      slashCommands: "openSlashCommands",
       pageBreak: "insertPageBreak",
       template: "insertTemplate",
       importWord: "importWord",

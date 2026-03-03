@@ -52,6 +52,7 @@ import {
   TemplatePlugin,
   TrackChangesPlugin,
   MentionPlugin,
+  SlashCommandsPlugin,
 } from "@editora/plugins";
 import { Box, Flex, Grid} from '@editora/ui-react';
 
@@ -129,6 +130,7 @@ const allNativePlugins = [
   HistoryPlugin(),
   FootnotePlugin(),
   TrackChangesPlugin(),
+  SlashCommandsPlugin(),
   MentionPlugin({
     items: [
       { id: "john.doe", label: "John Doe", meta: "john@acme.com" },

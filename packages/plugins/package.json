@@ -270,6 +270,12 @@
       "require": "./dist/spell-check.cjs.js",
       "default": "./dist/spell-check.esm.js"
     },
+    "./slash-commands": {
+      "types": "./index.d.ts",
+      "import": "./dist/slash-commands.esm.js",
+      "require": "./dist/slash-commands.cjs.js",
+      "default": "./dist/slash-commands.esm.js"
+    },
     "./strikethrough": {
       "types": "./index.d.ts",
       "import": "./dist/strikethrough.esm.js",

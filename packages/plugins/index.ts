@@ -35,6 +35,12 @@ export {
   type MentionApiRequestContext,
 } from './mentions/src';
 export { TrackChangesPlugin, type TrackChangesPluginOptions } from './track-changes/src';
+export {
+  SlashCommandsPlugin,
+  type SlashCommandsPluginOptions,
+  type SlashCommandItem,
+  type SlashCommandActionContext,
+} from './slash-commands/src';
 export { PreviewPlugin } from './preview/src';
 export { FullscreenPlugin } from './fullscreen/src';
 

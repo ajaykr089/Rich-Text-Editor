@@ -35,6 +35,7 @@ const pluginEntryNames = [
   'page-break',
   'preview',
   'print',
+  'slash-commands',
   'special-characters',
   'spell-check',
   'strikethrough',

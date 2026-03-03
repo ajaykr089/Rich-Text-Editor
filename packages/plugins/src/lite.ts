@@ -30,6 +30,12 @@ export {
   type MentionApiRequestContext,
 } from '../mentions/src/index';
 export { TrackChangesPlugin, type TrackChangesPluginOptions } from '../track-changes/src/index';
+export {
+  SlashCommandsPlugin,
+  type SlashCommandsPluginOptions,
+  type SlashCommandItem,
+  type SlashCommandActionContext,
+} from '../slash-commands/src/index';
 export { PageBreakPlugin } from '../page-break/src/index';
 export { FootnotePlugin } from '../footnote/src/index';
 export { FullscreenPlugin } from '../fullscreen/src/index';
