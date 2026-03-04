@@ -1,4 +1,4 @@
-// Native plugins (27 total - no React dependencies)
+// Native plugins (28 total - no React dependencies)
 // ParagraphPlugin removed - paragraph option now in HeadingPlugin dropdown
 export { HeadingPlugin } from '../heading/src/index';
 export { BoldPlugin } from '../bold/src/index';
@@ -59,6 +59,15 @@ export {
   type DataBindingApiRequestContext,
   type DataBindingLabels,
 } from '../data-binding/src/index';
+export {
+  ContentRulesPlugin,
+  type ContentRulesPluginOptions,
+  type ContentRuleIssue,
+  type ContentRulesSeverity,
+  type ContentRulesLabels,
+  type ContentRulesContext,
+  type ContentRuleDefinition,
+} from '../content-rules/src/index';
 export {
   SlashCommandsPlugin,
   type SlashCommandsPluginOptions,

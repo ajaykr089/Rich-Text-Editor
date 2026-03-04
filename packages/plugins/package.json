@@ -102,6 +102,12 @@
       "require": "./dist/conditional-content.cjs.js",
       "default": "./dist/conditional-content.esm.js"
     },
+    "./content-rules": {
+      "types": "./index.d.ts",
+      "import": "./dist/content-rules.esm.js",
+      "require": "./dist/content-rules.cjs.js",
+      "default": "./dist/content-rules.esm.js"
+    },
     "./data-binding": {
       "types": "./index.d.ts",
       "import": "./dist/data-binding.esm.js",
@@ -350,7 +356,8 @@
     "typecheck:build": "tsc -p tsconfig.build.json --noEmit",
     "dev": "vite build --watch",
     "clean": "rm -rf dist",
-    "prepublishOnly": "npm run typecheck:build && npm run build"
+    "prepublishOnly": "npm run typecheck:build && npm run build",
+    "test:content-rules": "node ../../node_modules/jest/bin/jest.js -c ./jest.config.cjs --watchman=false"
   },
   "peerDependencies": {
     "@editora/core": "^1.0.7"

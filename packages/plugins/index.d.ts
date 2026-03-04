@@ -191,6 +191,64 @@ export interface DataBindingPluginOptions {
   dateFormatOptions?: Intl.DateTimeFormatOptions;
 }
 
+export type ContentRulesSeverity = "error" | "warning" | "info";
+
+export interface ContentRuleIssue {
+  id: string;
+  ruleId: string;
+  severity: ContentRulesSeverity;
+  message: string;
+  excerpt?: string;
+  suggestion?: string;
+  locateText?: string;
+  selector?: string;
+}
+
+export interface ContentRulesLabels {
+  panelTitle?: string;
+  panelAriaLabel?: string;
+  runAuditText?: string;
+  realtimeOnText?: string;
+  realtimeOffText?: string;
+  closeText?: string;
+  noIssuesText?: string;
+  summaryPrefix?: string;
+  locateText?: string;
+  bannedWordMessage?: string;
+  requiredHeadingMessage?: string;
+  sentenceLengthMessage?: string;
+  readabilityMessage?: string;
+}
+
+export interface ContentRulesContext {
+  editor: HTMLElement;
+  editorRoot: HTMLElement;
+  text: string;
+  html: string;
+  wordCount: number;
+  sentenceCount: number;
+  readabilityScore: number;
+}
+
+export interface ContentRuleDefinition {
+  id: string;
+  severity?: ContentRulesSeverity;
+  evaluate: (context: ContentRulesContext) => ContentRuleIssue[] | Promise<ContentRuleIssue[]>;
+}
+
+export interface ContentRulesPluginOptions {
+  bannedWords?: string[];
+  requiredHeadings?: string[];
+  maxSentenceWords?: number;
+  minReadabilityScore?: number;
+  maxIssues?: number;
+  debounceMs?: number;
+  enableRealtime?: boolean;
+  labels?: ContentRulesLabels;
+  normalizeText?: (value: string) => string;
+  customRules?: ContentRuleDefinition[];
+}
+
 export interface MentionItem {
   id: string;
   label: string;
@@ -317,6 +375,7 @@ export function TrackChangesPlugin(options?: TrackChangesPluginOptions): Plugin;
 export function VersionDiffPlugin(options?: VersionDiffPluginOptions): Plugin;
 export function ConditionalContentPlugin(options?: ConditionalContentPluginOptions): Plugin;
 export function DataBindingPlugin(options?: DataBindingPluginOptions): Plugin;
+export function ContentRulesPlugin(options?: ContentRulesPluginOptions): Plugin;
 export function SlashCommandsPlugin(options?: SlashCommandsPluginOptions): Plugin;
 
 export function MediaManagerPlugin(): Plugin;

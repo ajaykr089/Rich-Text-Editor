@@ -56,6 +56,7 @@ import {
   VersionDiffPlugin,
   ConditionalContentPlugin,
   DataBindingPlugin,
+  ContentRulesPlugin,
 } from "@editora/plugins";
 import { Box, Flex, Grid} from '@editora/ui-react';
 
@@ -140,6 +141,13 @@ const allNativePlugins = [
       user: { firstName: "Ava", lastName: "Miller" },
       order: { total: 1234.56, createdAt: "2026-03-03T12:00:00Z" },
     },
+  }),
+  ContentRulesPlugin({
+    bannedWords: ["obviously", "simply"],
+    requiredHeadings: ["Summary"],
+    maxSentenceWords: 28,
+    minReadabilityScore: 55,
+    enableRealtime: true,
   }),
   SlashCommandsPlugin(),
   MentionPlugin({

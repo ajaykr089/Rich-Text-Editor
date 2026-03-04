@@ -55,6 +55,15 @@ export {
   type DataBindingLabels,
 } from '../data-binding/src/index';
 export {
+  ContentRulesPlugin,
+  type ContentRulesPluginOptions,
+  type ContentRuleIssue,
+  type ContentRulesSeverity,
+  type ContentRulesLabels,
+  type ContentRulesContext,
+  type ContentRuleDefinition,
+} from '../content-rules/src/index';
+export {
   SlashCommandsPlugin,
   type SlashCommandsPluginOptions,
   type SlashCommandItem,

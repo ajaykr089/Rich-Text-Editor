@@ -622,6 +622,8 @@ export class RichTextEditorElement extends HTMLElement {
       'conditional-content': ['conditionalcontent', 'conditional-content', 'conditionalContent'],
       dataBinding: ['databinding', 'data-binding', 'dataBinding'],
       'data-binding': ['databinding', 'data-binding', 'dataBinding'],
+      contentRules: ['contentrules', 'content-rules', 'contentRules'],
+      'content-rules': ['contentrules', 'content-rules', 'contentRules'],
       mentions: ['mention', 'mentions'],
       mention: ['mention', 'mentions'],
       slashCommands: ['slashcommands', 'slash-commands', 'slashCommands'],

@@ -42,3 +42,4 @@ node_modules/
 # Misc
 .DS_Store
 *.tgz
+e2e-local/

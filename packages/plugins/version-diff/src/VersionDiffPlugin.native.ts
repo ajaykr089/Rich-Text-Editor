@@ -714,6 +714,9 @@ function ensureStylesInjected(): void {
       background: rgba(220, 38, 38, 0.25);
       color: #fecaca;
     }
+    :is(${DARK_THEME_SELECTOR}) .rte-toolbar-item .rte-toolbar-button[data-command="openVersionDiff"] svg{
+      fill: none;
+    }
   `;
 
   document.head.appendChild(style);

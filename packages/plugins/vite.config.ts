@@ -14,6 +14,7 @@ const pluginEntryNames = [
   'code',
   'code-sample',
   'comments',
+  'content-rules',
   'data-binding',
   'direction',
   'document-manager',
