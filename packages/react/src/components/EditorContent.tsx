@@ -609,6 +609,7 @@ export const EditorContent: React.FC<EditorContentProps> = ({
         boxSizing: "border-box",
         wordWrap: "break-word",
         overflowWrap: "break-word",
+        marginBottom: "16px",
       }}
     />
   );

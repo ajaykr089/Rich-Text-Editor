@@ -58,6 +58,20 @@ export const FloatingToolbar: React.FC<FloatingToolbarProps> = ({
       return (container.querySelector('.rte-content, .editora-content') as HTMLElement | null) || null;
     };
 
+    const isRuntimeReadonly = (editorElement: HTMLElement | null): boolean => {
+      if (!editorElement) return true;
+      if (readonly) return true;
+
+      const contentEditableAttr = editorElement.getAttribute('contenteditable');
+      const dataReadonlyAttr = editorElement.getAttribute('data-readonly');
+      if (contentEditableAttr === 'false' || dataReadonlyAttr === 'true') return true;
+
+      const hostReadonly = editorElement.closest(
+        '[readonly], [data-readonly="true"], .rte-editor[data-readonly="true"], editora-editor[readonly]',
+      );
+      return Boolean(hostReadonly);
+    };
+
     const isSelectionBackward = (selection: Selection): boolean => {
       if (!selection.anchorNode || !selection.focusNode) return false;
 
@@ -107,6 +121,12 @@ export const FloatingToolbar: React.FC<FloatingToolbarProps> = ({
       const editorContainer = resolveEditorContainer(range);
       const editorElement = getEditorContentElement(editorContainer);
       if (!editorElement || !editorElement.contains(range.commonAncestorContainer)) {
+        setIsVisible(false);
+        selectionRef.current = null;
+        return;
+      }
+
+      if (isRuntimeReadonly(editorElement)) {
         setIsVisible(false);
         selectionRef.current = null;
         return;
@@ -184,6 +204,24 @@ export const FloatingToolbar: React.FC<FloatingToolbarProps> = ({
     };
 
     const editorContentEl = getEditorContentElement(resolveEditorContainer());
+    const readonlyObserver =
+      editorContentEl &&
+      typeof MutationObserver !== 'undefined'
+        ? new MutationObserver(() => {
+            if (isRuntimeReadonly(editorContentEl)) {
+              setIsVisible(false);
+              selectionRef.current = null;
+            }
+          })
+        : null;
+
+    if (readonlyObserver && editorContentEl) {
+      readonlyObserver.observe(editorContentEl, {
+        attributes: true,
+        attributeFilter: ['contenteditable', 'data-readonly'],
+      });
+    }
+
     document.addEventListener('selectionchange', handleSelectionChange);
     document.addEventListener('mousedown', handleClickOutside);
     document.addEventListener('keydown', handleKeyDown);
@@ -196,6 +234,7 @@ export const FloatingToolbar: React.FC<FloatingToolbarProps> = ({
       document.removeEventListener('keydown', handleKeyDown);
       editorContentEl?.removeEventListener('mouseup', handleSelectionChange);
       editorContentEl?.removeEventListener('keyup', handleSelectionChange);
+      readonlyObserver?.disconnect();
       if (showTimeoutRef.current) {
         clearTimeout(showTimeoutRef.current);
       }
@@ -210,7 +249,16 @@ export const FloatingToolbar: React.FC<FloatingToolbarProps> = ({
       (window as any).__editoraCommandEditorRoot = editorContainerRef.current || null;
     }
 
-    const contentEl = editorContainerRef.current?.querySelector('.rte-content') as HTMLElement;
+    const contentEl = editorContainerRef.current?.querySelector('.rte-content, .editora-content') as HTMLElement;
+    if (
+      contentEl &&
+      (contentEl.getAttribute('contenteditable') === 'false' || contentEl.getAttribute('data-readonly') === 'true')
+    ) {
+      setIsVisible(false);
+      selectionRef.current = null;
+      return;
+    }
+
     if (contentEl) {
       contentEl.focus();
     }

@@ -58,6 +58,8 @@ import {
   DataBindingPlugin,
   ContentRulesPlugin,
   CitationsPlugin,
+  ApprovalWorkflowPlugin,
+  PIIRedactionPlugin,
 } from "@editora/plugins";
 import { Box, Flex, Grid} from '@editora/ui-react';
 
@@ -153,6 +155,16 @@ const allNativePlugins = [
   CitationsPlugin({
     defaultStyle: "apa",
     enableFootnoteSync: true,
+  }),
+  ApprovalWorkflowPlugin({
+    defaultStatus: "draft",
+    lockOnApproval: true,
+    defaultActor: "Editorial Lead",
+  }),
+  PIIRedactionPlugin({
+    enableRealtime: true,
+    redactionMode: "token",
+    maxFindings: 120,
   }),
   SlashCommandsPlugin(),
   MentionPlugin({

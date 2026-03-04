@@ -1135,6 +1135,17 @@ export class RichTextEditorElement extends HTMLElement {
    */
   private updateFloatingToolbar(): void {
     if (!this.floatingToolbar) return;
+    const runtimeReadonly =
+      this.config.readonly ||
+      this.contentElement.contentEditable === 'false' ||
+      this.contentElement.getAttribute('data-readonly') === 'true' ||
+      this.getAttribute('readonly') === 'true' ||
+      this.getAttribute('data-readonly') === 'true';
+    if (runtimeReadonly) {
+      this.floatingToolbar.hide();
+      return;
+    }
+
     const performance = this.getPerformanceConfig();
     const hasFocusWithinEditor =
       document.activeElement === this.contentElement ||

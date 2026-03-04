@@ -21,8 +21,15 @@ const resolveCommandContext = () => {
     return { editorElement: null, contentElement: null };
   }
 
-  const root = ((window as any).__editoraCommandEditorRoot as HTMLElement | null) || null;
-  const content = root?.querySelector('[contenteditable="true"]') as HTMLElement | null;
+  let root = ((window as any).__editoraCommandEditorRoot as HTMLElement | null) || null;
+  if (!root) {
+    const trigger = ((window as any).__editoraLastCommandButton as HTMLElement | null) || null;
+    root = (trigger?.closest('[data-editora-editor], .rte-editor, .editora-editor, editora-editor') as HTMLElement | null) || null;
+  }
+
+  const content =
+    (root?.querySelector('.rte-content, .editora-content') as HTMLElement | null) ||
+    (root?.matches('.rte-content, .editora-content') ? root : null);
   return {
     editorElement: root,
     contentElement: content,

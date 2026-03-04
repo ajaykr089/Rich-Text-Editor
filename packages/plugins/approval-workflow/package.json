@@ -1,0 +1,39 @@
+{
+  "name": "@editora/approval-workflow",
+  "version": "1.0.0",
+  "description": "Native approval workflow plugin for Editora with draft/review/approved states and sign-off controls",
+  "main": "dist/index.cjs.js",
+  "module": "dist/index.esm.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "vite build"
+  },
+  "keywords": [
+    "editora",
+    "approval-workflow",
+    "review",
+    "signoff",
+    "editor-governance"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ajaykr089/Editora.git"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@editora/core": "^1.0.7"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.esm.js",
+      "require": "./dist/index.cjs.js",
+      "default": "./dist/index.esm.js"
+    }
+  }
+}
+

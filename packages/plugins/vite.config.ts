@@ -4,6 +4,7 @@ import { resolve } from 'path';
 const pluginEntryNames = [
   'a11y-checker',
   'anchor',
+  'approval-workflow',
   'background-color',
   'blockquote',
   'bold',
@@ -37,6 +38,7 @@ const pluginEntryNames = [
   'mentions',
   'merge-tag',
   'page-break',
+  'pii-redaction',
   'preview',
   'print',
   'slash-commands',

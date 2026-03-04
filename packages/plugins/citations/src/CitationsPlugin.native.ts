@@ -93,7 +93,7 @@ const defaultLabels: Required<CitationsLabels> = {
   noCitationsText: 'No citations inserted yet.',
   styleButtonPrefix: 'Style',
   recentHeading: 'Recent citations',
-  deleteRecentText: 'Delete',
+  deleteRecentText: 'x',
   summaryPrefix: 'Citations',
   invalidMessage: 'Author and title are required.',
 };
@@ -1676,6 +1676,12 @@ function ensureStylesInjected(): void {
     ${DARK_THEME_SELECTOR} .editora-toolbar-group-items.citations,
     .${PANEL_CLASS}.rte-citations-theme-dark {
       border-color: rgba(148, 163, 184, 0.34);
+    }
+
+    ${DARK_THEME_SELECTOR} .rte-toolbar-group-items.citations .rte-toolbar-button[data-command="refreshCitations"] svg,
+    ${DARK_THEME_SELECTOR} .editora-toolbar-group-items.citations .editora-toolbar-button[data-command="refreshCitations"] svg
+    {
+      fill: none;
     }
 
     .${PANEL_CLASS} {

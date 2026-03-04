@@ -304,6 +304,131 @@ export interface CitationsPluginOptions {
   generateCitationId?: (context: { editor: HTMLElement; index: number }) => string;
 }
 
+export type ApprovalStatus = "draft" | "review" | "approved";
+
+export interface ApprovalComment {
+  id: string;
+  author: string;
+  message: string;
+  kind: "comment" | "system";
+  createdAt: string;
+}
+
+export interface ApprovalSignoff {
+  id: string;
+  author: string;
+  comment?: string;
+  createdAt: string;
+}
+
+export interface ApprovalWorkflowState {
+  status: ApprovalStatus;
+  locked: boolean;
+  comments: ApprovalComment[];
+  signoffs: ApprovalSignoff[];
+  updatedAt: string;
+}
+
+export interface ApprovalWorkflowLabels {
+  panelTitle?: string;
+  panelAriaLabel?: string;
+  statusLabel?: string;
+  statusDraftText?: string;
+  statusReviewText?: string;
+  statusApprovedText?: string;
+  requestReviewText?: string;
+  approveText?: string;
+  reopenDraftText?: string;
+  addCommentText?: string;
+  actorLabel?: string;
+  actorPlaceholder?: string;
+  commentLabel?: string;
+  commentPlaceholder?: string;
+  closeText?: string;
+  commentsHeading?: string;
+  signoffsHeading?: string;
+  noCommentsText?: string;
+  noSignoffsText?: string;
+  summaryPrefix?: string;
+  lockedSuffix?: string;
+  shortcutText?: string;
+  approveCommentRequiredText?: string;
+}
+
+export interface ApprovalWorkflowPluginOptions {
+  defaultStatus?: ApprovalStatus;
+  lockOnApproval?: boolean;
+  maxHistoryEntries?: number;
+  requireCommentOnApprove?: boolean;
+  defaultActor?: string;
+  labels?: ApprovalWorkflowLabels;
+  normalizeText?: (value: string) => string;
+}
+
+export type PIIRedactionType = "email" | "phone" | "ssn" | "credit-card" | "ipv4" | "api-key" | "jwt";
+export type PIIRedactionSeverity = "high" | "medium" | "low";
+export type PIIRedactionMode = "token" | "mask";
+
+export interface PIIFinding {
+  id: string;
+  type: PIIRedactionType;
+  severity: PIIRedactionSeverity;
+  match: string;
+  masked: string;
+  occurrence: number;
+  excerpt?: string;
+  suggestion?: string;
+}
+
+export interface PIIRedactionStats {
+  total: number;
+  high: number;
+  medium: number;
+  low: number;
+  redactedCount: number;
+  byType: Record<PIIRedactionType, number>;
+}
+
+export interface PIIRedactionLabels {
+  panelTitle?: string;
+  panelAriaLabel?: string;
+  scanText?: string;
+  redactAllText?: string;
+  redactText?: string;
+  locateText?: string;
+  realtimeOnText?: string;
+  realtimeOffText?: string;
+  closeText?: string;
+  noFindingsText?: string;
+  summaryPrefix?: string;
+  shortcutText?: string;
+  readonlyRedactionText?: string;
+  matchLabel?: string;
+  maskedLabel?: string;
+  excerptLabel?: string;
+}
+
+export interface PIIRedactionDetectorConfig {
+  enabled?: boolean;
+  severity?: PIIRedactionSeverity;
+  pattern?: RegExp;
+}
+
+export interface PIIRedactionPluginOptions {
+  enableRealtime?: boolean;
+  debounceMs?: number;
+  maxFindings?: number;
+  maskChar?: string;
+  revealStart?: number;
+  revealEnd?: number;
+  redactionMode?: PIIRedactionMode;
+  redactionToken?: string;
+  detectors?: Partial<Record<PIIRedactionType, boolean | PIIRedactionDetectorConfig>>;
+  labels?: PIIRedactionLabels;
+  normalizeText?: (value: string) => string;
+  skipInCodeBlocks?: boolean;
+}
+
 export interface MentionItem {
   id: string;
   label: string;
@@ -432,6 +557,8 @@ export function ConditionalContentPlugin(options?: ConditionalContentPluginOptio
 export function DataBindingPlugin(options?: DataBindingPluginOptions): Plugin;
 export function ContentRulesPlugin(options?: ContentRulesPluginOptions): Plugin;
 export function CitationsPlugin(options?: CitationsPluginOptions): Plugin;
+export function ApprovalWorkflowPlugin(options?: ApprovalWorkflowPluginOptions): Plugin;
+export function PIIRedactionPlugin(options?: PIIRedactionPluginOptions): Plugin;
 export function SlashCommandsPlugin(options?: SlashCommandsPluginOptions): Plugin;
 
 export function MediaManagerPlugin(): Plugin;

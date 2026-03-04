@@ -1,6 +1,8 @@
 import type { Plugin } from '@editora/core';
 
 const EDITOR_CONTENT_SELECTOR = '.rte-content, .editora-content';
+const EDITOR_HOST_SELECTOR = '[data-editora-editor], .rte-editor, .editora-editor, editora-editor';
+const COMMAND_EDITOR_CONTEXT_KEY = '__editoraCommandEditorRoot';
 const STYLE_ID = 'rte-content-rules-styles';
 const PANEL_CLASS = 'rte-content-rules-panel';
 const DARK_THEME_SELECTOR = ':is([data-theme="dark"], .dark, .editora-theme-dark, .rte-theme-dark)';
@@ -168,8 +170,52 @@ function normalizeOptions(raw: ContentRulesPluginOptions = {}): ResolvedContentR
 }
 
 function resolveEditorRoot(editor: HTMLElement): HTMLElement {
-  const root = editor.closest('[data-editora-editor], .rte-editor, .editora-editor, editora-editor');
+  const root = editor.closest(EDITOR_HOST_SELECTOR);
   return (root as HTMLElement) || editor;
+}
+
+function resolveContentFromHost(host: Element | null): HTMLElement | null {
+  if (!host) return null;
+  if (host.matches(EDITOR_CONTENT_SELECTOR)) return host as HTMLElement;
+  const content = host.querySelector(EDITOR_CONTENT_SELECTOR);
+  return content instanceof HTMLElement ? content : null;
+}
+
+function consumeCommandEditorContext(): HTMLElement | null {
+  if (typeof window === 'undefined') return null;
+  const explicitContext = (window as any)[COMMAND_EDITOR_CONTEXT_KEY] as HTMLElement | null | undefined;
+  if (!(explicitContext instanceof HTMLElement)) return null;
+  (window as any)[COMMAND_EDITOR_CONTEXT_KEY] = null;
+
+  const direct = resolveContentFromHost(explicitContext);
+  if (direct) return direct;
+
+  const host = explicitContext.closest(EDITOR_HOST_SELECTOR);
+  if (host) {
+    const content = resolveContentFromHost(host);
+    if (content) return content;
+  }
+
+  return null;
+}
+
+function resolveToolbarScopeRoot(editor: HTMLElement): HTMLElement {
+  const dataHost = editor.closest('[data-editora-editor]') as HTMLElement | null;
+  if (dataHost && resolveContentFromHost(dataHost) === editor) {
+    return dataHost;
+  }
+
+  let current: HTMLElement | null = editor;
+  while (current) {
+    if (current.matches(EDITOR_HOST_SELECTOR)) {
+      if (current === editor || resolveContentFromHost(current) === editor) {
+        return current;
+      }
+    }
+    current = current.parentElement;
+  }
+
+  return resolveEditorRoot(editor);
 }
 
 function isThemeDarkFromElement(element: Element | null): boolean {
@@ -219,6 +265,9 @@ function resolveEditorFromContext(
     const content = host.querySelector(EDITOR_CONTENT_SELECTOR);
     if (content instanceof HTMLElement) return content;
   }
+
+  const explicitContext = consumeCommandEditorContext();
+  if (explicitContext) return explicitContext;
 
   const selection = window.getSelection();
   if (selection && selection.rangeCount > 0) {
@@ -551,7 +600,7 @@ function severityLabel(severity: ContentRulesSeverity): string {
 }
 
 function setCommandButtonActiveState(editor: HTMLElement, command: string, active: boolean): void {
-  const root = resolveEditorRoot(editor);
+  const root = resolveToolbarScopeRoot(editor);
   const buttons = Array.from(
     root.querySelectorAll(
       `.rte-toolbar-button[data-command="${command}"], .editora-toolbar-button[data-command="${command}"]`,

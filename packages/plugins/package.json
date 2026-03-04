@@ -72,6 +72,18 @@
       "require": "./dist/anchor.cjs.js",
       "default": "./dist/anchor.esm.js"
     },
+    "./approval-workflow": {
+      "types": "./index.d.ts",
+      "import": "./dist/approval-workflow.esm.js",
+      "require": "./dist/approval-workflow.cjs.js",
+      "default": "./dist/approval-workflow.esm.js"
+    },
+    "./pii-redaction": {
+      "types": "./index.d.ts",
+      "import": "./dist/pii-redaction.esm.js",
+      "require": "./dist/pii-redaction.cjs.js",
+      "default": "./dist/pii-redaction.esm.js"
+    },
     "./background-color": {
       "types": "./index.d.ts",
       "import": "./dist/background-color.esm.js",
@@ -359,13 +371,15 @@
   ],
   "scripts": {
     "build": "vite build",
-    "typecheck:build": "tsc -p tsconfig.build.json --noEmit",
+    "typecheck:build": "node ../../node_modules/typescript/bin/tsc -p tsconfig.build.json --noEmit",
     "dev": "vite build --watch",
     "clean": "rm -rf dist",
     "prepublishOnly": "npm run typecheck:build && npm run build",
     "test:content-rules": "node ../../node_modules/jest/bin/jest.js -c ./jest.config.cjs --watchman=false --runTestsByPath ./content-rules/src/ContentRulesPlugin.native.test.js",
     "test:citations": "node ../../node_modules/jest/bin/jest.js -c ./jest.config.cjs --watchman=false --runTestsByPath ./citations/src/CitationsPlugin.native.test.js",
-    "verify:citations": "npm run typecheck:build && npm run test:citations && npm run test:content-rules && npm run build"
+    "test:approval-workflow": "node ../../node_modules/jest/bin/jest.js -c ./jest.config.cjs --watchman=false --runTestsByPath ./approval-workflow/src/ApprovalWorkflowPlugin.native.test.js",
+    "test:pii-redaction": "node ../../node_modules/jest/bin/jest.js -c ./jest.config.cjs --watchman=false --runTestsByPath ./pii-redaction/src/PIIRedactionPlugin.native.test.js",
+    "verify:citations": "npm run typecheck:build && npm run test:citations && npm run test:content-rules && npm run test:approval-workflow && npm run test:pii-redaction && npm run build"
   },
   "peerDependencies": {
     "@editora/core": "^1.0.7"

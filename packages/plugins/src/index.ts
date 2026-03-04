@@ -77,6 +77,25 @@ export {
   type CitationsPluginOptions,
 } from '../citations/src/index';
 export {
+  ApprovalWorkflowPlugin,
+  type ApprovalStatus,
+  type ApprovalComment,
+  type ApprovalSignoff,
+  type ApprovalWorkflowState,
+  type ApprovalWorkflowLabels,
+  type ApprovalWorkflowPluginOptions,
+} from '../approval-workflow/src/index';
+export {
+  PIIRedactionPlugin,
+  type PIIRedactionType,
+  type PIIRedactionSeverity,
+  type PIIFinding,
+  type PIIRedactionStats,
+  type PIIRedactionLabels,
+  type PIIRedactionDetectorConfig,
+  type PIIRedactionPluginOptions,
+} from '../pii-redaction/src/index';
+export {
   SlashCommandsPlugin,
   type SlashCommandsPluginOptions,
   type SlashCommandItem,
