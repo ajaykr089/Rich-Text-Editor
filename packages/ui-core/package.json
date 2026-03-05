@@ -50,5 +50,6 @@
   ],
   "author": "Ajay Kumar <ajaykr089@gmail.com>",
   "license": "MIT",
-  "sideEffects": true
+  "sideEffects": true,
+  "gitHead": "c61b0c204a17e0da039e98a97f6946aa92d663f7"
 }
