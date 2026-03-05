@@ -7,6 +7,7 @@ module.exports = {
     '<rootDir>/pii-redaction/src/**/*.test.js',
     '<rootDir>/smart-paste/src/**/*.test.js',
     '<rootDir>/blocks-library/src/**/*.test.js',
+    '<rootDir>/doc-schema/src/**/*.test.js',
   ],
   transform: {
     '^.+\\.tsx?$': [

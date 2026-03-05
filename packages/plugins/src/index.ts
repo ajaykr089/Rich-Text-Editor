@@ -114,6 +114,17 @@ export {
   type BlocksLibraryRuntimeState,
 } from '../blocks-library/src/index';
 export {
+  DocSchemaPlugin,
+  type DocSchemaIssueType,
+  type DocSchemaIssueSeverity,
+  type DocSchemaIssue,
+  type DocSchemaSection,
+  type DocSchemaDefinition,
+  type DocSchemaLabels,
+  type DocSchemaPluginOptions,
+  type DocSchemaRuntimeState,
+} from '../doc-schema/src/index';
+export {
   SlashCommandsPlugin,
   type SlashCommandsPluginOptions,
   type SlashCommandItem,

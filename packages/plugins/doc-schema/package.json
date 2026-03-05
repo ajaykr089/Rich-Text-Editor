@@ -1,0 +1,38 @@
+{
+  "name": "@editora/doc-schema",
+  "version": "1.0.0",
+  "description": "Native structured document schema plugin for Editora with section validation and guided insertion",
+  "main": "dist/index.cjs.js",
+  "module": "dist/index.esm.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "vite build"
+  },
+  "keywords": [
+    "editora",
+    "doc-schema",
+    "structured-authoring",
+    "policy",
+    "contract"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ajaykr089/Editora.git"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@editora/core": "^1.0.7"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.esm.js",
+      "require": "./dist/index.cjs.js",
+      "default": "./dist/index.esm.js"
+    }
+  }
+}

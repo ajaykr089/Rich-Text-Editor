@@ -19,6 +19,7 @@ const pluginEntryNames = [
   'comments',
   'content-rules',
   'data-binding',
+  'doc-schema',
   'direction',
   'document-manager',
   'embed-iframe',

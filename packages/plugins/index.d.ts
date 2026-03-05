@@ -560,6 +560,83 @@ export interface BlocksLibraryRuntimeState {
   loadError: string | null;
 }
 
+export type DocSchemaIssueType = "missing-section" | "duplicate-section" | "out-of-order" | "unknown-heading";
+export type DocSchemaIssueSeverity = "error" | "warning" | "info";
+
+export interface DocSchemaIssue {
+  id: string;
+  type: DocSchemaIssueType;
+  severity: DocSchemaIssueSeverity;
+  message: string;
+  sectionId?: string;
+  sectionTitle?: string;
+  headingText?: string;
+  suggestion?: string;
+}
+
+export interface DocSchemaSection {
+  id?: string;
+  title: string;
+  aliases?: string[];
+  minOccurrences?: number;
+  maxOccurrences?: number;
+  placeholder?: string;
+}
+
+export interface DocSchemaDefinition {
+  id?: string;
+  label: string;
+  description?: string;
+  strictOrder?: boolean;
+  allowUnknownHeadings?: boolean;
+  sections: DocSchemaSection[];
+}
+
+export interface DocSchemaLabels {
+  panelTitle?: string;
+  panelAriaLabel?: string;
+  schemaLabel?: string;
+  schemaDescriptionPrefix?: string;
+  validateText?: string;
+  insertMissingText?: string;
+  realtimeOnText?: string;
+  realtimeOffText?: string;
+  closeText?: string;
+  noIssuesText?: string;
+  summaryPrefix?: string;
+  issueListLabel?: string;
+  shortcutText?: string;
+  helperText?: string;
+  readonlyMessage?: string;
+  defaultPlaceholderText?: string;
+  missingSectionMessage?: string;
+  duplicateSectionMessage?: string;
+  outOfOrderMessage?: string;
+  unknownHeadingMessage?: string;
+  insertedSummaryPrefix?: string;
+}
+
+export interface DocSchemaPluginOptions {
+  schemas?: DocSchemaDefinition[];
+  defaultSchemaId?: string;
+  enableRealtime?: boolean;
+  debounceMs?: number;
+  maxIssues?: number;
+  labels?: DocSchemaLabels;
+  normalizeText?: (value: string) => string;
+}
+
+export interface DocSchemaRuntimeState {
+  activeSchemaId: string | null;
+  activeSchemaLabel: string | null;
+  realtimeEnabled: boolean;
+  issues: DocSchemaIssue[];
+  headingCount: number;
+  recognizedHeadingCount: number;
+  missingCount: number;
+  lastRunAt: string | null;
+}
+
 export interface MentionItem {
   id: string;
   label: string;
@@ -692,6 +769,7 @@ export function ApprovalWorkflowPlugin(options?: ApprovalWorkflowPluginOptions):
 export function PIIRedactionPlugin(options?: PIIRedactionPluginOptions): Plugin;
 export function SmartPastePlugin(options?: SmartPastePluginOptions): Plugin;
 export function BlocksLibraryPlugin(options?: BlocksLibraryPluginOptions): Plugin;
+export function DocSchemaPlugin(options?: DocSchemaPluginOptions): Plugin;
 export function SlashCommandsPlugin(options?: SlashCommandsPluginOptions): Plugin;
 
 export function MediaManagerPlugin(): Plugin;

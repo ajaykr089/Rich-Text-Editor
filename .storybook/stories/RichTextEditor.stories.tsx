@@ -62,6 +62,7 @@ import {
   PIIRedactionPlugin,
   SmartPastePlugin,
   BlocksLibraryPlugin,
+  DocSchemaPlugin,
 } from "@editora/plugins";
 import { Box, Flex, Grid} from '@editora/ui-react';
 
@@ -76,7 +77,7 @@ const meta: Meta = {
 # Editora Web Component - Framework Agnostic Rich Text Editor
 
 **Bundle Size**: 115 KB minified (28.65 KB gzipped)  
-**Native Plugins**: 40  
+**Native Plugins**: 41  
 **Framework Dependencies**: 0  
 **Supports**: React, Vue, Angular, Svelte, Vanilla JS
 
@@ -85,7 +86,7 @@ const meta: Meta = {
 - ✅ 91% bundle size reduction
 - ✅ TinyMCE-style declarative API
 - ✅ Works everywhere
-- ✅ 37 native plugins including Code Sample, Media Manager, Math, Merge Tags, Page Break, Template, A11y Checker, Comments, and more
+- ✅ 38 native plugins including Code Sample, Media Manager, Math, Merge Tags, Page Break, Template, A11y Checker, Comments, and more
         `,
       },
     },
@@ -201,6 +202,25 @@ const allNativePlugins = [
       },
     ],
   }),
+  DocSchemaPlugin({
+    defaultSchemaId: "policy",
+    enableRealtime: true,
+    schemas: [
+      {
+        id: "policy",
+        label: "Policy",
+        strictOrder: true,
+        allowUnknownHeadings: true,
+        sections: [
+          { title: "Policy Statement" },
+          { title: "Applicability", aliases: ["Scope"] },
+          { title: "Controls" },
+          { title: "Exceptions" },
+          { title: "Enforcement" },
+        ],
+      },
+    ],
+  }),
   SlashCommandsPlugin(),
   MentionPlugin({
     items: [
@@ -213,7 +233,7 @@ const allNativePlugins = [
 
 /**
  * Basic usage with default configuration
- * All 37 native plugins loaded automatically
+ * All 38 native plugins loaded automatically
  */
 export const Basic: Story = {
   render: () => (
@@ -223,7 +243,7 @@ export const Basic: Story = {
       floatingToolbar={true}
       defaultValue={`
         <h2>Welcome to Editora!!</h2>
-        <p>This is a <strong>framework-agnostic</strong> rich text editor with <mark style="background: #ffeb3b;">37 native plugins</mark>.</p>
+        <p>This is a <strong>framework-agnostic</strong> rich text editor with <mark style="background: #ffeb3b;">38 native plugins</mark>.</p>
         <p>✨ <strong>Key Features:</strong></p>
         <ul>
           <li>Zero framework dependencies</li>
@@ -1027,6 +1047,35 @@ export const FrameworkIndependence: Story = {
           <blockquote>
             "Build once, use everywhere!"
           </blockquote>
+        `}
+      />
+    </div>
+  ),
+};
+
+/**
+ * Doc Schema Workflow Scenario
+ * Structured authoring flow for policy/governance documents.
+ */
+export const DocSchemaWorkflow: Story = {
+  render: () => (
+    <div>
+      <Box style={{ marginBottom: "16px", padding: "14px", background: "#ecfdf5", borderRadius: "8px" }}>
+        <h4 style={{ margin: "0 0 8px 0" }}>📐 Doc Schema Test Scenario</h4>
+        <p style={{ margin: 0, fontSize: "13px" }}>
+          Use <code>Ctrl/Cmd+Alt+Shift+G</code> to open schema panel, run validation, and insert missing sections.
+        </p>
+      </Box>
+
+      <EditoraEditor
+        plugins={allNativePlugins}
+        statusbar={{ enabled: true, position: "bottom" }}
+        defaultValue={`
+          <h2>Q2 Access Control Policy Draft</h2>
+          <h3>Policy Statement</h3>
+          <p>All production access must be approved and logged.</p>
+          <h3>Controls</h3>
+          <p>Access reviews run monthly. Emergency access expires in 24 hours.</p>
         `}
       />
     </div>
