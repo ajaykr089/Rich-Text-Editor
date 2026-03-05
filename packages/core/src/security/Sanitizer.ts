@@ -24,14 +24,14 @@ export class Sanitizer {
     this.config = {
       allowedTags: [
         'p', 'br', 'strong', 'em', 'u', 's', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-        'ul', 'ol', 'li', 'blockquote', 'code', 'pre', 'a', 'img', 'table', 'tr', 'td', 'th'
+        'ul', 'ol', 'li', 'blockquote', 'code', 'pre', 'a', 'img', 'table', 'tr', 'td', 'th', 'section'
       ],
       allowedAttributes: {
         'a': ['href', 'title', 'target'],
         'img': ['src', 'alt', 'title', 'width', 'height'],
         'td': ['colspan', 'rowspan'],
         'th': ['colspan', 'rowspan'],
-        '*': ['class', 'style']
+        '*': ['class', 'style', 'id', 'data-*', 'role', 'aria-*', 'tabindex', 'contenteditable', 'spellcheck']
       },
       allowDataUrls: false,
       maxUrlLength: 2048,
@@ -95,7 +95,16 @@ export class Sanitizer {
       const allowedForTag = this.config.allowedAttributes[tagName] || [];
       const allowedForAll = this.config.allowedAttributes['*'] || [];
 
-      if (!allowedForTag.includes(attrName) && !allowedForAll.includes(attrName)) {
+      const allowedPatterns = [...allowedForTag, ...allowedForAll];
+      const isAllowed = allowedPatterns.some((pattern) => {
+        if (pattern === attrName) return true;
+        if (pattern.endsWith('*')) {
+          return attrName.startsWith(pattern.slice(0, -1));
+        }
+        return false;
+      });
+
+      if (!isAllowed) {
         element.removeAttribute(attr.name);
         continue;
       }

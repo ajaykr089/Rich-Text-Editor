@@ -20,6 +20,121 @@ import styles from './styles.css?inline';
 // Global plugin registry for the web component
 // Will be set by standalone.ts before custom element definition
 let globalPluginRegistry: PluginLoader;
+const COMMAND_EDITOR_CONTEXT_KEY = '__editoraCommandEditorRoot';
+const LAST_COMMAND_BUTTON_KEY = '__editoraLastCommandButton';
+const EDITOR_HOST_SELECTOR = 'editora-editor, [data-editora-editor], .rte-editor, .editora-editor';
+const EDITOR_CONTENT_SELECTOR = '.rte-content, .editora-content';
+const connectedWebEditors = new Set<RichTextEditorElement>();
+let lastActiveWebEditor: RichTextEditorElement | null = null;
+let commandBridgeInstalled = false;
+let previousExecuteEditorCommand: ((command: string, value?: any) => any) | null = null;
+let previousExecEditorCommand: ((command: string, value?: any) => any) | null = null;
+
+function isWebComponentEditorElement(value: unknown): value is RichTextEditorElement {
+  if (!(value instanceof HTMLElement)) return false;
+  const candidate = value as RichTextEditorElement & { execCommand?: unknown };
+  return (
+    typeof candidate.execCommand === 'function' &&
+    (candidate.tagName.toLowerCase() === 'editora-editor' ||
+      candidate.classList.contains('editora-editor') ||
+      candidate.hasAttribute('data-editora-editor'))
+  );
+}
+
+function getElementFromNode(node: Node | null): HTMLElement | null {
+  if (!node) return null;
+  return node.nodeType === Node.ELEMENT_NODE ? (node as HTMLElement) : node.parentElement;
+}
+
+function resolveWebComponentEditorFromHost(host: Element | null): RichTextEditorElement | null {
+  if (!host) return null;
+
+  if (isWebComponentEditorElement(host)) {
+    return host;
+  }
+
+  const direct = host.matches(EDITOR_HOST_SELECTOR) ? host : host.closest(EDITOR_HOST_SELECTOR);
+  if (!direct || !isWebComponentEditorElement(direct)) return null;
+  return direct;
+}
+
+function resolveWebComponentEditorFromContext(): RichTextEditorElement | null {
+  if (typeof window === 'undefined') return null;
+
+  const explicitContext = (window as any)[COMMAND_EDITOR_CONTEXT_KEY] as HTMLElement | null | undefined;
+  if (explicitContext instanceof HTMLElement) {
+    const fromExplicit = resolveWebComponentEditorFromHost(explicitContext);
+    if (fromExplicit) return fromExplicit;
+
+    const explicitContent = explicitContext.matches(EDITOR_CONTENT_SELECTOR)
+      ? explicitContext
+      : (explicitContext.querySelector(EDITOR_CONTENT_SELECTOR) as HTMLElement | null);
+    if (explicitContent) {
+      const fromExplicitContent = resolveWebComponentEditorFromHost(explicitContent);
+      if (fromExplicitContent) return fromExplicitContent;
+    }
+  }
+
+  const trigger = (window as any)[LAST_COMMAND_BUTTON_KEY] as HTMLElement | null | undefined;
+  if (trigger instanceof HTMLElement) {
+    const fromTrigger = resolveWebComponentEditorFromHost(trigger);
+    if (fromTrigger) return fromTrigger;
+  }
+
+  const active = document.activeElement as HTMLElement | null;
+  if (active) {
+    const fromActive = resolveWebComponentEditorFromHost(active);
+    if (fromActive) return fromActive;
+  }
+
+  const selection = window.getSelection?.();
+  if (selection && selection.rangeCount > 0) {
+    const fromSelection = resolveWebComponentEditorFromHost(getElementFromNode(selection.getRangeAt(0).startContainer));
+    if (fromSelection) return fromSelection;
+  }
+
+  if (lastActiveWebEditor && lastActiveWebEditor.isConnected) {
+    return lastActiveWebEditor;
+  }
+
+  for (const editor of connectedWebEditors) {
+    if (editor.isConnected) return editor;
+  }
+
+  return null;
+}
+
+function installGlobalCommandBridge(): void {
+  if (typeof window === 'undefined' || commandBridgeInstalled) return;
+
+  previousExecuteEditorCommand =
+    typeof (window as any).executeEditorCommand === 'function'
+      ? (window as any).executeEditorCommand.bind(window)
+      : null;
+  previousExecEditorCommand =
+    typeof (window as any).execEditorCommand === 'function' ? (window as any).execEditorCommand.bind(window) : null;
+
+  const bridge = (command: string, value?: any): any => {
+    const targetEditor = resolveWebComponentEditorFromContext();
+    if (targetEditor) {
+      return targetEditor.execCommand(command, value);
+    }
+
+    if (previousExecuteEditorCommand) {
+      return previousExecuteEditorCommand(command, value);
+    }
+
+    if (previousExecEditorCommand) {
+      return previousExecEditorCommand(command, value);
+    }
+
+    return false;
+  };
+
+  (window as any).executeEditorCommand = bridge;
+  (window as any).execEditorCommand = bridge;
+  commandBridgeInstalled = true;
+}
 
 /**
  * Inject styles into document head if not already present
@@ -80,6 +195,7 @@ export class RichTextEditorElement extends HTMLElement {
   private keyboardShortcutManager = new KeyboardShortcutManager();
   private lastAutosavedContent = '';
   private loadedPlugins: Plugin[] = [];
+  private lastBeforeInputType: string | null = null;
 
   // Observed attributes for reactive updates
   static get observedAttributes(): string[] {
@@ -232,6 +348,11 @@ export class RichTextEditorElement extends HTMLElement {
     
     // Mark this element as an editor container for multi-instance support
     this.setAttribute('data-editora-editor', 'true');
+    connectedWebEditors.add(this);
+    if (!lastActiveWebEditor) {
+      lastActiveWebEditor = this;
+    }
+    installGlobalCommandBridge();
     
     // Config is already resolved in connectedCallback
     
@@ -578,15 +699,20 @@ export class RichTextEditorElement extends HTMLElement {
     if (typeof window !== 'undefined') {
       (window as any).__editoraCommandEditorRoot = this;
     }
+    const commandContext = {
+      editorElement: this,
+      contentElement: this.contentElement,
+      toolbarElement: this.toolbarElement,
+    };
     const plugin = this.loadedPlugins.find((p) => p.commands && p.commands[command]);
     if (plugin && plugin.commands) {
       const commandFn = plugin.commands[command];
       if (typeof commandFn === 'function') {
         try {
           if (command === 'toggleFullscreen') {
-            commandFn(this as any);
+            commandFn(this as any, commandContext);
           } else {
-            commandFn(value);
+            commandFn(value, commandContext);
           }
           return true;
         } catch (error) {
@@ -610,6 +736,19 @@ export class RichTextEditorElement extends HTMLElement {
 
     const aliasMap: Record<string, string[]> = {
       spellCheck: ['spellcheck', 'spellCheck'],
+      trackChanges: ['trackchanges', 'track-changes', 'trackChanges'],
+      versionDiff: ['versiondiff', 'version-diff', 'versionDiff'],
+      'version-diff': ['versiondiff', 'version-diff', 'versionDiff'],
+      conditionalContent: ['conditionalcontent', 'conditional-content', 'conditionalContent'],
+      'conditional-content': ['conditionalcontent', 'conditional-content', 'conditionalContent'],
+      dataBinding: ['databinding', 'data-binding', 'dataBinding'],
+      'data-binding': ['databinding', 'data-binding', 'dataBinding'],
+      contentRules: ['contentrules', 'content-rules', 'contentRules'],
+      'content-rules': ['contentrules', 'content-rules', 'contentRules'],
+      mentions: ['mention', 'mentions'],
+      mention: ['mention', 'mentions'],
+      slashCommands: ['slashcommands', 'slash-commands', 'slashCommands'],
+      'slash-commands': ['slashcommands', 'slash-commands', 'slashCommands'],
     };
 
     const candidateKeys = [
@@ -925,6 +1064,10 @@ export class RichTextEditorElement extends HTMLElement {
   private setupEventListeners(): void {
     if (!this.contentElement || !this.engine) return;
     const shortcutManager = this.keyboardShortcutManager;
+
+    this.contentElement.addEventListener('beforeinput', (event: InputEvent) => {
+      this.lastBeforeInputType = event.inputType || null;
+    });
     
     // Content change
     this.contentElement.addEventListener('input', () => {
@@ -933,14 +1076,20 @@ export class RichTextEditorElement extends HTMLElement {
       const performanceConfig = this.getPerformanceConfig();
       const contentConfig = this.getContentSanitizeConfig();
       const securityConfig = this.getSecurityConfig();
+      const inputType = this.lastBeforeInputType;
+      this.lastBeforeInputType = null;
 
-      if (securityConfig.sanitizeOnInput !== false && contentConfig.sanitize !== false) {
+      const shouldSanitizeOnInput =
+        securityConfig.sanitizeOnInput !== false &&
+        contentConfig.sanitize !== false &&
+        !inputType;
+
+      if (shouldSanitizeOnInput) {
         const sanitized = sanitizeInputHTML(html, contentConfig, securityConfig);
         if (sanitized !== html) {
           const selection = window.getSelection();
           const range = selection && selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
           this.contentElement.innerHTML = sanitized;
-
           if (range && selection) {
             try {
               selection.removeAllRanges();
@@ -987,6 +1136,9 @@ export class RichTextEditorElement extends HTMLElement {
     });
 
     this.contentElement.addEventListener('paste', (e: ClipboardEvent) => {
+      if ((e as any).__editoraSmartPasteHandled === true || e.defaultPrevented) {
+        return;
+      }
       e.preventDefault();
 
       const pasteConfig = this.config.paste || {};
@@ -1022,6 +1174,7 @@ export class RichTextEditorElement extends HTMLElement {
     
     // Focus/blur
     this.contentElement.addEventListener('focus', () => {
+      lastActiveWebEditor = this;
       this.dispatchEvent(new Event('editor-focus', { bubbles: true }));
       this.updateStatusBar();
     });
@@ -1116,7 +1269,18 @@ export class RichTextEditorElement extends HTMLElement {
    * Update floating toolbar position
    */
   private updateFloatingToolbar(): void {
-    if (!this.floatingToolbar) return;
+    if (!this.floatingToolbar || !this.contentElement) return;
+    const runtimeReadonly =
+      this.config.readonly ||
+      this.contentElement.contentEditable === 'false' ||
+      this.contentElement.getAttribute('data-readonly') === 'true' ||
+      this.getAttribute('readonly') === 'true' ||
+      this.getAttribute('data-readonly') === 'true';
+    if (runtimeReadonly) {
+      this.floatingToolbar.hide();
+      return;
+    }
+
     const performance = this.getPerformanceConfig();
     const hasFocusWithinEditor =
       document.activeElement === this.contentElement ||
@@ -1387,6 +1551,10 @@ export class RichTextEditorElement extends HTMLElement {
     this.statusBarElement = undefined;
     this.loadedPlugins = [];
     this.isInitialized = false;
+    connectedWebEditors.delete(this);
+    if (lastActiveWebEditor === this) {
+      lastActiveWebEditor = null;
+    }
     
     this.dispatchEvent(new Event('editor-destroy', { bubbles: true }));
   }

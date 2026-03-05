@@ -14,7 +14,27 @@ import { getCursorPosition, countLines, calculateTextStats, getSelectionInfo } f
 // Only essential providers are imported directly here
 
 // Global command registry
-const commandRegistry = new Map<string, (params?: any) => void>();
+const commandRegistry = new Map<string, (params?: any, context?: any) => any>();
+
+const resolveCommandContext = () => {
+  if (typeof window === 'undefined') {
+    return { editorElement: null, contentElement: null };
+  }
+
+  let root = ((window as any).__editoraCommandEditorRoot as HTMLElement | null) || null;
+  if (!root) {
+    const trigger = ((window as any).__editoraLastCommandButton as HTMLElement | null) || null;
+    root = (trigger?.closest('[data-editora-editor], .rte-editor, .editora-editor, editora-editor') as HTMLElement | null) || null;
+  }
+
+  const content =
+    (root?.querySelector('.rte-content, .editora-content') as HTMLElement | null) ||
+    (root?.matches('.rte-content, .editora-content') ? root : null);
+  return {
+    editorElement: root,
+    contentElement: content,
+  };
+};
 
 // Initialize global command functions
 if (typeof window !== 'undefined') {
@@ -25,7 +45,8 @@ if (typeof window !== 'undefined') {
   (window as any).executeEditorCommand = (command: string, params?: any) => {
     const handler = commandRegistry.get(command);
     if (handler) {
-      return handler(params);
+      const context = resolveCommandContext();
+      return (handler as any)(params, context);
     } else {
       console.warn(`No handler registered for command: ${command}`);
       return false;

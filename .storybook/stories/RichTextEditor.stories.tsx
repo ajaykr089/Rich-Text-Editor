@@ -49,7 +49,21 @@ import {
   CommentsPlugin,
   DocumentManagerPlugin,
   FullscreenPlugin,
-  TemplatePlugin
+  TemplatePlugin,
+  TrackChangesPlugin,
+  MentionPlugin,
+  SlashCommandsPlugin,
+  VersionDiffPlugin,
+  ConditionalContentPlugin,
+  DataBindingPlugin,
+  ContentRulesPlugin,
+  CitationsPlugin,
+  ApprovalWorkflowPlugin,
+  PIIRedactionPlugin,
+  SmartPastePlugin,
+  BlocksLibraryPlugin,
+  DocSchemaPlugin,
+  TranslationWorkflowPlugin,
 } from "@editora/plugins";
 import { Box, Flex, Grid} from '@editora/ui-react';
 
@@ -64,7 +78,7 @@ const meta: Meta = {
 # Editora Web Component - Framework Agnostic Rich Text Editor
 
 **Bundle Size**: 115 KB minified (28.65 KB gzipped)  
-**Native Plugins**: 40  
+**Native Plugins**: 42  
 **Framework Dependencies**: 0  
 **Supports**: React, Vue, Angular, Svelte, Vanilla JS
 
@@ -73,7 +87,7 @@ const meta: Meta = {
 - ✅ 91% bundle size reduction
 - ✅ TinyMCE-style declarative API
 - ✅ Works everywhere
-- ✅ 37 native plugins including Code Sample, Media Manager, Math, Merge Tags, Page Break, Template, A11y Checker, Comments, and more
+- ✅ 39 native plugins including Code Sample, Media Manager, Math, Merge Tags, Page Break, Template, A11y Checker, Comments, and more
         `,
       },
     },
@@ -125,12 +139,108 @@ const allNativePlugins = [
   FullscreenPlugin(),
   TemplatePlugin(),
   HistoryPlugin(),
-  FootnotePlugin()
+  FootnotePlugin(),
+  TrackChangesPlugin(),
+  VersionDiffPlugin(),
+  ConditionalContentPlugin(),
+  DataBindingPlugin({
+    data: {
+      user: { firstName: "Ava", lastName: "Miller" },
+      order: { total: 1234.56, createdAt: "2026-03-03T12:00:00Z" },
+    },
+  }),
+  ContentRulesPlugin({
+    bannedWords: ["obviously", "simply"],
+    requiredHeadings: ["Summary"],
+    maxSentenceWords: 28,
+    minReadabilityScore: 55,
+    enableRealtime: true,
+  }),
+  CitationsPlugin({
+    defaultStyle: "apa",
+    enableFootnoteSync: true,
+  }),
+  ApprovalWorkflowPlugin({
+    defaultStatus: "draft",
+    lockOnApproval: true,
+    defaultActor: "Editorial Lead",
+  }),
+  PIIRedactionPlugin({
+    enableRealtime: true,
+    redactionMode: "token",
+    maxFindings: 120,
+  }),
+  SmartPastePlugin({
+    defaultProfile: "balanced",
+    maxHtmlLength: 220000,
+  }),
+  BlocksLibraryPlugin({
+    maxResults: 120,
+    blocks: [
+      {
+        id: "incident-summary",
+        label: "Incident Summary Block",
+        category: "Operations",
+        tags: ["incident", "summary"],
+        keywords: ["postmortem", "rca"],
+        html: "<h3>Incident Summary</h3><p>Describe impact, timeline, and customer exposure.</p>",
+      },
+      {
+        id: "risk-register-entry",
+        label: "Risk Register Entry",
+        category: "Compliance",
+        tags: ["risk", "governance"],
+        keywords: ["mitigation", "owner"],
+        html: "<h3>Risk Register Entry</h3><p><strong>Risk:</strong> <em>Describe risk here.</em></p><p><strong>Mitigation:</strong> Define mitigation owner and due date.</p>",
+      },
+      {
+        id: "release-rollback",
+        label: "Release Rollback Plan",
+        category: "Engineering",
+        tags: ["release", "rollback"],
+        keywords: ["deployment", "runbook"],
+        html: "<h3>Rollback Plan</h3><ol><li>Pause rollout</li><li>Revert deployment</li><li>Validate service health</li></ol>",
+      },
+    ],
+  }),
+  DocSchemaPlugin({
+    defaultSchemaId: "policy",
+    enableRealtime: true,
+    schemas: [
+      {
+        id: "policy",
+        label: "Policy",
+        strictOrder: true,
+        allowUnknownHeadings: true,
+        sections: [
+          { title: "Policy Statement" },
+          { title: "Applicability", aliases: ["Scope"] },
+          { title: "Controls" },
+          { title: "Exceptions" },
+          { title: "Enforcement" },
+        ],
+      },
+    ],
+  }),
+  TranslationWorkflowPlugin({
+    sourceLocale: "en-US",
+    targetLocale: "fr-FR",
+    enableRealtime: true,
+    locales: ["en-US", "fr-FR", "de-DE", "es-ES", "ja-JP"],
+  }),
+  SlashCommandsPlugin(),
+  MentionPlugin({
+    items: [
+      { id: "john.doe", label: "John Doe", meta: "john@acme.com" },
+      { id: "sarah.lee", label: "Sarah Lee", meta: "sarah@acme.com" },
+      { id: "ops.team", label: "Ops Team", meta: "team" },
+    ],
+  }),
 ];
 
 /**
  * Basic usage with default configuration
- * All 37 native plugins loaded automatically
+ * All 39 native plugins loaded automatically
  */
 export const Basic: Story = {
   render: () => (
@@ -140,7 +250,7 @@ export const Basic: Story = {
       floatingToolbar={true}
       defaultValue={`
         <h2>Welcome to Editora!!</h2>
-        <p>This is a <strong>framework-agnostic</strong> rich text editor with <mark style="background: #ffeb3b;">37 native plugins</mark>.</p>
+        <p>This is a <strong>framework-agnostic</strong> rich text editor with <mark style="background: #ffeb3b;">39 native plugins</mark>.</p>
         <p>✨ <strong>Key Features:</strong></p>
         <ul>
           <li>Zero framework dependencies</li>
@@ -944,6 +1054,63 @@ export const FrameworkIndependence: Story = {
           <blockquote>
             "Build once, use everywhere!"
           </blockquote>
+        `}
+      />
+    </div>
+  ),
+};
+
+/**
+ * Doc Schema Workflow Scenario
+ * Structured authoring flow for policy/governance documents.
+ */
+export const DocSchemaWorkflow: Story = {
+  render: () => (
+    <div>
+      <Box style={{ marginBottom: "16px", padding: "14px", background: "#ecfdf5", borderRadius: "8px" }}>
+        <h4 style={{ margin: "0 0 8px 0" }}>📐 Doc Schema Test Scenario</h4>
+        <p style={{ margin: 0, fontSize: "13px" }}>
+          Use <code>Ctrl/Cmd+Alt+Shift+G</code> to open schema panel, run validation, and insert missing sections.
+        </p>
+      </Box>
+
+      <EditoraEditor
+        plugins={allNativePlugins}
+        statusbar={{ enabled: true, position: "bottom" }}
+        defaultValue={`
+          <h2>Q2 Access Control Policy Draft</h2>
+          <h3>Policy Statement</h3>
+          <p>All production access must be approved and logged.</p>
+          <h3>Controls</h3>
+          <p>Access reviews run monthly. Emergency access expires in 24 hours.</p>
+        `}
+      />
+    </div>
+  ),
+};
+
+/**
+ * Translation Workflow Scenario
+ * Localization QA with segment locking + source-target validation.
+ */
+export const TranslationWorkflowScenario: Story = {
+  render: () => (
+    <div>
+      <Box style={{ marginBottom: "16px", padding: "14px", background: "#eff6ff", borderRadius: "8px" }}>
+        <h4 style={{ margin: "0 0 8px 0" }}>🌍 Translation Workflow Test Scenario</h4>
+        <p style={{ margin: 0, fontSize: "13px" }}>
+          Use <code>Ctrl/Cmd+Alt+Shift+L</code> to open panel, capture source, lock approved segments, and run locale QA.
+        </p>
+      </Box>
+
+      <EditoraEditor
+        plugins={allNativePlugins}
+        statusbar={{ enabled: true, position: "bottom" }}
+        defaultValue={`
+          <h2>Release Notes v4.8</h2>
+          <p>Welcome {{firstName}}! Your order ID is %ORDER_ID%.</p>
+          <p>Click <strong>Upgrade Now</strong> to activate premium analytics.</p>
+          <p>For support, contact support@acme.com within 24 hours.</p>
         `}
       />
     </div>

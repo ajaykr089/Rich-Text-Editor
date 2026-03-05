@@ -335,7 +335,12 @@ const sanitizeHTML = (html: string): string => {
           attr.value.startsWith('javascript:')) {
         el.removeAttribute(attr.name);
       }
+      // Preview must be fully read-only: strip nested editability.
+      if (attr.name.toLowerCase() === 'contenteditable') {
+        el.removeAttribute(attr.name);
+      }
     });
+    (el as HTMLElement).setAttribute('contenteditable', 'false');
   });
 
   return tempDiv.innerHTML;

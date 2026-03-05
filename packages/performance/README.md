@@ -1,8 +1,8 @@
 # @editora/performance
 
-Performance utilities for Editora editors.
+Performance and memory utilities for Editora editors.
 
-## Install
+## Installation
 
 ```bash
 npm install @editora/performance @editora/core
@@ -10,27 +10,77 @@ npm install @editora/performance @editora/core
 
 ## Exports
 
-- `TransactionBatcher` / `createTransactionBatcher`
-- `Debouncer` / `createDebouncer` / `debounce`
-- `MemoryManager` / `createMemoryManager` / `getGlobalMemoryManager`
-- `PerformanceMonitor` / `createPerformanceMonitor` / `getGlobalPerformanceMonitor`
-- `LazyLoader` / `lazyLoader`
+From `@editora/performance`:
 
-## Usage
+- `TransactionBatcher`, `createTransactionBatcher`
+- `Debouncer`, `createDebouncer`, `debounce`
+- `MemoryManager`, `createMemoryManager`, `getGlobalMemoryManager`
+- `PerformanceMonitor`, `createPerformanceMonitor`, `getGlobalPerformanceMonitor`
+
+## Transaction Batching
 
 ```ts
-import { createDebouncer, createPerformanceMonitor } from "@editora/performance";
+import { createTransactionBatcher } from "@editora/performance";
 
-const debouncer = createDebouncer(120);
-const monitor = createPerformanceMonitor({ enabled: true, sampleInterval: 5000 });
+const batcher = createTransactionBatcher({
+  maxBatchSize: 10,
+  maxBatchTime: 16,
+  enabled: true,
+});
 
-debouncer.execute(() => {
-  monitor.startOperation("render");
-  // render/update work...
-  monitor.endOperation();
+batcher.setOnFlush((transactions) => {
+  // apply grouped editor updates
 });
 ```
 
-## License
+## Debouncing
 
-MIT
+```ts
+import { createDebouncer, debounce } from "@editora/performance";
+
+const debouncer = createDebouncer(120);
+debouncer.execute(() => {
+  // expensive update
+});
+
+const onResize = debounce(() => {
+  // recalc layout
+}, 150);
+```
+
+## Memory Management
+
+```ts
+import { createMemoryManager } from "@editora/performance";
+
+const memory = createMemoryManager({
+  maxMemoryMB: 100,
+  cleanupIntervalMs: 30000,
+  autoCleanup: true,
+});
+
+const timeoutId = window.setTimeout(() => {}, 1000);
+memory.registerTimeout(timeoutId);
+```
+
+## Performance Monitoring
+
+```ts
+import { createPerformanceMonitor } from "@editora/performance";
+
+const monitor = createPerformanceMonitor({
+  enabled: true,
+  sampleInterval: 5000,
+  maxSamples: 100,
+  logWarnings: true,
+});
+
+monitor.startOperation("render");
+// render work
+monitor.endOperation();
+```
+
+## Notes
+
+- Utilities are browser-oriented (`window`, `performance` APIs).
+- Keep monitor enabled in dev/staging and tune in production.

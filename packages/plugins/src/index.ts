@@ -1,4 +1,4 @@
-// Native plugins (27 total - no React dependencies)
+// Native plugins (29 total - no React dependencies)
 // ParagraphPlugin removed - paragraph option now in HeadingPlugin dropdown
 export { HeadingPlugin } from '../heading/src/index';
 export { BoldPlugin } from '../bold/src/index';
@@ -27,6 +27,121 @@ export { SpecialCharactersPlugin } from '../special-characters/src/index';
 export { EmojisPlugin } from '../emojis/src/index';
 export { EmbedIframePlugin } from '../embed-iframe/src/index';
 export { AnchorPlugin } from '../anchor/src/index';
+export {
+  MentionPlugin,
+  type MentionItem,
+  type MentionPluginOptions,
+  type MentionApiConfig,
+  type MentionApiRequestContext,
+} from '../mentions/src/index';
+export { TrackChangesPlugin, type TrackChangesPluginOptions } from '../track-changes/src/index';
+export {
+  VersionDiffPlugin,
+  type VersionDiffMode,
+  type VersionDiffLabels,
+  type VersionDiffPluginOptions,
+  type VersionDiffOpenArgs,
+} from '../version-diff/src/index';
+export {
+  ConditionalContentPlugin,
+  type ConditionalContentPluginOptions,
+  type ConditionalContentLabels,
+  type ConditionalBlockConfig,
+  type ConditionalContentDialogArgs,
+} from '../conditional-content/src/index';
+export {
+  DataBindingPlugin,
+  type DataBindingPluginOptions,
+  type DataBindingTokenConfig,
+  type DataBindingDialogArgs,
+  type DataBindingFormat,
+  type DataBindingApiConfig,
+  type DataBindingApiRequestContext,
+  type DataBindingLabels,
+} from '../data-binding/src/index';
+export {
+  ContentRulesPlugin,
+  type ContentRulesPluginOptions,
+  type ContentRuleIssue,
+  type ContentRulesSeverity,
+  type ContentRulesLabels,
+  type ContentRulesContext,
+  type ContentRuleDefinition,
+} from '../content-rules/src/index';
+export {
+  CitationsPlugin,
+  type CitationStyle,
+  type CitationRecord,
+  type CitationInput,
+  type CitationsLabels,
+  type CitationsPluginOptions,
+} from '../citations/src/index';
+export {
+  ApprovalWorkflowPlugin,
+  type ApprovalStatus,
+  type ApprovalComment,
+  type ApprovalSignoff,
+  type ApprovalWorkflowState,
+  type ApprovalWorkflowLabels,
+  type ApprovalWorkflowPluginOptions,
+} from '../approval-workflow/src/index';
+export {
+  PIIRedactionPlugin,
+  type PIIRedactionType,
+  type PIIRedactionSeverity,
+  type PIIFinding,
+  type PIIRedactionStats,
+  type PIIRedactionLabels,
+  type PIIRedactionDetectorConfig,
+  type PIIRedactionPluginOptions,
+} from '../pii-redaction/src/index';
+export {
+  SmartPastePlugin,
+  type SmartPasteProfile,
+  type SmartPasteSource,
+  type SmartPasteLabels,
+  type SmartPasteProfileOptions,
+  type SmartPastePluginOptions,
+  type SmartPasteReport,
+} from '../smart-paste/src/index';
+export {
+  BlocksLibraryPlugin,
+  type BlocksLibraryItem,
+  type BlocksLibraryItemInput,
+  type BlocksLibraryLabels,
+  type BlocksLibraryRequestContext,
+  type BlocksLibraryPluginOptions,
+  type BlocksLibraryRuntimeState,
+} from '../blocks-library/src/index';
+export {
+  DocSchemaPlugin,
+  type DocSchemaIssueType,
+  type DocSchemaIssueSeverity,
+  type DocSchemaIssue,
+  type DocSchemaSection,
+  type DocSchemaDefinition,
+  type DocSchemaLabels,
+  type DocSchemaPluginOptions,
+  type DocSchemaRuntimeState,
+} from '../doc-schema/src/index';
+export {
+  TranslationWorkflowPlugin,
+  type TranslationWorkflowIssueType,
+  type TranslationWorkflowIssueSeverity,
+  type TranslationWorkflowIssue,
+  type TranslationWorkflowSegment,
+  type TranslationWorkflowSegmentState,
+  type TranslationWorkflowLocaleRule,
+  type TranslationWorkflowLabels,
+  type TranslationWorkflowPluginOptions,
+  type TranslationWorkflowRuntimeState,
+} from '../translation-workflow/src/index';
+export {
+  SlashCommandsPlugin,
+  type SlashCommandsPluginOptions,
+  type SlashCommandItem,
+  type SlashCommandActionContext,
+} from '../slash-commands/src/index';
 
 // Regular plugins (with React components - 13 total)
 export { MediaManagerPlugin, setMediaManagerConfig, getMediaManagerConfig } from '../media-manager/src/index';
@@ -39,8 +154,25 @@ export { PrintPlugin } from '../print/src/index';
 export { PageBreakPlugin } from '../page-break/src/index';
 export { FootnotePlugin } from '../footnote/src/index';
 export { CodeSamplePlugin } from '../code-sample/src/index';
-export { MergeTagPlugin } from '../merge-tag/src/index';
-export { TemplatePlugin } from '../template/src/index';
+export {
+  MergeTagPlugin,
+  type MergeTagItem,
+  type MergeTagCategory,
+  type MergeTagDialogOptions,
+  type MergeTagPluginOptions,
+} from '../merge-tag/src/index';
+export {
+  TemplatePlugin,
+  PREDEFINED_TEMPLATES,
+  addCustomTemplate,
+  getAllTemplates,
+  getTemplatesByCategory,
+  getTemplateCategories,
+  searchTemplates,
+  sanitizeTemplate,
+  validateTemplate,
+  type Template,
+} from '../template/src/index';
 export { CommentsPlugin } from '../comments/src/index';
 export { SpellCheckPlugin } from '../spell-check/src/index';
 export { A11yCheckerPlugin } from '../a11y-checker/src/index';

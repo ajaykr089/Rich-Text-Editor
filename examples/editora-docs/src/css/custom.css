@@ -1,0 +1,133 @@
+@import url("https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap");
+
+:root {
+  --ifm-font-family-base: "Sora", "Segoe UI", sans-serif;
+  --ifm-font-family-monospace: "JetBrains Mono", "SFMono-Regular", Menlo, monospace;
+  --ifm-heading-font-family: "Fraunces", serif;
+  --ifm-color-primary: #0f766e;
+  --ifm-color-primary-dark: #0d6962;
+  --ifm-color-primary-darker: #0c625c;
+  --ifm-color-primary-darkest: #09514b;
+  --ifm-color-primary-light: #11867d;
+  --ifm-color-primary-lighter: #139188;
+  --ifm-color-primary-lightest: #17a299;
+  --ifm-background-surface-color: #ffffff;
+  --ifm-background-color: #f7fafc;
+  --ifm-card-background-color: #ffffff;
+  --ifm-navbar-height: 72px;
+  --ifm-code-font-size: 90%;
+  --ifm-global-radius: 14px;
+  --ifm-table-stripe-background: #f3f7fa;
+  --ifm-heading-line-height: 1.2;
+}
+
+html[data-theme="dark"] {
+  --ifm-color-primary: #5eead4;
+  --ifm-color-primary-dark: #3fdbc2;
+  --ifm-color-primary-darker: #31d5bb;
+  --ifm-color-primary-darkest: #28b09b;
+  --ifm-color-primary-light: #74efdc;
+  --ifm-color-primary-lighter: #85f1e1;
+  --ifm-color-primary-lightest: #a8f6eb;
+  --ifm-background-color: #0b1117;
+  --ifm-background-surface-color: #111827;
+  --ifm-card-background-color: #0f172a;
+  --ifm-table-stripe-background: #0f1c2d;
+}
+
+.navbar {
+  border-bottom: 1px solid var(--ifm-color-emphasis-300);
+  backdrop-filter: blur(8px);
+  background: color-mix(in oklab, var(--ifm-background-color), transparent 6%);
+  box-shadow: 0 10px 30px rgba(8, 15, 30, 0.06);
+}
+
+.navbar__search {
+  width: 260px;
+}
+
+.footer {
+  --ifm-footer-background-color: #0a0f14;
+}
+
+.markdown h1,
+.markdown h2,
+.markdown h3,
+.hero__title {
+  letter-spacing: -0.01em;
+}
+
+.markdown h2,
+.markdown h3,
+.markdown h4 {
+  margin-top: 1.7rem;
+}
+
+.markdown a {
+  text-decoration-thickness: 2px;
+}
+
+.theme-doc-markdown {
+  max-width: 860px;
+  font-size: 0.99rem;
+}
+
+.theme-doc-markdown img {
+  border-radius: 12px;
+}
+
+.theme-doc-markdown table {
+  display: table;
+  width: 100%;
+  border: 1px solid var(--ifm-color-emphasis-300);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.theme-doc-markdown th {
+  font-weight: 700;
+}
+
+.theme-doc-markdown pre {
+  border: 1px solid var(--ifm-color-emphasis-300);
+}
+
+.theme-doc-markdown details {
+  border: 1px solid var(--ifm-color-emphasis-300);
+  border-radius: 10px;
+  padding: 0.65rem 0.8rem;
+  background: color-mix(in oklab, var(--ifm-background-color), transparent 10%);
+}
+
+.theme-doc-markdown details > summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.theme-doc-sidebar-container {
+  border-right: 1px solid var(--ifm-color-emphasis-300);
+}
+
+.menu__link {
+  border-radius: 10px;
+}
+
+.menu__link--active {
+  font-weight: 700;
+  background: color-mix(in oklab, var(--ifm-color-primary), transparent 88%);
+}
+
+.pagination-nav__link {
+  border-radius: 12px;
+  border-color: var(--ifm-color-emphasis-300);
+}
+
+.announcementBar {
+  font-size: 0.9rem;
+}
+
+@media (max-width: 996px) {
+  .navbar__search {
+    width: 100%;
+  }
+}

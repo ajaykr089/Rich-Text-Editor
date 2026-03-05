@@ -21,7 +21,9 @@ npm install @editora/react @editora/core @editora/plugins @editora/themes
 
 - Required: `@editora/react`, `@editora/core`, `react`, `react-dom`
 - Optional but recommended: `@editora/plugins` (toolbar/plugin features), `@editora/themes` (default/dark/acme CSS)
-- For smaller bundles: prefer `@editora/plugins/lite` or per-plugin subpaths like `@editora/plugins/bold`, and lazy-load heavy plugins (`document-manager`, `media-manager`, `spell-check`) via dynamic imports.
+- When using `@editora/plugins`, also import `@editora/plugins/styles.css` for plugin UI surfaces (table toolbar, dialogs, pickers).
+- For plugin imports: use `@editora/plugins` (full), `@editora/plugins/lite` (common), `@editora/plugins/enterprise` (advanced), or per-plugin subpaths like `@editora/plugins/bold`.
+- All plugin entry paths are free and fully customizable.
 
 Minimal install:
 
@@ -56,6 +58,7 @@ The React package provides ready-to-use React components for building rich text 
 import { EditoraEditor } from '@editora/react';
 import { BoldPlugin, ItalicPlugin } from '@editora/plugins';
 
+import "@editora/plugins/styles.css";
 import "@editora/themes/themes/default.css";
 
 function App() {
@@ -93,6 +96,7 @@ import {
   HistoryPlugin
 } from '@editora/plugins';
 
+import "@editora/plugins/styles.css";
 import "@editora/themes/themes/default.css";
 
 function FullEditor() {

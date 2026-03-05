@@ -61,6 +61,62 @@
   fill: currentColor;
 }
 
+/* Direction plugin icons are stroke-driven; keep fills disabled in dark mode */
+:is([data-theme="dark"], .dark, .editora-theme-dark)
+  :is(
+    .rte-toolbar-button[data-command="setDirectionLTR"],
+    .rte-toolbar-button[data-command="setDirectionRTL"],
+    .editora-toolbar-button[data-command="setDirectionLTR"],
+    .editora-toolbar-button[data-command="setDirectionRTL"]
+  )
+  svg,
+:is([data-theme="dark"], .dark, .editora-theme-dark)
+  :is(
+    .rte-toolbar-button[data-command="setDirectionLTR"],
+    .rte-toolbar-button[data-command="setDirectionRTL"],
+    .editora-toolbar-button[data-command="setDirectionLTR"],
+    .editora-toolbar-button[data-command="setDirectionRTL"]
+  )
+  svg * {
+  fill: none !important;
+}
+
+/* Anchor and Spell Check icons are stroke-driven; keep fills disabled in dark mode */
+:is([data-theme="dark"], .dark, .editora-theme-dark)
+  :is(
+    .rte-toolbar-button[data-command="insertAnchor"],
+    .rte-toolbar-button[data-command="toggleSpellCheck"],
+    .editora-toolbar-button[data-command="insertAnchor"],
+    .editora-toolbar-button[data-command="toggleSpellCheck"]
+  )
+  svg,
+:is([data-theme="dark"], .dark, .editora-theme-dark)
+  :is(
+    .rte-toolbar-button[data-command="insertAnchor"],
+    .rte-toolbar-button[data-command="toggleSpellCheck"],
+    .editora-toolbar-button[data-command="insertAnchor"],
+    .editora-toolbar-button[data-command="toggleSpellCheck"]
+  )
+  svg * {
+  fill: none !important;
+}
+
+/* Fullscreen icon is stroke-driven; keep fills disabled in dark mode */
+:is([data-theme="dark"], .dark, .editora-theme-dark)
+  :is(
+    .rte-toolbar-button[data-command="toggleFullscreen"],
+    .editora-toolbar-button[data-command="toggleFullscreen"]
+  )
+  svg,
+:is([data-theme="dark"], .dark, .editora-theme-dark)
+  :is(
+    .rte-toolbar-button[data-command="toggleFullscreen"],
+    .editora-toolbar-button[data-command="toggleFullscreen"]
+  )
+  svg * {
+  fill: none !important;
+}
+
 /* Normalize plugin-provided inline SVGs with hardcoded black stroke values only */
 :is([data-theme="dark"], .dark, .editora-theme-dark)
   :is(.rte-toolbar-button, .editora-toolbar-button, .editora-toolbar-icon)
@@ -242,6 +298,46 @@
 :is([data-theme="dark"], .dark, .editora-theme-dark) .rte-toolbar-expanded-row {
   background: #2a323c;
   border-color: var(--rte-color-border);
+}
+
+:is([data-theme="dark"], .dark, .editora-theme-dark) .rte-content :is(.rte-table, table) {
+  border-color: #607088;
+  background: #24303c;
+  color: #e6eefb;
+}
+
+:is([data-theme="dark"], .dark, .editora-theme-dark) .rte-content :is(.rte-table td, .rte-table th, table td, table th) {
+  border-color: #607088;
+  color: #e6eefb;
+}
+
+:is([data-theme="dark"], .dark, .editora-theme-dark) .rte-content :is(.rte-table th, table th) {
+  background: linear-gradient(180deg, #3b4553 0%, #333d4a 100%);
+  color: #f3f8ff;
+}
+
+:is([data-theme="dark"], .dark, .editora-theme-dark) .table-toolbar,
+.table-toolbar.rte-theme-dark {
+  background: linear-gradient(180deg, #2f3844 0%, #2a323c 100%);
+  border-color: #4d596b;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45);
+}
+
+:is([data-theme="dark"], .dark, .editora-theme-dark) .toolbar-divider,
+.table-toolbar.rte-theme-dark .toolbar-divider {
+  background: #4d596b;
+}
+
+:is([data-theme="dark"], .dark, .editora-theme-dark) .toolbar-icon-btn,
+.table-toolbar.rte-theme-dark .toolbar-icon-btn {
+  color: #d7deea;
+}
+
+:is([data-theme="dark"], .dark, .editora-theme-dark) .toolbar-icon-btn:hover:not(:disabled),
+.table-toolbar.rte-theme-dark .toolbar-icon-btn:hover:not(:disabled) {
+  background: #3a4554;
+  border-color: #607088;
+  color: #f3f8ff;
 }
 
 :is([data-theme="dark"], .dark, .editora-theme-dark) .rte-content {

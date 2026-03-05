@@ -1,5 +1,5 @@
 // Lightweight plugin entrypoint for smaller application bundles.
-// Heavy/optional plugins remain available via subpath imports.
+// Heavy/optional plugins remain available via subpath imports or @editora/plugins/enterprise.
 export { HeadingPlugin } from '../heading/src/index';
 export { BoldPlugin } from '../bold/src/index';
 export { ItalicPlugin } from '../italic/src/index';

@@ -441,6 +441,9 @@ export const EditorContent: React.FC<EditorContentProps> = ({
     };
 
     const handlePaste = (e: ClipboardEvent) => {
+      if ((e as any).__editoraSmartPasteHandled === true || e.defaultPrevented) {
+        return;
+      }
       if (readonly) {
         e.preventDefault();
         return;
@@ -609,6 +612,7 @@ export const EditorContent: React.FC<EditorContentProps> = ({
         boxSizing: "border-box",
         wordWrap: "break-word",
         overflowWrap: "break-word",
+        marginBottom: "16px",
       }}
     />
   );

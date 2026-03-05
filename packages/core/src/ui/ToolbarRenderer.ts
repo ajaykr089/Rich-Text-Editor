@@ -31,6 +31,14 @@ export class ToolbarRenderer {
   private commandHandler?: (command: string, value?: any) => void;
   private pluginLoader?: any; // PluginLoader instance to get all registered plugins
 
+  private setLastCommandTrigger(el: HTMLElement | null, command?: string): void {
+    if (typeof window === 'undefined' || !el) return;
+    const resolvedCommand = command || el.getAttribute('data-command') || undefined;
+    if (!resolvedCommand) return;
+    (window as any).__editoraLastCommandButton = el;
+    (window as any).__editoraLastCommand = resolvedCommand;
+  }
+
   constructor(config: ToolbarConfig, plugins: Plugin[], pluginLoader?: any) {
     this.config = config;
     this.plugins = plugins;
@@ -71,6 +79,9 @@ export class ToolbarRenderer {
       link: "openLinkDialog",
       image: "openImageDialog",
       table: "insertTable",
+      trackChanges: "toggleTrackChanges",
+      acceptTrackChanges: "acceptAllTrackChanges",
+      rejectTrackChanges: "rejectAllTrackChanges",
       anchor: "insertAnchor",
       code: "toggleSourceView",
       blockquote: "toggleBlockquote",
@@ -102,6 +113,14 @@ export class ToolbarRenderer {
       toggleComments: "toggleComments",
       footnote: "insertFootnote",
       mergeTags: "insertMergeTag",
+      dataBinding: "openDataBindingDialog",
+      dataBindingPreview: "openDataBindingDialog",
+      contentRules: "toggleContentRulesPanel",
+      contentRulesAudit: "runContentRulesAudit",
+      contentRulesRealtime: "toggleContentRulesRealtime",
+      mention: "insertMention",
+      slash: "openSlashCommands",
+      slashCommands: "openSlashCommands",
       pageBreak: "insertPageBreak",
       template: "insertTemplate",
       importWord: "importWord",
@@ -276,7 +295,8 @@ export class ToolbarRenderer {
    */
   private createGroupButton(button: ToolbarButton): HTMLElement {
     const el = document.createElement("div");
-    el.className = "editora-toolbar-group-button";
+    const groupClass = button.label.toLowerCase().replace(/\s+/g, "-");
+    el.className = `editora-toolbar-group-button ${groupClass}`;
     el.title = button.label;
     // Optionally add a label or icon for the group itself
     if (button.icon) {
@@ -292,7 +312,7 @@ export class ToolbarRenderer {
     // Recursively render group items
     if (button.items && button.items.length) {
       const itemsContainer = document.createElement("div");
-      itemsContainer.className = "editora-toolbar-group-items";
+      itemsContainer.className = `editora-toolbar-group-items ${groupClass}`;
       button.items.forEach((child) => {
         this.appendToolbarButton(itemsContainer, child);
       });
@@ -324,6 +344,7 @@ export class ToolbarRenderer {
 
     el.addEventListener("click", (e) => {
       e.preventDefault();
+      this.setLastCommandTrigger(el, button.command);
       if (this.commandHandler && button.command) {
         this.commandHandler(button.command);
       }
@@ -405,6 +426,7 @@ export class ToolbarRenderer {
 
         item.addEventListener("click", (e) => {
           e.preventDefault();
+          this.setLastCommandTrigger(trigger, button.command);
           if (this.commandHandler && button.command) {
             this.commandHandler(button.command, option.value);
           }
@@ -418,6 +440,7 @@ export class ToolbarRenderer {
     trigger.addEventListener("click", (e) => {
       e.preventDefault();
       e.stopPropagation();
+      this.setLastCommandTrigger(trigger, button.command);
       const isOpen = menu.style.display === "block";
       menu.style.display = isOpen ? "none" : "block";
     });
@@ -429,11 +452,19 @@ export class ToolbarRenderer {
       }
     };
 
-    document.addEventListener("click", closeDropdown);
+    const closeOnEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        menu.style.display = "none";
+      }
+    };
+
+    document.addEventListener("mousedown", closeDropdown, true);
+    document.addEventListener("keydown", closeOnEscape);
 
     // Store the cleanup function for later removal
     (container as any)._cleanupDropdown = () => {
-      document.removeEventListener("click", closeDropdown);
+      document.removeEventListener("mousedown", closeDropdown, true);
+      document.removeEventListener("keydown", closeOnEscape);
     };
 
     container.appendChild(trigger);
@@ -484,6 +515,7 @@ export class ToolbarRenderer {
         item.addEventListener("click", (e) => {
           e.preventDefault();
           e.stopPropagation();
+          this.setLastCommandTrigger(trigger, button.command);
           if (this.commandHandler && button.command) {
             this.commandHandler(button.command, option.value);
           }
@@ -497,6 +529,7 @@ export class ToolbarRenderer {
     trigger.addEventListener("click", (e) => {
       e.preventDefault();
       e.stopPropagation();
+      this.setLastCommandTrigger(trigger, button.command);
 
       // Close all other menus
       const allMenus = this.container?.querySelectorAll(
@@ -513,11 +546,26 @@ export class ToolbarRenderer {
     });
 
     // Close menu when clicking outside
-    document.addEventListener("click", (e) => {
+    const closeMenuOutside = (e: Event) => {
       if (!container.contains(e.target as Node)) {
         menu.style.display = "none";
       }
-    });
+    };
+
+    const closeOnEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        menu.style.display = "none";
+      }
+    };
+
+    document.addEventListener("mousedown", closeMenuOutside, true);
+    document.addEventListener("keydown", closeOnEscape);
+
+    // Store cleanup so destroy() removes document listeners.
+    (container as any)._cleanupDropdown = () => {
+      document.removeEventListener("mousedown", closeMenuOutside, true);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
 
     container.appendChild(trigger);
     container.appendChild(menu);

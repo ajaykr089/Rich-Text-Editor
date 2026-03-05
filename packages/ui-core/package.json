@@ -1,11 +1,21 @@
 {
   "name": "@editora/ui-core",
-  "version": "0.1.0",
+  "version": "0.1.3",
   "description": "Framework-agnostic Web Components and primitives for the Editora UI ecosystem",
-  "main": "dist/index.js",
+  "main": "dist/index.cjs.js",
   "module": "dist/index.esm.js",
   "types": "dist/index.d.ts",
-  "files": ["dist"],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.esm.js",
+      "require": "./dist/index.cjs.js",
+      "default": "./dist/index.esm.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build:tsc": "npm --prefix ../icons run build:tsc && node ../../node_modules/typescript/bin/tsc -p . --emitDeclarationOnly --noEmit false --outDir dist",
     "build": "npm --prefix ../icons run build:tsc && node ../../node_modules/vite/bin/vite.js build && npm run build:tsc",
@@ -15,15 +25,17 @@
     "prepare": "npm run build"
   },
   "devDependencies": {
-    "rimraf": "^5.0.0",
-    "vitest": "^1.0.0",
     "jsdom": "^22.1.0",
+    "rimraf": "^5.0.0",
+    "typescript": "^5.0.0",
     "vite": "^7.3.1",
-    "typescript": "^5.0.0"
+    "vitest": "^1.0.0"
   },
-  "publishConfig": { "access": "public" },
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
-    "@editora/icons": "^0.1.0"
+    "@editora/icons": "^0.1.4"
   },
   "keywords": [
     "editora",
@@ -38,5 +50,6 @@
   ],
   "author": "Ajay Kumar <ajaykr089@gmail.com>",
   "license": "MIT",
-  "sideEffects": true
+  "sideEffects": true,
+  "gitHead": "80e0808ae4909de63b8e0f1dd915b06b33a8ed44"
 }
