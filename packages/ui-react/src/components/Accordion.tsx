@@ -1,4 +1,6 @@
 import * as React from 'react';
+
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? React.useLayoutEffect : React.useEffect;
 import { warnIfElementNotRegistered } from './_internals';
 
 type OpenValue = number | number[];
@@ -7,6 +9,8 @@ export interface AccordionProps extends Omit<React.HTMLAttributes<HTMLElement>, 
   multiple?: boolean;
   collapsible?: boolean;
   open?: OpenValue;
+  shape?: 'default' | 'square' | 'pill';
+  elevation?: 'default' | 'none';
   onToggle?: (open: OpenValue) => void;
   onChangeOpen?: (open: OpenValue) => void;
 }
@@ -30,12 +34,21 @@ function setBooleanAttribute(element: HTMLElement, name: string, value: boolean 
   else element.removeAttribute(name);
 }
 
+function setAttributeValue(element: HTMLElement, name: string, value: string | null) {
+  const current = element.getAttribute(name);
+  if (value == null || value === '') {
+    if (current != null) element.removeAttribute(name);
+    return;
+  }
+  if (current !== value) element.setAttribute(name, value);
+}
+
 function readOpen(event: Event): OpenValue | undefined {
   return (event as CustomEvent<{ open?: OpenValue }>).detail?.open;
 }
 
 export const Accordion = React.forwardRef<HTMLElement, AccordionProps>(function Accordion(
-  { multiple, collapsible, open, onToggle, onChangeOpen, children, ...rest },
+  { multiple, collapsible, open, shape, elevation, onToggle, onChangeOpen, children, ...rest },
   forwardedRef
 ) {
   const ref = React.useRef<HTMLElement | null>(null);
@@ -46,7 +59,7 @@ export const Accordion = React.forwardRef<HTMLElement, AccordionProps>(function 
     warnIfElementNotRegistered('ui-accordion', 'Accordion');
   }, []);
 
-  React.useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const element = ref.current;
     if (!element) return;
 
@@ -56,7 +69,9 @@ export const Accordion = React.forwardRef<HTMLElement, AccordionProps>(function 
 
     if (open == null) element.removeAttribute('open');
     else element.setAttribute('open', Array.isArray(open) ? JSON.stringify(open) : String(open));
-  }, [multiple, collapsible, open]);
+    setAttributeValue(element, 'shape', shape && shape !== 'default' ? shape : null);
+    setAttributeValue(element, 'elevation', elevation && elevation !== 'default' ? elevation : null);
+  }, [multiple, collapsible, open, shape, elevation]);
 
   React.useEffect(() => {
     const element = ref.current;

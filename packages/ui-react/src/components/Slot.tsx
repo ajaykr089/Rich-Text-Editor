@@ -1,4 +1,6 @@
-import React, { useEffect, useImperativeHandle, useRef } from 'react';
+import React, { useEffect, useLayoutEffect, useImperativeHandle, useRef } from 'react';
+
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 type SlotChangeDetail = {
   name: string;
@@ -67,7 +69,7 @@ export const Slot = React.forwardRef<HTMLElement, SlotProps>(function Slot(
     };
   }, [onSlotChange, onMissing, onResolved]);
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
 

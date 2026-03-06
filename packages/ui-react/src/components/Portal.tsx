@@ -1,4 +1,6 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useLayoutEffect, useRef } from 'react';
+
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 type PortalEventDetail = { count: number };
 
@@ -42,7 +44,7 @@ export const Portal = React.forwardRef<HTMLElement, PortalProps>(function Portal
     };
   }, [onMount, onUnmount, onSync, onTargetMissing]);
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
     if (target) el.setAttribute('target', target);

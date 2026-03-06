@@ -422,7 +422,7 @@ type UIAlertDialogSize = 'sm' | 'md' | 'lg';
 type UIAlertDialogState = 'idle' | 'loading' | 'error';
 type UIAlertDialogTone = 'neutral' | 'info' | 'success' | 'warning' | 'danger';
 type UIAlertDialogAction = 'confirm' | 'cancel' | 'dismiss';
-type UIAlertDialogDismissSource = 'esc' | 'backdrop' | 'close-icon' | 'abort' | 'unmount' | 'programmatic';
+type UIAlertDialogDismissSource = 'esc' | 'backdrop' | 'close-icon' | 'abort' | 'unmount' | 'replace' | 'programmatic';
 
 export interface UIAlertDialogTemplateOptions {
   id?: string;

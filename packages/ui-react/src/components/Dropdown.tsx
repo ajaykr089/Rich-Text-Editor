@@ -1,4 +1,6 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useLayoutEffect, useRef } from 'react';
+
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 type Props = React.HTMLAttributes<HTMLElement> & { children?: React.ReactNode };
 
@@ -78,56 +80,56 @@ export const Dropdown = React.forwardRef<HTMLElement, DropdownProps>(function Dr
     };
   }, [onOpen, onClose, onChange, onChangeDetail, onRequestClose, onSelect]);
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const el = ref.current;
     if (!el || open == null) return;
     if (open) el.setAttribute('open', '');
     else el.removeAttribute('open');
   }, [open]);
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
     if (placement) el.setAttribute('placement', placement);
     else el.removeAttribute('placement');
   }, [placement]);
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
     if (variant && variant !== 'default') el.setAttribute('variant', variant);
     else el.removeAttribute('variant');
   }, [variant]);
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
     if (density && density !== 'default') el.setAttribute('density', density);
     else el.removeAttribute('density');
   }, [density]);
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
     if (shape && shape !== 'default') el.setAttribute('shape', shape);
     else el.removeAttribute('shape');
   }, [shape]);
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
     if (elevation && elevation !== 'default') el.setAttribute('elevation', elevation);
     else el.removeAttribute('elevation');
   }, [elevation]);
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
     if (tone && tone !== 'default' && tone !== 'brand') el.setAttribute('tone', tone);
     else el.removeAttribute('tone');
   }, [tone]);
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
     if (closeOnSelect == null) {
@@ -137,7 +139,7 @@ export const Dropdown = React.forwardRef<HTMLElement, DropdownProps>(function Dr
     el.setAttribute('close-on-select', closeOnSelect ? 'true' : 'false');
   }, [closeOnSelect]);
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
     if (typeahead == null) {

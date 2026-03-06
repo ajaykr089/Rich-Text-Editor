@@ -1,4 +1,6 @@
-import React, { useEffect, useImperativeHandle, useRef } from 'react';
+import React, { useEffect, useLayoutEffect, useImperativeHandle, useRef } from 'react';
+
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 type SliderValueDetail = {
   value: number;
@@ -106,7 +108,7 @@ export const Slider = React.forwardRef<HTMLElement, SliderProps>(function Slider
     };
   }, [onInput, onChange, onValueChange]);
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
 

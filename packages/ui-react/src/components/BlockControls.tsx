@@ -1,4 +1,6 @@
 import * as React from 'react';
+
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? React.useLayoutEffect : React.useEffect;
 import { warnIfElementNotRegistered } from './_internals';
 
 export type BlockControlsNavigateDetail = {
@@ -61,7 +63,7 @@ export const BlockControls = React.forwardRef<HTMLElement, BlockControlsProps>(f
     return () => element.removeEventListener('ui-navigate', handleNavigate as EventListener);
   }, [onNavigate]);
 
-  React.useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const element = ref.current;
     if (!element) return;
 

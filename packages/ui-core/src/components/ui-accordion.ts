@@ -34,11 +34,9 @@ const style = `
     display: block;
     border: var(--ui-accordion-border);
     border-radius: var(--ui-accordion-radius);
-    background:
-      linear-gradient(180deg, color-mix(in srgb, var(--ui-accordion-surface) 92%, var(--ui-accordion-surface-alt)) 0%, var(--ui-accordion-surface) 100%);
+    background: var(--ui-accordion-surface);
     overflow: clip;
     box-shadow: var(--ui-accordion-shadow);
-    backdrop-filter: blur(2px);
   }
 
   .item {
@@ -219,6 +217,18 @@ const style = `
     display: none;
   }
 
+  :host([shape="square"]) {
+    --ui-accordion-radius: 4px;
+  }
+
+  :host([shape="pill"]) {
+    --ui-accordion-radius: 999px;
+  }
+
+  :host([elevation="none"]) {
+    --ui-accordion-shadow: none;
+  }
+
   @media (max-width: 720px) {
     :host {
       --ui-accordion-padding-x: 12px;
@@ -313,7 +323,7 @@ function isAccordionItemNode(node: Element): node is HTMLElement {
 
 export class UIAccordion extends ElementBase {
   static get observedAttributes() {
-    return ['open', 'multiple', 'collapsible', 'headless'];
+    return ['open', 'multiple', 'collapsible', 'headless', 'shape', 'elevation'];
   }
 
   private _uid = `ui-accordion-${Math.random().toString(36).slice(2, 8)}`;
@@ -373,6 +383,7 @@ export class UIAccordion extends ElementBase {
       const applied = this._applyOpenState();
       if (applied) return;
     }
+    if (name === 'shape' || name === 'elevation' || name === 'headless') return;
     this.requestRender();
   }
 
@@ -497,15 +508,15 @@ export class UIAccordion extends ElementBase {
 
     const openSet = new Set(normalized);
     itemNodes.forEach((itemNode, index) => {
-      const isOpen = openSet.has(index);
-      if (isOpen) itemNode.setAttribute('open', '');
-      else itemNode.removeAttribute('open');
-
       const panel = itemNode.querySelector('.panel') as HTMLElement | null;
       const panelInner = itemNode.querySelector('.panel-inner') as HTMLElement | null;
       if (panel && panelInner) {
         panel.style.setProperty('--ui-accordion-panel-height', `${panelInner.scrollHeight}px`);
       }
+
+      const isOpen = openSet.has(index);
+      if (isOpen) itemNode.setAttribute('open', '');
+      else itemNode.removeAttribute('open');
 
       const trigger = itemNode.querySelector('.trigger') as HTMLButtonElement | null;
       if (trigger) trigger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
@@ -553,7 +564,7 @@ export class UIAccordion extends ElementBase {
       if (record.type !== 'attributes') return true;
       if (record.target !== this) return true;
       const attribute = record.attributeName || '';
-      return !['open', 'multiple', 'collapsible', 'headless'].includes(attribute);
+      return !['open', 'multiple', 'collapsible', 'headless', 'shape', 'elevation'].includes(attribute);
     });
     if (!shouldRender) return;
     this.requestRender();

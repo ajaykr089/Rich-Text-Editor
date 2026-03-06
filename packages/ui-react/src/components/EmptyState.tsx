@@ -1,4 +1,6 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useLayoutEffect, useRef } from 'react';
+
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 export type EmptyStateProps = React.HTMLAttributes<HTMLElement> & {
   children?: React.ReactNode;
@@ -34,7 +36,7 @@ export function EmptyState(props: EmptyStateProps) {
     return () => el.removeEventListener('action', handler as EventListener);
   }, [onAction]);
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
 

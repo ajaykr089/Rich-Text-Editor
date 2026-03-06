@@ -1,44 +1,76 @@
-import React from 'react';
-import { showToast } from '@editora/ui-core';
+import React, { useEffect } from 'react';
+import toastLegacy, { toastAdvanced, toastPro } from '@editora/toast';
+import type { ToastConfig, ToastOptionsAdvanced } from '@editora/toast';
 
-export type ToastOptions = {
-  duration?: number;
+export type ToastOptions = Partial<Omit<ToastOptionsAdvanced, 'message'>> & {
+  type?: string;
 };
 
 export type ToastVariant = 'default' | 'success' | 'error' | 'warning' | 'info';
 
-const prefixByVariant: Record<ToastVariant, string> = {
-  default: '',
-  success: 'Success: ',
-  error: 'Error: ',
-  warning: 'Warning: ',
-  info: 'Info: '
-};
+function normalizeOptions(options?: ToastOptions): Partial<Omit<ToastOptionsAdvanced, 'message'>> {
+  if (!options) return {};
+  const normalized = { ...options } as Record<string, unknown>;
+
+  if (normalized.type != null && normalized.level == null) {
+    normalized.level = normalized.type;
+  }
+
+  delete normalized.type;
+  return normalized as Partial<Omit<ToastOptionsAdvanced, 'message'>>;
+}
 
 export function toast(message: string, options: ToastOptions = {}) {
-  return showToast(message, options);
+  return toastAdvanced.show({
+    message,
+    level: 'info',
+    ...normalizeOptions(options)
+  });
 }
 
 export const toastApi = {
   show(message: string, options: ToastOptions = {}) {
-    return showToast(message, options);
+    return toastAdvanced.show({ message, ...normalizeOptions(options) });
   },
   success(message: string, options: ToastOptions = {}) {
-    return showToast(`${prefixByVariant.success}${message}`, options);
+    return toastAdvanced.success(message, normalizeOptions(options));
   },
   error(message: string, options: ToastOptions = {}) {
-    return showToast(`${prefixByVariant.error}${message}`, options);
+    return toastAdvanced.error(message, normalizeOptions(options));
   },
   warning(message: string, options: ToastOptions = {}) {
-    return showToast(`${prefixByVariant.warning}${message}`, options);
+    return toastAdvanced.warning(message, normalizeOptions(options));
   },
   info(message: string, options: ToastOptions = {}) {
-    return showToast(`${prefixByVariant.info}${message}`, options);
+    return toastAdvanced.info(message, normalizeOptions(options));
+  },
+  loading(message: string, options: ToastOptions = {}) {
+    return toastAdvanced.loading(message, normalizeOptions(options));
+  },
+  dismiss(id: string | number) {
+    return toastAdvanced.dismiss(String(id));
+  },
+  clear() {
+    return toastAdvanced.clear();
+  },
+  configure(config: Partial<ToastConfig>) {
+    return toastAdvanced.configure(config);
   }
 };
 
-export function ToastAPI() {
+type ToastAPIProps = {
+  config?: Partial<ToastConfig>;
+};
+
+export function ToastAPI({ config }: ToastAPIProps = {}) {
+  useEffect(() => {
+    if (!config) return;
+    toastAdvanced.configure(config);
+  }, [config]);
+
   return null;
 }
+
+export { toastAdvanced, toastPro, toastLegacy };
 
 export default ToastAPI;

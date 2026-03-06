@@ -1,4 +1,6 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useLayoutEffect, useRef } from 'react';
+
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 type ProgressProps = React.HTMLAttributes<HTMLElement> & {
   value?: number | string;
@@ -75,7 +77,7 @@ export const Progress = React.forwardRef<HTMLElement, ProgressProps>(function Pr
     };
   }, [onValueChange, onComplete]);
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
 

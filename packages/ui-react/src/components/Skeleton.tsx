@@ -1,4 +1,6 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useLayoutEffect, useRef } from 'react';
+
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 export type SkeletonProps = React.HTMLAttributes<HTMLElement> & {
   count?: number;
@@ -26,7 +28,7 @@ export function Skeleton(props: SkeletonProps) {
 
   const ref = useRef<HTMLElement | null>(null);
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
 

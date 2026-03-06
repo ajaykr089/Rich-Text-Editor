@@ -17,6 +17,24 @@ type TimeDetail = {
   source: string;
 };
 
+const CLOCK_ICON = `
+  <svg viewBox="0 0 20 20" class="icon-svg" aria-hidden="true" focusable="false">
+    <path d="M10 2.4a7.6 7.6 0 1 1 0 15.2A7.6 7.6 0 0 1 10 2.4Zm0 1.4a6.2 6.2 0 1 0 0 12.4 6.2 6.2 0 0 0 0-12.4Zm.7 2.4a.7.7 0 0 0-1.4 0v4.1c0 .2.1.4.2.5l2.6 2.5a.7.7 0 1 0 1-1l-2.4-2.3v-3.8Z" fill="currentColor"/>
+  </svg>
+`;
+
+const CLEAR_ICON = `
+  <svg viewBox="0 0 20 20" class="icon-svg" aria-hidden="true" focusable="false">
+    <path d="m6 6 8 8M14 6l-8 8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+  </svg>
+`;
+
+const CHEVRON_ICON = `
+  <svg viewBox="0 0 20 20" class="icon-svg" aria-hidden="true" focusable="false">
+    <path d="m5.6 7.6 4.4 4.6 4.4-4.6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+`;
+
 const style = `
   :host {
     --ui-dp-bg: color-mix(in srgb, var(--ui-color-surface, #ffffff) 96%, transparent);
@@ -50,6 +68,12 @@ const style = `
     border-radius: var(--ui-dp-radius);
     background: var(--ui-dp-bg);
     padding: 0 10px;
+    transition: border-color 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
+  }
+
+  .field:focus-within {
+    border-color: color-mix(in srgb, var(--ui-dp-accent) 70%, var(--ui-dp-border));
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--ui-dp-accent) 22%, transparent);
   }
 
   .input {
@@ -63,7 +87,20 @@ const style = `
     font: 500 14px/1.35 "Inter", "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   }
 
-  .icon { color: color-mix(in srgb, var(--ui-dp-text) 70%, transparent); }
+  .icon {
+    color: color-mix(in srgb, var(--ui-dp-text) 70%, transparent);
+    inline-size: 16px;
+    block-size: 16px;
+    display: inline-grid;
+    place-items: center;
+  }
+
+  .icon-svg {
+    inline-size: 16px;
+    block-size: 16px;
+    pointer-events: none;
+  }
+
   .btn {
     border: 0;
     background: transparent;
@@ -72,13 +109,61 @@ const style = `
     border-radius: 8px;
     color: color-mix(in srgb, var(--ui-dp-text) 72%, transparent);
     cursor: pointer;
+    display: inline-grid;
+    place-items: center;
+    transition: background-color 140ms ease, color 140ms ease, transform 140ms ease;
   }
   .btn:hover { background: color-mix(in srgb, var(--ui-dp-text) 10%, transparent); color: var(--ui-dp-text); }
+  .btn:active { transform: translateY(1px); }
+  .btn:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--ui-dp-accent) 68%, transparent);
+    outline-offset: 1px;
+  }
+  .btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
   .btn[hidden] { display: none; }
 
   .hint { color: var(--ui-dp-muted); font-size: 12px; line-height: 1.4; }
   .error { color: var(--ui-dp-field-error); font-size: 12px; line-height: 1.4; }
   .hint[hidden], .error[hidden] { display: none; }
+
+  :host([disabled]) .field {
+    opacity: 0.64;
+    pointer-events: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .field,
+    .btn {
+      transition: none !important;
+      animation: none !important;
+    }
+  }
+
+  @media (forced-colors: active) {
+    .field {
+      border-color: CanvasText;
+      background: Canvas;
+      box-shadow: none;
+    }
+
+    .icon,
+    .input {
+      color: CanvasText;
+    }
+
+    .btn {
+      border: 1px solid CanvasText;
+      background: Canvas;
+      color: CanvasText;
+    }
+
+    .btn:focus-visible {
+      outline-color: Highlight;
+    }
+  }
 `;
 
 const overlayStyle = `
@@ -138,6 +223,55 @@ const overlayStyle = `
     cursor: pointer;
   }
   .action[data-tone="primary"] { border-color: color-mix(in srgb, var(--ui-dp-accent, #2563eb) 60%, transparent); background: color-mix(in srgb, var(--ui-dp-accent, #2563eb) 18%, transparent); }
+
+  .action:hover {
+    border-color: color-mix(in srgb, var(--ui-dp-accent, #2563eb) 40%, var(--ui-dp-border, #cbd5e1));
+    background: color-mix(in srgb, var(--ui-dp-accent, #2563eb) 10%, transparent);
+  }
+
+  .action:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--ui-dp-accent, #2563eb) 66%, transparent);
+    outline-offset: 1px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .panel,
+    .sheet,
+    .action {
+      transition: none !important;
+      animation: none !important;
+    }
+  }
+
+  @media (forced-colors: active) {
+    .panel,
+    .sheet {
+      border-color: CanvasText;
+      background: Canvas;
+      color: CanvasText;
+      box-shadow: none;
+    }
+
+    .sheet-backdrop {
+      background: color-mix(in srgb, CanvasText 36%, transparent);
+    }
+
+    .picker label {
+      color: CanvasText;
+    }
+
+    .picker select,
+    .action {
+      border-color: CanvasText;
+      background: Canvas;
+      color: CanvasText;
+    }
+
+    .picker select:focus-visible,
+    .action:focus-visible {
+      outline-color: Highlight;
+    }
+  }
 `;
 
 function pad2(value: number): string {
@@ -192,6 +326,16 @@ export class UITimePicker extends ElementBase {
   private _hasView = false;
   private _restoreFocusEl: HTMLElement | null = null;
   private _overlayKey: string | null = null;
+  private _fieldEl: HTMLElement | null = null;
+  private _labelEl: HTMLElement | null = null;
+  private _labelTextEl: HTMLElement | null = null;
+  private _requiredEl: HTMLElement | null = null;
+  private _inputEl: HTMLInputElement | null = null;
+  private _clearBtn: HTMLButtonElement | null = null;
+  private _toggleBtn: HTMLButtonElement | null = null;
+  private _hintEl: HTMLElement | null = null;
+  private _errorEl: HTMLElement | null = null;
+  private _hiddenInputEl: HTMLInputElement | null = null;
   private _schedulePosition = rafThrottle(() => this._positionOverlay());
 
   private _onRootClickBound = (event: Event) => this._onRootClick(event);
@@ -211,6 +355,7 @@ export class UITimePicker extends ElementBase {
     this.root.addEventListener('input', this._onRootInputBound);
     this.root.addEventListener('focusout', this._onRootBlurBound);
     this.root.addEventListener('keydown', this._onRootKeyDownBound);
+    if (this._hasView && !this._inputEl) this._cacheDomRefs();
 
     if (!this._isInitialized) {
       const initial = this._normalizeCanonical(this.getAttribute('value') || this.getAttribute('default-value'));
@@ -230,6 +375,16 @@ export class UITimePicker extends ElementBase {
     this.root.removeEventListener('focusout', this._onRootBlurBound);
     this.root.removeEventListener('keydown', this._onRootKeyDownBound);
     this._destroyOverlay();
+    this._fieldEl = null;
+    this._labelEl = null;
+    this._labelTextEl = null;
+    this._requiredEl = null;
+    this._inputEl = null;
+    this._clearBtn = null;
+    this._toggleBtn = null;
+    this._hintEl = null;
+    this._errorEl = null;
+    this._hiddenInputEl = null;
     super.disconnectedCallback();
   }
 
@@ -466,7 +621,7 @@ export class UITimePicker extends ElementBase {
 
   private _positionOverlay(): void {
     if (!this._overlay || !this._open || this._isMobileSheet()) return;
-    const field = this.root.querySelector('.field') as HTMLElement | null;
+    const field = this._fieldEl;
     const panel = this._overlay.querySelector('.panel') as HTMLElement | null;
     if (!field || !panel) return;
     const position = computePopoverPosition(field.getBoundingClientRect(), panel.getBoundingClientRect());
@@ -780,6 +935,19 @@ export class UITimePicker extends ElementBase {
     this._setOpen(false, 'escape');
   }
 
+  private _cacheDomRefs(): void {
+    this._labelEl = this.root.querySelector('.label') as HTMLElement | null;
+    this._labelTextEl = this.root.querySelector('.label-text') as HTMLElement | null;
+    this._requiredEl = this.root.querySelector('.required') as HTMLElement | null;
+    this._fieldEl = this.root.querySelector('.field') as HTMLElement | null;
+    this._inputEl = this.root.querySelector('.input') as HTMLInputElement | null;
+    this._clearBtn = this.root.querySelector('.btn[data-action="clear"]') as HTMLButtonElement | null;
+    this._toggleBtn = this.root.querySelector('.btn[data-action="toggle"]') as HTMLButtonElement | null;
+    this._hintEl = this.root.querySelector('.hint') as HTMLElement | null;
+    this._errorEl = this.root.querySelector('.error') as HTMLElement | null;
+    this._hiddenInputEl = this.root.querySelector('.hidden-input') as HTMLInputElement | null;
+  }
+
   private _updateHostState(): void {
     if (!this._hasView) return;
     const label = this.getAttribute('label') || '';
@@ -793,46 +961,38 @@ export class UITimePicker extends ElementBase {
     const disabled = this._isDisabled();
     const t = this._translations();
 
-    const labelEl = this.root.querySelector('.label') as HTMLElement | null;
-    const labelTextEl = this.root.querySelector('.label-text') as HTMLElement | null;
-    const requiredEl = this.root.querySelector('.required') as HTMLElement | null;
-    const inputEl = this.root.querySelector('.input') as HTMLInputElement | null;
-    const clearBtn = this.root.querySelector('.btn[data-action="clear"]') as HTMLButtonElement | null;
-    const toggleBtn = this.root.querySelector('.btn[data-action="toggle"]') as HTMLButtonElement | null;
-    const hintEl = this.root.querySelector('.hint') as HTMLElement | null;
-    const errorEl = this.root.querySelector('.error') as HTMLElement | null;
-    const hiddenInput = this.root.querySelector('.hidden-input') as HTMLInputElement | null;
-
-    if (labelEl) labelEl.hidden = !label;
-    if (labelTextEl) labelTextEl.textContent = label;
-    if (requiredEl) requiredEl.hidden = !this.hasAttribute('required');
-    if (inputEl) {
-      if (inputEl.value !== display) inputEl.value = display;
-      inputEl.placeholder = this._withSeconds() ? t.timePlaceholderSeconds : t.timePlaceholder;
-      inputEl.readOnly = !this._allowInput() || this._isReadonly();
-      inputEl.disabled = disabled;
-      inputEl.required = this.hasAttribute('required');
+    if (this._labelEl) this._labelEl.hidden = !label;
+    if (this._labelTextEl) this._labelTextEl.textContent = label;
+    if (this._requiredEl) this._requiredEl.hidden = !this.hasAttribute('required');
+    if (this._inputEl) {
+      if (this._inputEl.value !== display) this._inputEl.value = display;
+      this._inputEl.placeholder = this._withSeconds() ? t.timePlaceholderSeconds : t.timePlaceholder;
+      this._inputEl.readOnly = !this._allowInput() || this._isReadonly();
+      this._inputEl.disabled = disabled;
+      this._inputEl.required = this.hasAttribute('required');
     }
-    if (clearBtn) {
-      clearBtn.hidden = !(this._clearable() && hasValue);
-      clearBtn.setAttribute('aria-label', t.clear);
+    if (this._clearBtn) {
+      this._clearBtn.hidden = !(this._clearable() && hasValue);
+      this._clearBtn.disabled = disabled || this._isReadonly();
+      this._clearBtn.setAttribute('aria-label', t.clear);
     }
-    if (toggleBtn) {
-      toggleBtn.hidden = isInline;
-      toggleBtn.setAttribute('aria-label', t.toggleCalendar);
+    if (this._toggleBtn) {
+      this._toggleBtn.hidden = isInline;
+      this._toggleBtn.disabled = disabled || this._isReadonly();
+      this._toggleBtn.setAttribute('aria-label', t.toggleCalendar);
     }
-    if (hintEl) {
-      hintEl.hidden = !hint;
-      hintEl.textContent = hint;
+    if (this._hintEl) {
+      this._hintEl.hidden = !hint;
+      this._hintEl.textContent = hint;
     }
-    if (errorEl) {
-      errorEl.hidden = !error;
-      errorEl.textContent = error;
+    if (this._errorEl) {
+      this._errorEl.hidden = !error;
+      this._errorEl.textContent = error;
     }
-    if (hiddenInput) {
-      hiddenInput.disabled = !name;
-      hiddenInput.name = name;
-      hiddenInput.value = this._value || '';
+    if (this._hiddenInputEl) {
+      this._hiddenInputEl.disabled = !name;
+      this._hiddenInputEl.name = name;
+      this._hiddenInputEl.value = this._value || '';
     }
 
     if (!isInline && this._open) this._syncOverlayState();
@@ -848,16 +1008,17 @@ export class UITimePicker extends ElementBase {
             <span class="required">*</span>
           </label>
           <div class="field" part="field input">
-            <span class="icon" part="icon">🕒</span>
+            <span class="icon" part="icon">${CLOCK_ICON}</span>
             <input class="input" part="input" />
-            <button type="button" class="btn" part="clear" data-action="clear">✕</button>
-            <button type="button" class="btn" part="toggle" data-action="toggle">▾</button>
+            <button type="button" class="btn" part="clear" data-action="clear">${CLEAR_ICON}</button>
+            <button type="button" class="btn" part="toggle" data-action="toggle">${CHEVRON_ICON}</button>
           </div>
           <div class="hint" part="hint"></div>
           <div class="error" part="error" role="alert"></div>
           <input class="hidden-input" type="hidden" disabled />
         </div>
       `, { force: true });
+      this._cacheDomRefs();
       this._hasView = true;
     }
     this._updateHostState();

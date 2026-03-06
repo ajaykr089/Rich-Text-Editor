@@ -56,13 +56,17 @@ const style = `
     border-radius: var(--ui-box-radius);
     box-shadow: var(--ui-box-shadow);
     backdrop-filter: var(--ui-box-backdrop);
+    transition: none;
+    font-family: var(--ui-box-font);
+  }
+
+  :host([data-ui-ready]) {
     transition:
       background-color var(--ui-box-duration) cubic-bezier(0.2, 0.8, 0.2, 1),
       border-color var(--ui-box-duration) cubic-bezier(0.2, 0.8, 0.2, 1),
       box-shadow var(--ui-box-duration) cubic-bezier(0.2, 0.8, 0.2, 1),
       transform var(--ui-box-duration) cubic-bezier(0.2, 0.8, 0.2, 1),
       opacity var(--ui-box-duration) cubic-bezier(0.2, 0.8, 0.2, 1);
-    font-family: var(--ui-box-font);
   }
 
   :host([variant="surface"]) {
@@ -381,6 +385,7 @@ export class UIBox extends ElementBase {
   private _managedTabIndex = false;
   private _managedAriaDisabled = false;
   private _managedAriaBusy = false;
+  private _readyFrame: number | null = null;
 
   constructor() {
     super();
@@ -392,10 +397,28 @@ export class UIBox extends ElementBase {
     this.addEventListener('keydown', this._onInteractiveKeyDown);
     this._syncInteractiveA11y();
     this._syncBusyState();
+    if (!this.hasAttribute('data-ui-ready')) {
+      if (typeof requestAnimationFrame === 'function') {
+        this._readyFrame = requestAnimationFrame(() => {
+          this._readyFrame = null;
+          this.setAttribute('data-ui-ready', '');
+        });
+      } else {
+        this._readyFrame = window.setTimeout(() => {
+          this._readyFrame = null;
+          this.setAttribute('data-ui-ready', '');
+        }, 16) as unknown as number;
+      }
+    }
   }
 
   disconnectedCallback() {
     this.removeEventListener('keydown', this._onInteractiveKeyDown);
+    if (this._readyFrame != null) {
+      if (typeof cancelAnimationFrame === 'function') cancelAnimationFrame(this._readyFrame);
+      clearTimeout(this._readyFrame);
+      this._readyFrame = null;
+    }
     super.disconnectedCallback();
   }
 

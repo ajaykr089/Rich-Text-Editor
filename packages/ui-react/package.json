@@ -41,6 +41,7 @@
     "react-dom": ">=16.8 <21"
   },
   "dependencies": {
+    "@editora/toast": "^2.0.4",
     "@editora/ui-core": "^0.1.3"
   },
   "keywords": [

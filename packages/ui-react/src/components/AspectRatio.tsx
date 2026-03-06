@@ -1,4 +1,6 @@
 import * as React from 'react';
+
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? React.useLayoutEffect : React.useEffect;
 import { warnIfElementNotRegistered } from './_internals';
 
 export interface AspectRatioProps extends React.HTMLAttributes<HTMLElement> {
@@ -32,7 +34,7 @@ export const AspectRatio = React.forwardRef<HTMLElement, AspectRatioProps>(funct
     warnIfElementNotRegistered('ui-aspect-ratio', 'AspectRatio');
   }, []);
 
-  React.useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const element = ref.current;
     if (!element) return;
 

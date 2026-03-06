@@ -258,6 +258,28 @@ const style = `
     --ui-drtp-surface: linear-gradient(180deg, color-mix(in srgb, #0f172a 84%, #1e293b), #0f172a);
     --ui-drtp-shadow: 0 18px 36px rgba(2, 6, 23, 0.48);
   }
+
+  @media (forced-colors: active) {
+    .field,
+    .inline-panel {
+      border-color: CanvasText;
+      background: Canvas;
+      box-shadow: none;
+    }
+
+    .btn,
+    .preset,
+    .action {
+      border-color: CanvasText;
+      background: Canvas;
+      color: CanvasText;
+    }
+
+    .btn:focus-visible,
+    .action:focus-visible {
+      outline-color: Highlight;
+    }
+  }
 `;
 
 const overlayStyle = `
@@ -457,6 +479,40 @@ const overlayStyle = `
 
   @media (prefers-reduced-motion: reduce) {
     .panel, .sheet, .action, .preset { animation: none !important; transition: none !important; }
+  }
+
+  @media (forced-colors: active) {
+    .panel,
+    .sheet,
+    .time-card {
+      border-color: CanvasText;
+      background: Canvas;
+      color: CanvasText;
+      box-shadow: none;
+    }
+
+    .sheet-backdrop {
+      background: color-mix(in srgb, CanvasText 36%, transparent);
+    }
+
+    .head-meta,
+    .time-col-label,
+    .time-row-label {
+      color: CanvasText;
+    }
+
+    .time-row select,
+    .preset,
+    .action {
+      border-color: CanvasText;
+      background: Canvas;
+      color: CanvasText;
+    }
+
+    .time-row select:focus-visible,
+    .action:focus-visible {
+      outline-color: Highlight;
+    }
   }
 
   @keyframes ui-drtp-pop {

@@ -1,4 +1,6 @@
-import React, { useEffect, useImperativeHandle, useRef } from 'react';
+import React, { useEffect, useLayoutEffect, useImperativeHandle, useRef } from 'react';
+
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 export type WizardChangeDetail = {
   index: number;
@@ -100,7 +102,7 @@ export const Wizard = React.forwardRef<HTMLElement, WizardProps>(function Wizard
     };
   }, [onBeforeChange, onChange, onStepChange, onComplete]);
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
 

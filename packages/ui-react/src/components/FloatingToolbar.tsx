@@ -1,4 +1,6 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useLayoutEffect, useRef } from 'react';
+
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 import { warnIfElementNotRegistered } from './_internals';
 
 type UIFloatingToolbarElement = HTMLElement & {
@@ -85,7 +87,7 @@ export function FloatingToolbar(props: FloatingToolbarProps) {
     };
   }, [onOpen, onClose, onOpenChange, onRequestClose]);
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
 

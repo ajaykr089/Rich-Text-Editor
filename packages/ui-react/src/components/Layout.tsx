@@ -1,4 +1,6 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useLayoutEffect, useRef } from 'react';
+
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 type LayoutMode = 'dashboard' | 'split' | 'stack';
 type LayoutVariant = 'default' | 'flat' | 'elevated' | 'glass' | 'contrast';
@@ -48,7 +50,7 @@ export const Layout = React.forwardRef<HTMLElement, Props>(function Layout(
     return () => el.removeEventListener('layoutchange', handler as EventListener);
   }, [onLayoutChange]);
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
 

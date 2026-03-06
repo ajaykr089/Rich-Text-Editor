@@ -1,4 +1,6 @@
-import React, { useEffect, useImperativeHandle, useRef } from 'react';
+import React, { useEffect, useLayoutEffect, useImperativeHandle, useRef } from 'react';
+
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 type ToggleDetail = {
   pressed: boolean;
@@ -15,6 +17,8 @@ export type ToggleProps = Omit<React.HTMLAttributes<HTMLElement>, 'onChange' | '
   size?: 'sm' | 'md' | 'lg';
   variant?: 'default' | 'soft' | 'outline' | 'contrast' | 'minimal';
   tone?: 'brand' | 'success' | 'warning' | 'danger';
+  shape?: 'default' | 'square' | 'pill';
+  elevation?: 'default' | 'none';
   name?: string;
   value?: string;
   required?: boolean;
@@ -34,6 +38,8 @@ export const Toggle = React.forwardRef<HTMLElement, ToggleProps>(function Toggle
     size,
     variant,
     tone,
+    shape,
+    elevation,
     name,
     value,
     required,
@@ -72,7 +78,7 @@ export const Toggle = React.forwardRef<HTMLElement, ToggleProps>(function Toggle
     };
   }, [onInput, onChange]);
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
 
@@ -99,11 +105,13 @@ export const Toggle = React.forwardRef<HTMLElement, ToggleProps>(function Toggle
     syncAttr('size', size && size !== 'md' ? size : null);
     syncAttr('variant', variant && variant !== 'default' ? variant : null);
     syncAttr('tone', tone && tone !== 'brand' ? tone : null);
+    syncAttr('shape', shape && shape !== 'default' ? shape : null);
+    syncAttr('elevation', elevation && elevation !== 'default' ? elevation : null);
     syncAttr('name', name || null);
     syncAttr('value', value || null);
     syncAttr('icon-on', iconOn || null);
     syncAttr('icon-off', iconOff || null);
-  }, [pressed, disabled, loading, headless, required, size, variant, tone, name, value, iconOn, iconOff]);
+  }, [pressed, disabled, loading, headless, required, size, variant, tone, shape, elevation, name, value, iconOn, iconOff]);
 
   return React.createElement('ui-toggle', { ref, ...rest }, children);
 });

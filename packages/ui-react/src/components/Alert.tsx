@@ -1,4 +1,6 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useLayoutEffect, useRef } from 'react';
+
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 export type AlertProps = Omit<React.HTMLAttributes<HTMLElement>, 'onClose'> & {
   children?: React.ReactNode;
@@ -38,7 +40,7 @@ export function Alert(props: AlertProps) {
     return () => el.removeEventListener('close', onCloseHandler as EventListener);
   }, [onClose]);
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
 

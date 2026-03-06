@@ -1,4 +1,6 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useLayoutEffect, useRef } from 'react';
+
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 export type BadgeRemoveDetail = {
   text: string;
@@ -58,7 +60,7 @@ export function Badge(props: BadgeProps) {
     return () => el.removeEventListener('remove', onRemoveHandler as EventListener);
   }, [onRemove]);
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
 

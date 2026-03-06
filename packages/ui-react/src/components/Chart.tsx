@@ -1,4 +1,6 @@
-import React, { useEffect, useImperativeHandle, useRef } from 'react';
+import React, { useEffect, useLayoutEffect, useImperativeHandle, useRef } from 'react';
+
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 import { warnIfElementNotRegistered } from './_internals';
 
 export type ChartPoint = { label: string; value: number; tone?: string };
@@ -79,7 +81,7 @@ export const Chart = React.forwardRef<HTMLElement, ChartProps>(function Chart(
     };
   }, [onPointSelect]);
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
 

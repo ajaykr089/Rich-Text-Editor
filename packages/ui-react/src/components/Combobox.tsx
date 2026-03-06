@@ -1,4 +1,6 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useLayoutEffect, useRef } from 'react';
+
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 type ComboboxProps = React.HTMLAttributes<HTMLElement> & {
   children?: React.ReactNode;
@@ -129,7 +131,7 @@ export function Combobox(props: ComboboxProps) {
     };
   }, [onChange, onInput, onDebouncedInput, onSelect, onOpen, onClose, onOpenDetail, onCloseDetail, onClear]);
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
 

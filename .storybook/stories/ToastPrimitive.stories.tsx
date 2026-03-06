@@ -8,12 +8,12 @@ export default {
 
 export const Playground = () => {
   const ref = React.useRef<ToastElement | null>(null);
-  const [lastToastId, setLastToastId] = React.useState<number | null>(null);
+  const [lastToastId, setLastToastId] = React.useState<string | number | null>(null);
   const [lastEvent, setLastEvent] = React.useState<string>('none');
 
   const showToast = (message: string, duration = 2200) => {
     const id = ref.current?.show(message, { duration });
-    if (typeof id === 'number') setLastToastId(id);
+    if (id != null) setLastToastId(id);
   };
 
   return (

@@ -1,4 +1,6 @@
-import React, { useEffect, useImperativeHandle, useRef } from 'react';
+import React, { useEffect, useImperativeHandle, useLayoutEffect, useRef } from 'react';
+
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 type TextareaDetail = {
   value: string;
@@ -118,7 +120,7 @@ export const Textarea = React.forwardRef<HTMLElement, TextareaProps>(function Te
     };
   }, [onChange, onInput, onDebouncedInput, onClear]);
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
 

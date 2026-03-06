@@ -1,4 +1,6 @@
-import React, { useEffect, useImperativeHandle, useRef } from 'react';
+import React, { useEffect, useImperativeHandle, useLayoutEffect, useRef } from 'react';
+
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 export type InputProps = React.HTMLAttributes<HTMLElement> & {
   children?: React.ReactNode;
@@ -122,7 +124,7 @@ export const Input = React.forwardRef<HTMLElement, InputProps>(function Input(pr
     };
   }, [onChange, onInput, onDebouncedInput, onClear]);
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
 

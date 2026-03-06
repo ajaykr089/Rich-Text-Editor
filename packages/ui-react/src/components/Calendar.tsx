@@ -1,4 +1,6 @@
-import React, { useEffect, useImperativeHandle, useRef } from 'react';
+import React, { useEffect, useLayoutEffect, useImperativeHandle, useRef } from 'react';
+
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 import { serializeTranslations, warnIfElementNotRegistered } from './_internals';
 
 export type CalendarEvent = {
@@ -136,7 +138,7 @@ export const Calendar = React.forwardRef<HTMLElement, CalendarProps>(function Ca
     };
   }, [onSelect, onChange, onCalendarChange, onMonthChange, onValueChange]);
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
 

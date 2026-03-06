@@ -1,4 +1,5 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useLayoutEffect, useRef } from 'react';
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 import { warnIfElementNotRegistered } from './_internals';
 
 type UICommandPaletteElement = HTMLElement;
@@ -21,11 +22,15 @@ export function CommandPalette(props: Props) {
     };
 
     el.addEventListener('select', handler as EventListener);
+    return () => el.removeEventListener('select', handler as EventListener);
+  }, [onSelect]);
+
+  useIsomorphicLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
     if (open) el.setAttribute('open', '');
     else el.removeAttribute('open');
-
-    return () => el.removeEventListener('select', handler as EventListener);
-  }, [open, onSelect]);
+  }, [open]);
 
   return React.createElement('ui-command-palette', { ref, ...rest }, children);
 }

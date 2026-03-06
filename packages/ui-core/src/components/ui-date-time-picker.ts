@@ -280,6 +280,27 @@ const style = `
       animation: none !important;
     }
   }
+
+  @media (forced-colors: active) {
+    .field,
+    .inline-panel {
+      border-color: CanvasText;
+      background: Canvas;
+      box-shadow: none;
+    }
+
+    .btn,
+    .action {
+      border: 1px solid CanvasText;
+      background: Canvas;
+      color: CanvasText;
+    }
+
+    .btn:focus-visible,
+    .action:focus-visible {
+      outline-color: Highlight;
+    }
+  }
 `;
 
 const overlayStyle = `
@@ -406,6 +427,38 @@ const overlayStyle = `
 
   @media (prefers-reduced-motion: reduce) {
     .panel, .sheet, .action { animation: none !important; transition: none !important; }
+  }
+
+  @media (forced-colors: active) {
+    .panel,
+    .sheet,
+    .time-panel {
+      border-color: CanvasText;
+      background: Canvas;
+      color: CanvasText;
+      box-shadow: none;
+    }
+
+    .sheet-backdrop {
+      background: color-mix(in srgb, CanvasText 36%, transparent);
+    }
+
+    .time-grid label,
+    .head-meta {
+      color: CanvasText;
+    }
+
+    .time-grid select,
+    .action {
+      border-color: CanvasText;
+      background: Canvas;
+      color: CanvasText;
+    }
+
+    .time-grid select:focus-visible,
+    .action:focus-visible {
+      outline-color: Highlight;
+    }
   }
 
   @keyframes ui-dtp-pop {

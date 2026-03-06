@@ -5,7 +5,9 @@
     "baseUrl": ".",
     "paths": {
       "@editora/ui-core": ["../ui-core/dist/index"],
-      "@editora/ui-core/*": ["../ui-core/dist/*"]
+      "@editora/ui-core/*": ["../ui-core/dist/*"],
+      "@editora/toast": ["../editora-toast/dist/index"],
+      "@editora/toast/*": ["../editora-toast/dist/*"]
     },
     "outDir": "dist",
     "rootDir": "src",

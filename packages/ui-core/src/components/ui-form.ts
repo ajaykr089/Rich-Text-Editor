@@ -54,6 +54,10 @@ const style = `
     border-radius: var(--ui-form-radius);
     box-shadow: var(--ui-form-shadow);
     padding: var(--ui-form-padding);
+    transition: none;
+  }
+
+  :host([data-ui-ready]) .form {
     transition: border-color 160ms ease, box-shadow 160ms ease, background-color 160ms ease, opacity 140ms ease;
   }
 
@@ -463,9 +467,11 @@ export class UIForm extends ElementBase {
   private _submitting = false;
   private _autosaveTimer: ReturnType<typeof setTimeout> | null = null;
   private _initTimer: ReturnType<typeof setTimeout> | null = null;
+  private _readyFrame: number | null = null;
   private _dirtyFrame: number | null = null;
   private _initialSnapshot = '';
   private _cleanValues: Record<string, any> = {};
+  private _baselineReady = false;
   private _dirty = false;
   private _dirtyAttrSyncing = false;
   private _uid = Math.random().toString(36).slice(2, 10);
@@ -518,8 +524,23 @@ export class UIForm extends ElementBase {
     this._initTimer = setTimeout(() => {
       const baseline = this.getValues();
       this._setBaseline(baseline, false);
+      this._baselineReady = true;
       this._initTimer = null;
     }, 0);
+
+    if (!this.hasAttribute('data-ui-ready')) {
+      if (typeof requestAnimationFrame === 'function') {
+        this._readyFrame = requestAnimationFrame(() => {
+          this._readyFrame = null;
+          this.setAttribute('data-ui-ready', '');
+        });
+      } else {
+        this._readyFrame = window.setTimeout(() => {
+          this._readyFrame = null;
+          this.setAttribute('data-ui-ready', '');
+        }, 16) as unknown as number;
+      }
+    }
   }
 
   override disconnectedCallback(): void {
@@ -531,6 +552,11 @@ export class UIForm extends ElementBase {
     if (this._initTimer) {
       clearTimeout(this._initTimer);
       this._initTimer = null;
+    }
+    if (this._readyFrame != null) {
+      if (typeof cancelAnimationFrame === 'function') cancelAnimationFrame(this._readyFrame);
+      clearTimeout(this._readyFrame);
+      this._readyFrame = null;
     }
     if (this._autosaveTimer) {
       clearTimeout(this._autosaveTimer);
@@ -834,6 +860,7 @@ export class UIForm extends ElementBase {
   private _setBaseline(values: Record<string, any>, emit = true): void {
     this._cleanValues = cloneValue(values || {});
     this._initialSnapshot = this._snapshot(this._cleanValues);
+    this._baselineReady = true;
     this._setDirty(false, emit);
   }
 
@@ -884,6 +911,7 @@ export class UIForm extends ElementBase {
   }
 
   private _refreshDirtyState(): void {
+    if (!this._baselineReady) return;
     const next = this._snapshot() !== this._initialSnapshot;
     this._setDirty(next);
 

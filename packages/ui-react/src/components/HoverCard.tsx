@@ -1,4 +1,6 @@
-import React, { useEffect, useImperativeHandle, useRef } from 'react';
+import React, { useEffect, useLayoutEffect, useImperativeHandle, useRef } from 'react';
+
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 type HoverCardElement = HTMLElement & {
   open: boolean;
@@ -68,14 +70,14 @@ export const HoverCard = React.forwardRef<HTMLElement, HoverCardProps>(function 
     };
   }, [onOpen, onClose, onChange]);
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const el = ref.current;
     if (!el || open == null) return;
     if (open) el.setAttribute('open', '');
     else el.removeAttribute('open');
   }, [open]);
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
 

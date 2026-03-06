@@ -17,6 +17,18 @@ type ComboboxOpenDetail = {
   source: ComboboxOpenSource;
 };
 
+const CLEAR_ICON = `
+  <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+    <path d="m6 6 8 8M14 6l-8 8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+  </svg>
+`;
+
+const CHEVRON_ICON = `
+  <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+    <path d="m5.6 7.6 4.4 4.6 4.4-4.6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+`;
+
 const style = `
   :host {
     --ui-combobox-width: var(--ui-width, 100%);
@@ -152,6 +164,12 @@ const style = `
       transform var(--ui-combobox-duration) var(--ui-combobox-ease);
   }
 
+  .icon-btn svg {
+    inline-size: 14px;
+    block-size: 14px;
+    pointer-events: none;
+  }
+
   .icon-btn:hover {
     background: color-mix(in srgb, var(--ui-combobox-text) 8%, transparent);
     color: var(--ui-combobox-text);
@@ -169,14 +187,6 @@ const style = `
   .icon-btn[disabled] {
     opacity: 0.45;
     cursor: not-allowed;
-  }
-
-  .clear-btn {
-    font-size: 12px;
-  }
-
-  .toggle-btn {
-    font-size: 11px;
   }
 
   .toggle-btn[data-open="true"] {
@@ -540,6 +550,7 @@ export class UICombobox extends ElementBase {
   private _suppressValueSync = false;
   private _globalListenersBound = false;
   private _nextOpenSource: ComboboxOpenSource = 'attribute';
+  private _optionsRefreshScheduled = false;
 
   constructor() {
     super();
@@ -558,10 +569,7 @@ export class UICombobox extends ElementBase {
     super.connectedCallback();
 
     this._observer = new MutationObserver(() => {
-      this._options = this._readOptions();
-      this._rebuildFiltered({ preserveHighlight: false });
-      this._renderList();
-      this._syncInputFromValue();
+      this._scheduleOptionsRefresh();
     });
     this._observer.observe(this, {
       childList: true,
@@ -587,6 +595,7 @@ export class UICombobox extends ElementBase {
       clearTimeout(this._debounceTimer);
       this._debounceTimer = null;
     }
+    this._optionsRefreshScheduled = false;
 
     if (this._formUnregister) {
       this._formUnregister();
@@ -1130,8 +1139,8 @@ export class UICombobox extends ElementBase {
             ${required ? 'required' : ''}
             ${maxLength ? `maxlength="${escapeHtml(maxLength)}"` : ''}
           />
-          <button type="button" part="clear" class="icon-btn clear-btn" aria-label="Clear value" hidden ${readOnly || loading ? 'disabled' : ''}>✕</button>
-          <button type="button" part="toggle" class="icon-btn toggle-btn" data-open="${this.open ? 'true' : 'false'}" aria-label="Toggle options" ${loading ? 'disabled' : ''}>▾</button>
+          <button type="button" part="clear" class="icon-btn clear-btn" aria-label="Clear value" hidden ${readOnly || loading ? 'disabled' : ''}>${CLEAR_ICON}</button>
+          <button type="button" part="toggle" class="icon-btn toggle-btn" data-open="${this.open ? 'true' : 'false'}" aria-label="Toggle options" ${loading ? 'disabled' : ''}>${CHEVRON_ICON}</button>
         </div>
         <div class="panel" id="${this._uid}-listbox" part="panel" role="listbox" aria-busy="${loading ? 'true' : 'false'}" data-state="${escapeHtml(state)}" ${this.open ? 'data-open="true" aria-hidden="false"' : 'hidden aria-hidden="true"'}></div>
       </div>
@@ -1253,6 +1262,23 @@ export class UICombobox extends ElementBase {
       if (this.hasAttribute('allow-custom')) this._commitCustomValue();
       else this._syncInputFromValue();
       this._closePanel('outside');
+      });
+  }
+
+  private _refreshOptionsFromDom(): void {
+    this._options = this._readOptions();
+    this._rebuildFiltered({ preserveHighlight: false });
+    this._renderList();
+    this._syncInputFromValue();
+  }
+
+  private _scheduleOptionsRefresh(): void {
+    if (this._optionsRefreshScheduled) return;
+    this._optionsRefreshScheduled = true;
+    queueMicrotask(() => {
+      this._optionsRefreshScheduled = false;
+      if (!this.isConnected) return;
+      this._refreshOptionsFromDom();
     });
   }
 

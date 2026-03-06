@@ -1,5 +1,11 @@
 import { ElementBase } from '../ElementBase';
 
+const CLEAR_ICON = `
+  <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+    <path d="m6 6 8 8M14 6l-8 8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+  </svg>
+`;
+
 const style = `
   :host {
     --ui-input-padding: var(--ui-padding, 10px 12px);
@@ -204,8 +210,13 @@ const style = `
     color: color-mix(in srgb, var(--ui-input-color) 74%, transparent);
     transition: background-color 140ms ease, color 140ms ease;
     padding: 0;
-    font-size: 13px;
-    line-height: 1;
+    line-height: 0;
+  }
+
+  .clear-btn svg {
+    inline-size: 14px;
+    block-size: 14px;
+    pointer-events: none;
   }
 
   .clear-btn:hover {
@@ -1043,7 +1054,7 @@ export class UIInput extends ElementBase {
             ${floatingLabel ? `<span class="floating-label" part="floating-label">${escapeHtml(labelAttr || placeholder || name || 'Input')}</span>` : ''}
           </div>
 
-          <button class="clear-btn" part="clear" aria-label="Clear" ${clearable && value && !disabled && !readOnly ? '' : 'hidden'}>✕</button>
+          <button class="clear-btn" part="clear" aria-label="Clear" ${clearable && value && !disabled && !readOnly ? '' : 'hidden'}>${CLEAR_ICON}</button>
 
           <span class="suffix" part="suffix"><slot name="suffix"></slot></span>
         </div>

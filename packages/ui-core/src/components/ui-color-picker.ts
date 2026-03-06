@@ -102,6 +102,11 @@ type PanelRefs = {
 
 const DEFAULT_COLOR = '#2563eb'
 const RECENT_STORAGE_KEY = 'editora:ui-color-picker:recent'
+const CHEVRON_ICON = `
+  <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+    <path d="m5.6 7.6 4.4 4.6 4.4-4.6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+`
 
 const style = `
   :host {
@@ -248,8 +253,17 @@ const style = `
   }
 
   .trigger-chevron {
-    font-size: 11px;
+    inline-size: 14px;
+    block-size: 14px;
+    display: inline-grid;
+    place-items: center;
     color: color-mix(in srgb, var(--ui-cp-text) 70%, transparent);
+  }
+
+  .trigger-chevron svg {
+    inline-size: 14px;
+    block-size: 14px;
+    pointer-events: none;
   }
 
   .panel-inline[hidden] {
@@ -1067,7 +1081,7 @@ export class UIColorPicker extends ElementBase {
           >
             <span class="trigger-preview" data-role="trigger-preview"></span>
             <span class="trigger-value" data-role="trigger-value"></span>
-            <span class="trigger-chevron" aria-hidden="true">▾</span>
+            <span class="trigger-chevron" aria-hidden="true">${CHEVRON_ICON}</span>
           </button>
         </div>
         <div class="panel-inline" data-role="inline-panel" part="popover">

@@ -1,4 +1,6 @@
-import React, { useEffect, useImperativeHandle, useRef } from 'react';
+import React, { useEffect, useLayoutEffect, useImperativeHandle, useRef } from 'react';
+
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 import { serializeTranslations } from './_internals';
 
 export type DateRangeTimePickerDetail = {
@@ -121,7 +123,7 @@ export const DateRangeTimePicker = React.forwardRef<HTMLElement, DateRangeTimePi
       };
     }, [onInput, onChange, onValueChange, onOpen, onClose, onInvalid]);
 
-    useEffect(() => {
+    useIsomorphicLayoutEffect(() => {
       const el = ref.current;
       if (!el) return;
       const syncAttr = (name: string, next: string | null) => {

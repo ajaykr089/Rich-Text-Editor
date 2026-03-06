@@ -31,7 +31,7 @@ export { Popover } from './Popover';
 export { Tabs } from './Tabs';
 export { Menu } from './Menu';
 export { Icon } from './Icon';
-export { ToastAPI, toast, toastApi } from './ToastAPI';
+export { ToastAPI, toast, toastApi, toastAdvanced, toastPro, toastLegacy } from './ToastAPI';
 export { Toast } from './Toast';
 export { FloatingToolbar } from './FloatingToolbar';
 export { BlockControls } from './BlockControls';

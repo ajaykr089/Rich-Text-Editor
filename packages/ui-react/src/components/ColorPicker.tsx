@@ -1,4 +1,6 @@
-import React, { useEffect, useImperativeHandle, useRef } from 'react'
+import React, { useEffect, useImperativeHandle, useLayoutEffect, useRef } from 'react'
+
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect
 
 export type ColorPickerColor = {
   r: number
@@ -151,7 +153,7 @@ export const ColorPicker = React.forwardRef<ColorPickerElement, ColorPickerProps
     }
   }, [onInput, onChange, onValueChange, onOpen, onClose, onOpenDetail, onCloseDetail, onInvalid])
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const el = ref.current
     if (!el) return
 

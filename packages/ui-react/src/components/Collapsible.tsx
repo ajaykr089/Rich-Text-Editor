@@ -1,4 +1,6 @@
 import * as React from 'react';
+
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? React.useLayoutEffect : React.useEffect;
 import { warnIfElementNotRegistered } from './_internals';
 
 export type CollapsibleState = 'idle' | 'loading' | 'error' | 'success';
@@ -76,7 +78,7 @@ export const Collapsible = React.forwardRef<HTMLElement, CollapsibleProps>(funct
     warnIfElementNotRegistered('ui-collapsible', 'Collapsible');
   }, []);
 
-  React.useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const element = ref.current;
     if (!element) return;
     setBooleanAttribute(element, 'open', open);

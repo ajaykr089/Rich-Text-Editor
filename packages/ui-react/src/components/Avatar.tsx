@@ -1,4 +1,6 @@
 import * as React from 'react';
+
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? React.useLayoutEffect : React.useEffect;
 import { warnIfElementNotRegistered } from './_internals';
 
 export interface AvatarProps extends Omit<React.HTMLAttributes<HTMLElement>, 'onLoad' | 'onError'> {
@@ -95,7 +97,7 @@ export const Avatar = React.forwardRef<HTMLElement, AvatarProps>(function Avatar
     };
   }, [onAvatarLoad, onAvatarError]);
 
-  React.useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const element = ref.current;
     if (!element) return;
 

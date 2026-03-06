@@ -1,4 +1,6 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useLayoutEffect, useRef } from 'react';
+
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 export type NavigationMenuChangeDetail = {
   selected: number;
@@ -49,7 +51,7 @@ export function NavigationMenu(props: NavigationMenuProps) {
     return () => el.removeEventListener('change', onChangeHandler as EventListener);
   }, [onChange, onSelect]);
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
 

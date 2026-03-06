@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useContext, useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { applyTheme, defaultTokens, registerThemeHost, ThemeTokens } from '@editora/ui-core';
 
 export type ThemeUpdater = ThemeTokens | Partial<ThemeTokens> | ((prev: ThemeTokens) => ThemeTokens | Partial<ThemeTokens>);
@@ -9,6 +9,7 @@ type ThemeContextValue = {
 };
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 type Props = {
   tokens?: Partial<ThemeTokens>;
@@ -100,14 +101,16 @@ export function ThemeProvider({ tokens, children, storageKey = 'editora.theme.to
     setCurrent((prev) => mergeThemeTokens(prev, tokens));
   }, [tokens]);
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     applyTheme(current);
     try {
       registerThemeHost(document.documentElement);
     } catch {
       // noop
     }
+  }, [current]);
 
+  useEffect(() => {
     if (typeof window === 'undefined' || !storageKey) return;
 
     const payload = JSON.stringify(current);
@@ -156,4 +159,3 @@ export function useTheme() {
 }
 
 export default ThemeProvider;
-

@@ -1,4 +1,6 @@
-import React, { useEffect, useImperativeHandle, useRef } from 'react';
+import React, { useEffect, useImperativeHandle, useLayoutEffect, useRef } from 'react';
+
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 type FormElement = HTMLElement & {
   submit: () => Promise<boolean>;
@@ -114,7 +116,7 @@ export const Form = React.forwardRef<HTMLElement, FormProps>(function Form(props
     };
   }, [onSubmit, onInvalid, onValidate, onAutosave, onDirtyChange]);
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
 
