@@ -224,4 +224,4 @@ function EnterpriseClinicalAccordion() {
   );
 }
 
-export const EnterpriseClinicalOps = () => <EnterpriseClinicalAccordion />;
+export const EnterpriseClinicalOps = EnterpriseClinicalAccordion;

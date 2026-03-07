@@ -215,4 +215,4 @@ function EnterpriseCareRoster() {
   );
 }
 
-export const EnterpriseCareTeam = () => <EnterpriseCareRoster />;
+export const EnterpriseCareTeam = EnterpriseCareRoster;

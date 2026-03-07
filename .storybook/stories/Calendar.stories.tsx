@@ -1,5 +1,5 @@
 import React from 'react';
-import type { Meta } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react';
 import { Badge, Box, Button, Calendar, Flex, Grid } from '@editora/ui-react';
 import { toastAdvanced } from '@editora/toast';
 import {
@@ -30,6 +30,7 @@ const meta: Meta<typeof Calendar> = {
 };
 
 export default meta;
+type Story = StoryObj<typeof Calendar>;
 
 const hospitalEvents = [
   { date: '2026-03-05', title: 'ICU handover', tone: 'info' as const },
@@ -153,55 +154,179 @@ function EnterpriseClinicalCalendar() {
   );
 }
 
-export const EnterpriseSchedule = () => <EnterpriseClinicalCalendar />;
+const enterpriseScheduleSource = `import { Badge, Box, Button, Calendar, Flex, Grid } from '@editora/ui-react';
+import { toastAdvanced } from '@editora/toast';
+import { AlertTriangleIcon, CalendarIcon, CheckCircleIcon, RefreshCwIcon } from '@editora/react-icons';
 
-const PlaygroundTemplate = (args: Record<string, unknown>) => (
-  <Calendar
-    {...args}
-    year={2026}
-    month={3}
-    events={hospitalEvents}
-    value="2026-03-09"
-    ariaLabel="Playground calendar"
-  />
-);
+const hospitalEvents = [
+  { date: '2026-03-05', title: 'ICU handover', tone: 'info' },
+  { date: '2026-03-09', title: 'Surgery board', tone: 'success' },
+];
 
-export const Playground = PlaygroundTemplate.bind({});
-Playground.args = {
-  selection: 'single',
-  size: 'md',
-  bare: false,
-  state: 'idle',
-  tone: 'info',
-  eventsDisplay: 'dots',
-  outsideClick: 'navigate',
-  disabled: false,
-  readOnly: false,
+export function EnterpriseScheduleCalendar() {
+  const [value, setValue] = React.useState('2026-03-09');
+  const [view, setView] = React.useState({ year: 2026, month: 3 });
+  const [state, setState] = React.useState<'idle' | 'loading' | 'error' | 'success'>('idle');
+
+  return (
+    <Grid style={{ gap: 16, maxInlineSize: 1040 }}>
+      <Calendar
+        year={view.year}
+        month={view.month}
+        value={value}
+        events={hospitalEvents}
+        selection="single"
+        eventsDisplay="badges"
+        state={state}
+        onSelect={(detail) => {
+          setValue(detail.value);
+          toastAdvanced.info(\`Selected \${detail.value}\`);
+        }}
+        onMonthChange={(detail) => setView({ year: detail.year, month: detail.month })}
+        ariaLabel="Hospital schedule calendar"
+      />
+      <Flex style={{ gap: 8 }}>
+        <Badge tone="brand"><CalendarIcon size={12} />{value}</Badge>
+        <Button size="sm" variant="secondary" startIcon={<RefreshCwIcon size={14} />} onClick={() => setState('loading')}>Sync</Button>
+        <Button size="sm" variant="secondary" startIcon={<AlertTriangleIcon size={14} />} onClick={() => setState('error')}>Simulate Error</Button>
+        <Button size="sm" variant="secondary" startIcon={<CheckCircleIcon size={14} />} onClick={() => setState('success')}>Mark Synced</Button>
+      </Flex>
+    </Grid>
+  );
+}`;
+
+const playgroundSource = `import { Calendar } from '@editora/ui-react';
+
+<Calendar
+  year={2026}
+  month={3}
+  value="2026-03-09"
+  selection="single"
+  size="md"
+  state="idle"
+  tone="info"
+  eventsDisplay="dots"
+  outsideClick="navigate"
+  ariaLabel="Playground calendar"
+/>;
+`;
+
+const bareFlatSource = `import { Badge, Box, Calendar, Grid } from '@editora/ui-react';
+
+<Grid style={{ gap: 12, maxInlineSize: 760 }}>
+  <Box variant="elevated" p="14px" radius="xl" style={{ display: 'grid', gap: 8 }}>
+    <Badge tone="info">Bare calendar surface</Badge>
+    <Calendar
+      year={2026}
+      month={3}
+      value="2026-03-09"
+      selection="single"
+      eventsDisplay="dots"
+      tone="info"
+      bare
+      ariaLabel="Bare calendar"
+    />
+  </Box>
+</Grid>;
+`;
+
+const localizationSource = `import { Calendar } from '@editora/ui-react';
+
+<Calendar
+  year={2026}
+  month={3}
+  value="2026-03-09"
+  locale="fr-FR"
+  weekStart={1}
+  translations={JSON.stringify({
+    fr: {
+      today: 'Aujourd hui',
+      chooseMonthYear: 'Choisir mois/annee',
+      scheduleSynced: 'Planning a jour',
+    },
+  })}
+  ariaLabel="Localized calendar"
+/>;
+`;
+
+export const EnterpriseSchedule: Story = {
+  render: () => <EnterpriseClinicalCalendar />,
+  parameters: {
+    docs: {
+      source: {
+        type: 'code',
+        code: enterpriseScheduleSource,
+      },
+    },
+  },
 };
 
-export const BareFlat = () => (
-  <Grid style={{ gap: 12, maxInlineSize: 760 }}>
-    <Box variant="elevated" p="14px" radius="xl" style={{ display: 'grid', gap: 8 }}>
-      <Badge tone="info">Bare calendar surface</Badge>
-      <Box style={{ color: 'var(--ui-color-muted, #64748b)', fontSize: 13 }}>
-        `bare` removes calendar panel chrome (border/shadow/background) for flat UI surfaces.
-      </Box>
-      <Calendar
-        year={2026}
-        month={3}
-        value="2026-03-09"
-        selection="single"
-        events={hospitalEvents}
-        eventsDisplay="dots"
-        tone="info"
-        bare
-        ariaLabel="Bare calendar"
-      />
-    </Box>
-  </Grid>
-);
+export const Playground: Story = {
+  render: (args) => (
+    <Calendar
+      {...args}
+      year={2026}
+      month={3}
+      events={hospitalEvents}
+      value="2026-03-09"
+      ariaLabel="Playground calendar"
+    />
+  ),
+  args: {
+    selection: 'single',
+    size: 'md',
+    bare: false,
+    state: 'idle',
+    tone: 'info',
+    eventsDisplay: 'dots',
+    outsideClick: 'navigate',
+    disabled: false,
+    readOnly: false,
+  },
+  parameters: {
+    docs: {
+      source: {
+        type: 'code',
+        code: playgroundSource,
+      },
+    },
+  },
+};
 
-export const Localization = () => {
+export const BareFlat: Story = {
+  render: () => (
+    <Grid style={{ gap: 12, maxInlineSize: 760 }}>
+      <Box variant="elevated" p="14px" radius="xl" style={{ display: 'grid', gap: 8 }}>
+        <Badge tone="info">Bare calendar surface</Badge>
+        <Box style={{ color: 'var(--ui-color-muted, #64748b)', fontSize: 13 }}>
+          `bare` removes calendar panel chrome (border/shadow/background) for flat UI surfaces.
+        </Box>
+        <Calendar
+          year={2026}
+          month={3}
+          value="2026-03-09"
+          selection="single"
+          events={hospitalEvents}
+          eventsDisplay="dots"
+          tone="info"
+          bare
+          ariaLabel="Bare calendar"
+        />
+      </Box>
+    </Grid>
+  ),
+  parameters: {
+    docs: {
+      source: {
+        type: 'code',
+        code: bareFlatSource,
+      },
+    },
+  },
+};
+
+export const Localization: Story = {
+  render: () => {
   const [locale, setLocale] = React.useState<'en-US' | 'zh-CN' | 'fr-FR'>('en-US');
   const [value, setValue] = React.useState('2026-03-09');
   const [weekStart, setWeekStart] = React.useState<0 | 1 | 6>(1);
@@ -297,4 +422,13 @@ export const Localization = () => {
       </Grid>
     </Grid>
   );
+  },
+  parameters: {
+    docs: {
+      source: {
+        type: 'code',
+        code: localizationSource,
+      },
+    },
+  },
 };

@@ -194,5 +194,5 @@ function EnterpriseAlertCenter() {
   );
 }
 
-export const EnterpriseClinicalAlerts = () => <EnterpriseAlertCenter />;
+export const EnterpriseClinicalAlerts = EnterpriseAlertCenter;
 

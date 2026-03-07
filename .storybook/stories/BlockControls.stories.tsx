@@ -231,4 +231,4 @@ function EnterpriseClinicalComposerControls() {
   );
 }
 
-export const EnterpriseClinicalComposer = () => <EnterpriseClinicalComposerControls />;
+export const EnterpriseClinicalComposer = EnterpriseClinicalComposerControls;

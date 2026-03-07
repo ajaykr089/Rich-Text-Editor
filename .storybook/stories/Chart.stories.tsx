@@ -235,7 +235,7 @@ function EnterpriseChartDashboard() {
   );
 }
 
-export const EnterpriseAnalytics = () => <EnterpriseChartDashboard />;
+export const EnterpriseAnalytics = EnterpriseChartDashboard;
 
 const PlaygroundTemplate = (args: Record<string, unknown>) => (
   <Box style={{ maxInlineSize: 860 }}>

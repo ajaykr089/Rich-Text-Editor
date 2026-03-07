@@ -174,7 +174,7 @@ function EnterpriseOperationsBoxes() {
   );
 }
 
-export const EnterpriseCareOps = () => <EnterpriseOperationsBoxes />;
+export const EnterpriseCareOps = EnterpriseOperationsBoxes;
 
 const PlaygroundTemplate = (args: Record<string, unknown>) => (
   <Box p="16px" style={{ maxWidth: 460 }} {...args}>

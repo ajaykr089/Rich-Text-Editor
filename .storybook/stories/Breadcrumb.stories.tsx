@@ -135,7 +135,7 @@ function EnterprisePatientJourneyBreadcrumb() {
   );
 }
 
-export const EnterpriseClinicalJourney = () => <EnterprisePatientJourneyBreadcrumb />;
+export const EnterpriseClinicalJourney = EnterprisePatientJourneyBreadcrumb;
 
 const PlaygroundTemplate = (args: Record<string, unknown>) => (
   <Breadcrumb {...args}>

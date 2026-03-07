@@ -126,7 +126,7 @@ function EnterpriseClinicalActions() {
   );
 }
 
-export const EnterpriseWorkflow = () => <EnterpriseClinicalActions />;
+export const EnterpriseWorkflow = EnterpriseClinicalActions;
 
 const PlaygroundTemplate = (args: Record<string, unknown>) => (
   <Button {...args} startIcon={<SaveIcon size={14} />} endIcon={<CheckCircleIcon size={14} />}>

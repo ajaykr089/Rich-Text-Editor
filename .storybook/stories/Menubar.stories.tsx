@@ -52,7 +52,7 @@ function EditorMenubar(args: any) {
   );
 }
 
-export const Playground = (args: any) => <EditorMenubar {...args} />;
+export const Playground = EditorMenubar;
 Playground.args = {
   selected: 0,
   open: false,
@@ -83,7 +83,7 @@ export const Interactive = () => {
   );
 };
 
-export const OpenByDefault = (args: any) => <EditorMenubar {...args} />;
+export const OpenByDefault = EditorMenubar;
 OpenByDefault.args = {
   selected: 1,
   open: true

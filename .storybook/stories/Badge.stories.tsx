@@ -169,7 +169,7 @@ function EnterpriseCareBadges() {
   );
 }
 
-export const EnterpriseTriageOps = () => <EnterpriseCareBadges />;
+export const EnterpriseTriageOps = EnterpriseCareBadges;
 
 const PlaygroundTemplate = (args: Record<string, unknown>) => <Badge {...args} />;
 

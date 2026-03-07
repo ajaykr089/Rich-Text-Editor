@@ -124,5 +124,5 @@ function EnterpriseOpsHeader() {
   );
 }
 
-export const EnterpriseCommandCenter = () => <EnterpriseOpsHeader />;
+export const EnterpriseCommandCenter = EnterpriseOpsHeader;
 

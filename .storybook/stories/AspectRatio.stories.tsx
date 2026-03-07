@@ -169,5 +169,5 @@ function EnterpriseMediaCanvas() {
   );
 }
 
-export const EnterpriseMediaOps = () => <EnterpriseMediaCanvas />;
+export const EnterpriseMediaOps = EnterpriseMediaCanvas;
 

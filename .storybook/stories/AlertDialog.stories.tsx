@@ -170,5 +170,5 @@ function EnterpriseIncidentFlow() {
   );
 }
 
-export const EnterpriseIncidentResponse = () => <EnterpriseIncidentFlow />;
+export const EnterpriseIncidentResponse = EnterpriseIncidentFlow;
 
