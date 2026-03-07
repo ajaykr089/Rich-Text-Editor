@@ -1,4 +1,7 @@
-import React, { useEffect, useImperativeHandle, useRef } from 'react';
+import React, { useEffect, useLayoutEffect, useImperativeHandle, useRef } from 'react';
+
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
+import { serializeTranslations } from './_internals';
 
 export type DateRangeTimePickerDetail = {
   mode: 'datetimerange';
@@ -16,8 +19,10 @@ export type DateRangeTimePickerProps = Omit<React.HTMLAttributes<HTMLElement>, '
   min?: string;
   max?: string;
   locale?: string;
+  translations?: Record<string, string> | string;
   weekStart?: 0 | 1 | 6;
   size?: 'sm' | 'md' | 'lg';
+  bare?: boolean;
   variant?: 'default' | 'contrast';
   step?: number;
   autoNormalize?: boolean;
@@ -29,6 +34,7 @@ export type DateRangeTimePickerProps = Omit<React.HTMLAttributes<HTMLElement>, '
   closeOnSelect?: boolean;
   clearable?: boolean;
   mode?: 'popover' | 'inline';
+  showFooter?: boolean;
   label?: string;
   hint?: string;
   error?: string;
@@ -50,8 +56,10 @@ export const DateRangeTimePicker = React.forwardRef<HTMLElement, DateRangeTimePi
       min,
       max,
       locale,
+      translations,
       weekStart,
       size,
+      bare,
       variant,
       step,
       autoNormalize,
@@ -63,6 +71,7 @@ export const DateRangeTimePicker = React.forwardRef<HTMLElement, DateRangeTimePi
       closeOnSelect,
       clearable,
       mode,
+      showFooter,
       label,
       hint,
       error,
@@ -114,7 +123,7 @@ export const DateRangeTimePicker = React.forwardRef<HTMLElement, DateRangeTimePi
       };
     }, [onInput, onChange, onValueChange, onOpen, onClose, onInvalid]);
 
-    useEffect(() => {
+    useIsomorphicLayoutEffect(() => {
       const el = ref.current;
       if (!el) return;
       const syncAttr = (name: string, next: string | null) => {
@@ -138,8 +147,10 @@ export const DateRangeTimePicker = React.forwardRef<HTMLElement, DateRangeTimePi
       syncAttr('min', min ?? null);
       syncAttr('max', max ?? null);
       syncAttr('locale', locale ?? null);
+      syncAttr('translations', serializeTranslations(translations));
       syncAttr('week-start', typeof weekStart === 'number' ? String(weekStart) : null);
       syncAttr('size', size && size !== 'md' ? size : null);
+      syncBool('bare', bare);
       syncAttr('variant', variant && variant !== 'default' ? variant : null);
       syncAttr('step', typeof step === 'number' ? String(step) : null);
       syncBool('auto-normalize', autoNormalize);
@@ -151,6 +162,7 @@ export const DateRangeTimePicker = React.forwardRef<HTMLElement, DateRangeTimePi
       syncBool('close-on-select', closeOnSelect);
       syncBool('clearable', clearable);
       syncAttr('mode', mode && mode !== 'popover' ? mode : null);
+      syncAttr('show-footer', typeof showFooter === 'boolean' ? String(showFooter) : null);
       syncAttr('label', label ?? null);
       syncAttr('hint', hint ?? null);
       syncAttr('error', error ?? null);
@@ -162,8 +174,10 @@ export const DateRangeTimePicker = React.forwardRef<HTMLElement, DateRangeTimePi
       min,
       max,
       locale,
+      translations,
       weekStart,
       size,
+      bare,
       variant,
       step,
       autoNormalize,
@@ -175,6 +189,7 @@ export const DateRangeTimePicker = React.forwardRef<HTMLElement, DateRangeTimePi
       closeOnSelect,
       clearable,
       mode,
+      showFooter,
       label,
       hint,
       error
@@ -187,4 +202,3 @@ export const DateRangeTimePicker = React.forwardRef<HTMLElement, DateRangeTimePi
 DateRangeTimePicker.displayName = 'DateRangeTimePicker';
 
 export default DateRangeTimePicker;
-

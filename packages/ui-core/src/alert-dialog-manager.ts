@@ -75,6 +75,7 @@ export type AlertDialogCommonOptions = {
   closeOnBackdrop?: boolean;
   lockWhileLoading?: boolean;
   role?: 'alertdialog' | 'dialog';
+  tone?: 'neutral' | 'info' | 'success' | 'warning' | 'danger';
   size?: 'sm' | 'md' | 'lg';
   initialFocus?: string;
   checkbox?: AlertDialogCheckboxOptions;
@@ -187,6 +188,28 @@ function createDismissResult<T extends AnyResult>(
     source,
     reason
   } as T;
+}
+
+function normalizeDialogDismissSource(source?: AlertDialogDismissSource):
+  | 'esc'
+  | 'backdrop'
+  | 'close-icon'
+  | 'abort'
+  | 'unmount'
+  | 'replace'
+  | 'programmatic' {
+  if (
+    source === 'esc' ||
+    source === 'backdrop' ||
+    source === 'close-icon' ||
+    source === 'abort' ||
+    source === 'unmount' ||
+    source === 'replace' ||
+    source === 'programmatic'
+  ) {
+    return source;
+  }
+  return 'abort';
 }
 
 export type AlertDialogManagerApi = {
@@ -433,7 +456,7 @@ export class AlertDialogManager implements AlertDialogManagerApi {
     if (request.dialog) {
       const dialog = request.dialog;
       if (!fromDialogEvent && dialog.open) {
-        const dismissSource = result.source === 'unmount' ? 'unmount' : 'abort';
+        const dismissSource = normalizeDialogDismissSource(result.source);
         dialog.close('dismiss', dismissSource, result.reason);
       }
       if (dialog.parentElement) {
@@ -487,6 +510,7 @@ export class AlertDialogManager implements AlertDialogManagerApi {
       closeOnBackdrop: options.closeOnBackdrop,
       lockWhileLoading: options.lockWhileLoading ?? true,
       role: options.role || 'alertdialog',
+      tone: options.tone || (isAlert ? 'info' : isPrompt ? 'neutral' : 'warning'),
       size: options.size || 'md',
       initialFocus: options.initialFocus,
       ariaLabel: options.ariaLabel,

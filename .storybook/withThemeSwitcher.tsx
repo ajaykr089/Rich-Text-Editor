@@ -68,7 +68,7 @@ export const withThemeSwitcher = (Story, context) => {
           Switch to {nextThemeLabel}
         </Button>
       </div>
-      <div style={{ background: 'var(--ui-color-background)', color: 'var(--ui-color-text)', minHeight: '100vh', transition: 'background 0.2s, color 0.2s' }}>
+      <div style={{ background: 'var(--ui-color-background)', color: 'var(--ui-color-text)', minHeight: '100vh' }}>
         <Story {...context} />
       </div>
     </ThemeProvider>

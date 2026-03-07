@@ -1,10 +1,13 @@
-import React, { useEffect, useImperativeHandle, useRef } from 'react';
+import React, { useEffect, useLayoutEffect, useImperativeHandle, useRef } from 'react';
+
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 export type TimelineItem = {
   title: string;
   description?: string;
   time?: string;
   tone?: 'default' | 'success' | 'warning' | 'danger' | 'info';
+  active?: boolean;
 };
 
 export type TimelineProps = React.HTMLAttributes<HTMLElement> & {
@@ -21,7 +24,7 @@ export const Timeline = React.forwardRef<HTMLElement, TimelineProps>(function Ti
 
   useImperativeHandle(forwardedRef, () => ref.current as HTMLElement);
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
 

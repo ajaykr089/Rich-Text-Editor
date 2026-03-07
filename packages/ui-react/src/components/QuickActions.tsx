@@ -1,4 +1,6 @@
-import React, { useEffect, useImperativeHandle, useRef } from 'react';
+import React, { useEffect, useLayoutEffect, useImperativeHandle, useRef } from 'react';
+
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 export type QuickActionSelectDetail = {
   index: number;
@@ -74,7 +76,7 @@ export const QuickActions = React.forwardRef<HTMLElement, QuickActionsProps>(fun
     };
   }, [onSelect, onOpenChange, onToggle]);
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
 

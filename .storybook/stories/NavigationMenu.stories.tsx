@@ -47,7 +47,7 @@ function ProductMenu(props: any) {
   );
 }
 
-export const Default = (args: any) => <ProductMenu {...args} />;
+export const Default = ProductMenu;
 Default.args = {
   selected: 0,
   orientation: 'horizontal',

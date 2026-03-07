@@ -61,7 +61,7 @@ const style = `
     transform: translateY(0.5px);
   }
 
-  .control:focus-visible {
+  :host(:focus-visible) .control {
     box-shadow:
       0 0 0 3px color-mix(in srgb, var(--ui-toggle-focus) 28%, transparent),
       var(--ui-toggle-shadow);
@@ -108,10 +108,6 @@ const style = `
     white-space: nowrap;
   }
 
-  .description {
-    display: none;
-  }
-
   :host([size="sm"]) {
     --ui-toggle-padding-x: 10px;
     --ui-toggle-padding-y: 6px;
@@ -124,6 +120,18 @@ const style = `
     --ui-toggle-padding-y: 10px;
     --ui-toggle-height: 40px;
     --ui-toggle-radius: 11px;
+  }
+
+  :host([shape="square"]) {
+    --ui-toggle-radius: 4px;
+  }
+
+  :host([shape="pill"]) {
+    --ui-toggle-radius: 999px;
+  }
+
+  :host([elevation="none"]) {
+    --ui-toggle-shadow: none;
   }
 
   :host([variant="soft"]) {
@@ -215,6 +223,8 @@ const style = `
   }
 `;
 
+const CONTENT_ATTRS = new Set(['icon-on', 'icon-off', 'aria-label']);
+
 function isTruthy(raw: string | null): boolean {
   if (raw == null) return false;
   const normalized = String(raw).toLowerCase();
@@ -222,7 +232,7 @@ function isTruthy(raw: string | null): boolean {
 }
 
 function escapeHtml(value: string): string {
-  return value
+  return String(value)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
@@ -240,12 +250,15 @@ export class UIToggle extends ElementBase {
       'size',
       'variant',
       'tone',
+      'shape',
+      'elevation',
       'name',
       'value',
       'required',
       'icon-on',
       'icon-off',
-      'aria-label'
+      'aria-label',
+      'tabindex'
     ];
   }
 
@@ -270,6 +283,17 @@ export class UIToggle extends ElementBase {
     super.disconnectedCallback();
   }
 
+  override attributeChangedCallback(name: string, oldValue: string | null, newValue: string | null): void {
+    if (oldValue === newValue) return;
+
+    if (CONTENT_ATTRS.has(name)) {
+      super.attributeChangedCallback(name, oldValue, newValue);
+      return;
+    }
+
+    this._syncAria();
+  }
+
   get pressed(): boolean {
     return this.hasAttribute('pressed');
   }
@@ -291,6 +315,11 @@ export class UIToggle extends ElementBase {
   toggle(force?: boolean): void {
     if (this.disabled) return;
     const next = typeof force === 'boolean' ? force : !this.pressed;
+    if (next === this.pressed) {
+      this._syncAria();
+      return;
+    }
+
     this.pressed = next;
     this._syncAria();
 
@@ -308,22 +337,41 @@ export class UIToggle extends ElementBase {
   private _syncAria(): void {
     const pressed = this.pressed;
     const disabled = this.disabled;
-    this.setAttribute('role', 'button');
-    this.setAttribute('aria-pressed', pressed ? 'true' : 'false');
-    this.setAttribute('aria-disabled', disabled ? 'true' : 'false');
+    const loading = this.hasAttribute('loading');
+    const inGroup = this.hasAttribute('data-group-item');
 
-    if (!this.hasAttribute('tabindex')) {
-      this.setAttribute('tabindex', disabled ? '-1' : '0');
-    } else if (disabled) {
-      this.setAttribute('tabindex', '-1');
-    } else if (this.getAttribute('tabindex') === '-1') {
-      this.setAttribute('tabindex', '0');
+    if (!inGroup) {
+      this.setAttribute('role', 'button');
+      this.setAttribute('aria-pressed', pressed ? 'true' : 'false');
+    } else if (this.hasAttribute('aria-pressed')) {
+      this.removeAttribute('aria-pressed');
+    }
+    this.setAttribute('aria-disabled', disabled ? 'true' : 'false');
+    this.setAttribute('aria-busy', loading ? 'true' : 'false');
+
+    const currentTabIndex = this.getAttribute('tabindex');
+    if (disabled) {
+      if (!this.hasAttribute('data-ui-prev-tabindex')) {
+        this.setAttribute('data-ui-prev-tabindex', currentTabIndex ?? '');
+      }
+      if (currentTabIndex !== '-1') this.setAttribute('tabindex', '-1');
+    } else {
+      const previousTabIndex = this.getAttribute('data-ui-prev-tabindex');
+      if (previousTabIndex != null) {
+        if (previousTabIndex) this.setAttribute('tabindex', previousTabIndex);
+        else this.removeAttribute('tabindex');
+        this.removeAttribute('data-ui-prev-tabindex');
+      } else if (currentTabIndex == null) {
+        this.setAttribute('tabindex', '0');
+      }
     }
 
     if (this._control) {
       this._control.disabled = disabled;
-      this._control.setAttribute('aria-pressed', pressed ? 'true' : 'false');
+      if (!inGroup) this._control.setAttribute('aria-pressed', pressed ? 'true' : 'false');
+      else this._control.removeAttribute('aria-pressed');
       this._control.setAttribute('aria-disabled', disabled ? 'true' : 'false');
+      this._control.setAttribute('aria-busy', loading ? 'true' : 'false');
     }
   }
 
@@ -358,6 +406,7 @@ export class UIToggle extends ElementBase {
         aria-label="${escapeHtml(ariaLabel)}"
         aria-pressed="${pressed ? 'true' : 'false'}"
         aria-disabled="${disabled ? 'true' : 'false'}"
+        tabindex="-1"
         ${disabled ? 'disabled' : ''}
       >
         <span class="icon icon-off" part="icon-off" aria-hidden="true">${escapeHtml(iconOff)}</span>
@@ -371,11 +420,11 @@ export class UIToggle extends ElementBase {
   }
 
   protected override shouldRenderOnAttributeChange(
-    _name: string,
+    name: string,
     _oldValue: string | null,
     _newValue: string | null
   ): boolean {
-    return true;
+    return CONTENT_ATTRS.has(name);
   }
 }
 

@@ -1,62 +1,116 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useImperativeHandle, useLayoutEffect, useRef } from 'react';
+import { toastAdvanced } from '@editora/toast';
+import type { ToastConfig, ToastInstance, ToastOptionsAdvanced, ToastPosition, ToastTheme } from '@editora/toast';
 
-export type ToastShowDetail = { id: number; message: string };
-export type ToastHideDetail = { id: number };
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
-export type ToastShowOptions = {
-  duration?: number;
+export type ToastShowDetail = { id: string | number; message: string };
+export type ToastHideDetail = { id: string | number };
+
+export type ToastShowOptions = Partial<Omit<ToastOptionsAdvanced, 'message'>> & {
   type?: string;
-  ariaLive?: 'off' | 'polite' | 'assertive';
 };
 
-export type ToastElement = HTMLElement & {
-  show: (message: string, options?: ToastShowOptions) => number;
-  hide: (id: number) => void;
+export type ToastElement = {
+  show: (message: string, options?: ToastShowOptions) => string | number;
+  hide: (id: string | number) => void;
+  clear: () => void;
+  configure: (config: Partial<ToastConfig>) => void;
 };
 
-type ToastProps = React.HTMLAttributes<HTMLElement> & {
+type ToastProps = React.HTMLAttributes<HTMLDivElement> & {
+  position?: ToastPosition;
+  maxVisible?: number;
+  theme?: ToastTheme;
+  config?: Partial<ToastConfig>;
   headless?: boolean;
   onShow?: (detail: ToastShowDetail) => void;
   onHide?: (detail: ToastHideDetail) => void;
 };
 
+function normalizeShowOptions(options: ToastShowOptions | undefined): Partial<Omit<ToastOptionsAdvanced, 'message'>> {
+  if (!options) return {};
+  const normalized = { ...options } as Record<string, unknown>;
+
+  if (normalized.type != null && normalized.level == null) {
+    normalized.level = normalized.type;
+  }
+
+  delete normalized.type;
+  return normalized as Partial<Omit<ToastOptionsAdvanced, 'message'>>;
+}
+
 export const Toast = React.forwardRef<ToastElement, ToastProps>(function Toast(
-  { children, headless, onShow, onHide, ...rest },
+  { children, position, maxVisible, theme, config, headless: _headless, onShow, onHide, ...rest },
   forwardedRef
 ) {
-  const ref = useRef<ToastElement | null>(null);
-
-  React.useImperativeHandle(forwardedRef, () => ref.current as ToastElement);
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-
-    const showHandler = (event: Event) => {
-      const detail = (event as CustomEvent<ToastShowDetail>).detail;
-      if (detail) onShow?.(detail);
-    };
-    const hideHandler = (event: Event) => {
-      const detail = (event as CustomEvent<ToastHideDetail>).detail;
-      if (detail) onHide?.(detail);
-    };
-
-    el.addEventListener('show', showHandler as EventListener);
-    el.addEventListener('hide', hideHandler as EventListener);
-    return () => {
-      el.removeEventListener('show', showHandler as EventListener);
-      el.removeEventListener('hide', hideHandler as EventListener);
-    };
-  }, [onShow, onHide]);
+  const onShowRef = useRef<typeof onShow>(onShow);
+  const onHideRef = useRef<typeof onHide>(onHide);
 
   useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    if (headless) el.setAttribute('headless', '');
-    else el.removeAttribute('headless');
-  }, [headless]);
+    onShowRef.current = onShow;
+  }, [onShow]);
 
-  return React.createElement('ui-toast', { ref, ...rest }, children);
+  useEffect(() => {
+    onHideRef.current = onHide;
+  }, [onHide]);
+
+  useImperativeHandle(
+    forwardedRef,
+    () => ({
+      show(message: string, options?: ToastShowOptions) {
+        let toastId: string | number = '';
+        const normalized = normalizeShowOptions(options);
+        const userOnShow = normalized.onShow;
+        const userOnHide = normalized.onHide;
+
+        const instance = toastAdvanced.show({
+          message,
+          ...normalized,
+          onShow: () => {
+            userOnShow?.();
+            onShowRef.current?.({ id: toastId, message });
+          },
+          onHide: () => {
+            userOnHide?.();
+            onHideRef.current?.({ id: toastId });
+          }
+        } as ToastOptionsAdvanced);
+
+        toastId = (instance as ToastInstance).id;
+        return toastId;
+      },
+      hide(id: string | number) {
+        toastAdvanced.dismiss(String(id));
+      },
+      clear() {
+        toastAdvanced.clear();
+      },
+      configure(next: Partial<ToastConfig>) {
+        toastAdvanced.configure(next);
+      }
+    }),
+    []
+  );
+
+  useIsomorphicLayoutEffect(() => {
+    const nextConfig: Partial<ToastConfig> = {
+      ...(config || {})
+    };
+
+    if (position) nextConfig.position = position;
+    if (theme) nextConfig.theme = theme;
+    if (typeof maxVisible === 'number' && Number.isFinite(maxVisible)) {
+      nextConfig.maxVisible = Math.max(1, Math.trunc(maxVisible));
+    }
+
+    if (Object.keys(nextConfig).length > 0) {
+      toastAdvanced.configure(nextConfig);
+    }
+  }, [position, maxVisible, theme, config]);
+
+  if (children == null && Object.keys(rest).length === 0) return null;
+  return React.createElement('div', { ...rest }, children);
 });
 
 Toast.displayName = 'Toast';

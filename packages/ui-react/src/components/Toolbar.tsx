@@ -1,4 +1,6 @@
-import React, { useEffect, useImperativeHandle, useRef } from 'react';
+import React, { useEffect, useLayoutEffect, useImperativeHandle, useRef } from 'react';
+
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 type BaseProps = React.HTMLAttributes<HTMLElement> & {
   children?: React.ReactNode;
@@ -32,7 +34,7 @@ export const Toolbar = React.forwardRef<HTMLElement, ToolbarProps>(function Tool
 
   useImperativeHandle(forwardedRef, () => ref.current as HTMLElement);
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
 

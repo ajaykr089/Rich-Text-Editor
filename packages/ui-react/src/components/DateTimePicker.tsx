@@ -1,4 +1,7 @@
-import React, { useEffect, useImperativeHandle, useRef } from 'react';
+import React, { useEffect, useLayoutEffect, useImperativeHandle, useRef } from 'react';
+
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
+import { serializeTranslations } from './_internals';
 
 export type DateTimePickerDetail = {
   mode: 'datetime';
@@ -16,8 +19,10 @@ export type DateTimePickerProps = Omit<React.HTMLAttributes<HTMLElement>, 'onCha
   min?: string;
   max?: string;
   locale?: string;
+  translations?: Record<string, string> | string;
   weekStart?: 0 | 1 | 6;
   size?: 'sm' | 'md' | 'lg';
+  bare?: boolean;
   variant?: 'default' | 'contrast';
   step?: number;
   format?: '24h' | '12h';
@@ -29,6 +34,7 @@ export type DateTimePickerProps = Omit<React.HTMLAttributes<HTMLElement>, 'onCha
   clearable?: boolean;
   allowInput?: boolean;
   mode?: 'popover' | 'inline';
+  showFooter?: boolean;
   label?: string;
   hint?: string;
   error?: string;
@@ -49,8 +55,10 @@ export const DateTimePicker = React.forwardRef<HTMLElement, DateTimePickerProps>
     min,
     max,
     locale,
+    translations,
     weekStart,
     size,
+    bare,
     variant,
     step,
     format,
@@ -62,6 +70,7 @@ export const DateTimePicker = React.forwardRef<HTMLElement, DateTimePickerProps>
     clearable,
     allowInput,
     mode,
+    showFooter,
     label,
     hint,
     error,
@@ -113,7 +122,7 @@ export const DateTimePicker = React.forwardRef<HTMLElement, DateTimePickerProps>
     };
   }, [onInput, onChange, onValueChange, onOpen, onClose, onInvalid]);
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
     const syncAttr = (name: string, next: string | null) => {
@@ -137,8 +146,10 @@ export const DateTimePicker = React.forwardRef<HTMLElement, DateTimePickerProps>
     syncAttr('min', min ?? null);
     syncAttr('max', max ?? null);
     syncAttr('locale', locale ?? null);
+    syncAttr('translations', serializeTranslations(translations));
     syncAttr('week-start', typeof weekStart === 'number' ? String(weekStart) : null);
     syncAttr('size', size && size !== 'md' ? size : null);
+    syncBool('bare', bare);
     syncAttr('variant', variant && variant !== 'default' ? variant : null);
     syncAttr('step', typeof step === 'number' ? String(step) : null);
     syncAttr('format', format && format !== '24h' ? format : null);
@@ -150,6 +161,7 @@ export const DateTimePicker = React.forwardRef<HTMLElement, DateTimePickerProps>
     syncBool('clearable', clearable);
     syncBool('allow-input', allowInput);
     syncAttr('mode', mode && mode !== 'popover' ? mode : null);
+    syncAttr('show-footer', typeof showFooter === 'boolean' ? String(showFooter) : null);
     syncAttr('label', label ?? null);
     syncAttr('hint', hint ?? null);
     syncAttr('error', error ?? null);
@@ -161,8 +173,10 @@ export const DateTimePicker = React.forwardRef<HTMLElement, DateTimePickerProps>
     min,
     max,
     locale,
+    translations,
     weekStart,
     size,
+    bare,
     variant,
     step,
     format,
@@ -174,6 +188,7 @@ export const DateTimePicker = React.forwardRef<HTMLElement, DateTimePickerProps>
     clearable,
     allowInput,
     mode,
+    showFooter,
     label,
     hint,
     error
@@ -185,4 +200,3 @@ export const DateTimePicker = React.forwardRef<HTMLElement, DateTimePickerProps>
 DateTimePicker.displayName = 'DateTimePicker';
 
 export default DateTimePicker;
-

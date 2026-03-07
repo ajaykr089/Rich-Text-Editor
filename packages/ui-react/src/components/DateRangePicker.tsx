@@ -1,4 +1,7 @@
-import React, { useEffect, useImperativeHandle, useRef } from 'react';
+import React, { useEffect, useLayoutEffect, useImperativeHandle, useRef } from 'react';
+
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
+import { serializeTranslations } from './_internals';
 
 export type DateRangePickerDetail = {
   mode: 'range';
@@ -8,6 +11,8 @@ export type DateRangePickerDetail = {
   source: string;
 };
 
+export type DateRangePickerState = 'idle' | 'loading' | 'error' | 'success';
+
 export type DateRangePickerProps = Omit<React.HTMLAttributes<HTMLElement>, 'onChange' | 'onInput'> & {
   value?: string;
   defaultValue?: string;
@@ -16,9 +21,13 @@ export type DateRangePickerProps = Omit<React.HTMLAttributes<HTMLElement>, 'onCh
   min?: string;
   max?: string;
   locale?: string;
+  translations?: Record<string, string> | string;
   weekStart?: 0 | 1 | 6;
   size?: 'sm' | 'md' | 'lg';
+  shape?: 'default' | 'square' | 'soft';
+  bare?: boolean;
   variant?: 'default' | 'contrast';
+  state?: DateRangePickerState;
   rangeVariant?: 'two-fields' | 'single-field';
   label?: string;
   hint?: string;
@@ -34,6 +43,7 @@ export type DateRangePickerProps = Omit<React.HTMLAttributes<HTMLElement>, 'onCh
   nameStart?: string;
   nameEnd?: string;
   mode?: 'popover' | 'inline';
+  showFooter?: boolean;
   onInput?: (detail: DateRangePickerDetail) => void;
   onChange?: (detail: DateRangePickerDetail) => void;
   onValueChange?: (value: string | null) => void;
@@ -51,9 +61,13 @@ export const DateRangePicker = React.forwardRef<HTMLElement, DateRangePickerProp
     min,
     max,
     locale,
+    translations,
     weekStart,
     size,
+    shape,
+    bare,
     variant,
+    state,
     rangeVariant,
     label,
     hint,
@@ -69,6 +83,7 @@ export const DateRangePicker = React.forwardRef<HTMLElement, DateRangePickerProp
     nameStart,
     nameEnd,
     mode,
+    showFooter,
     onInput,
     onChange,
     onValueChange,
@@ -117,7 +132,7 @@ export const DateRangePicker = React.forwardRef<HTMLElement, DateRangePickerProp
     };
   }, [onInput, onChange, onValueChange, onOpen, onClose, onInvalid]);
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
     const syncAttr = (name: string, next: string | null) => {
@@ -141,9 +156,13 @@ export const DateRangePicker = React.forwardRef<HTMLElement, DateRangePickerProp
     syncAttr('min', min ?? null);
     syncAttr('max', max ?? null);
     syncAttr('locale', locale ?? null);
+    syncAttr('translations', serializeTranslations(translations));
     syncAttr('week-start', typeof weekStart === 'number' ? String(weekStart) : null);
     syncAttr('size', size && size !== 'md' ? size : null);
+    syncAttr('shape', shape && shape !== 'default' ? shape : null);
+    syncBool('bare', bare);
     syncAttr('variant', variant && variant !== 'default' ? variant : null);
+    syncAttr('state', state && state !== 'idle' ? state : null);
     syncAttr('range-variant', rangeVariant && rangeVariant !== 'two-fields' ? rangeVariant : null);
     syncAttr('label', label ?? null);
     syncAttr('hint', hint ?? null);
@@ -159,6 +178,7 @@ export const DateRangePicker = React.forwardRef<HTMLElement, DateRangePickerProp
     syncAttr('name-start', nameStart ?? null);
     syncAttr('name-end', nameEnd ?? null);
     syncAttr('mode', mode && mode !== 'popover' ? mode : null);
+    syncAttr('show-footer', typeof showFooter === 'boolean' ? String(showFooter) : null);
   }, [
     value,
     defaultValue,
@@ -167,9 +187,13 @@ export const DateRangePicker = React.forwardRef<HTMLElement, DateRangePickerProp
     min,
     max,
     locale,
+    translations,
     weekStart,
     size,
+    shape,
+    bare,
     variant,
+    state,
     rangeVariant,
     label,
     hint,
@@ -184,7 +208,8 @@ export const DateRangePicker = React.forwardRef<HTMLElement, DateRangePickerProp
     name,
     nameStart,
     nameEnd,
-    mode
+    mode,
+    showFooter
   ]);
 
   return React.createElement('ui-date-range-picker', { ref, ...rest }, children);
@@ -193,4 +218,3 @@ export const DateRangePicker = React.forwardRef<HTMLElement, DateRangePickerProp
 DateRangePicker.displayName = 'DateRangePicker';
 
 export default DateRangePicker;
-

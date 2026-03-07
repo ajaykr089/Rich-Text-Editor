@@ -1,4 +1,6 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useLayoutEffect, useRef } from 'react';
+
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 type ScrollAreaProps = React.HTMLAttributes<HTMLElement> & {
   orientation?: 'vertical' | 'horizontal' | 'both';
@@ -61,7 +63,7 @@ export const ScrollArea = React.forwardRef<HTMLElement, ScrollAreaProps>(functio
     };
   }, [onScrollChange, onReachStart, onReachEnd]);
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
 

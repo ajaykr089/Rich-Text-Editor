@@ -1,4 +1,6 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useLayoutEffect, useRef } from 'react';
+
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 export type MenubarChangeDetail = {
   selected: number;
@@ -84,7 +86,7 @@ export function Menubar(props: MenubarProps) {
     };
   }, [onChange, onOpen, onClose, onSelect]);
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
 

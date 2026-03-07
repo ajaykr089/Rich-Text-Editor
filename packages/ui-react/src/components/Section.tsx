@@ -1,4 +1,6 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useLayoutEffect, useRef } from 'react';
+
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 type SectionProps = React.HTMLAttributes<HTMLElement> & {
   size?: 'small' | 'medium' | 'large';
@@ -25,7 +27,7 @@ export const Section = React.forwardRef<HTMLElement, SectionProps>(function Sect
   const ref = useRef<HTMLElement | null>(null);
   React.useImperativeHandle(forwardedRef, () => ref.current as any);
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
 

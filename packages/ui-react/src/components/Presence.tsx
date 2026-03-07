@@ -1,4 +1,6 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useLayoutEffect, useRef } from 'react';
+
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 type PresenceState = 'hidden' | 'entering' | 'present' | 'exiting';
 
@@ -76,7 +78,7 @@ export const Presence = React.forwardRef<HTMLElement, PresenceProps>(function Pr
     };
   }, [onBeforeEnter, onEnter, onAfterEnter, onBeforeExit, onExit, onAfterExit]);
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
 

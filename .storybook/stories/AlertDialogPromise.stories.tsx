@@ -5,6 +5,41 @@ export default {
   title: 'UI/AlertDialogPromise'
 };
 
+const promiseApiSource = `import React from 'react';
+import { AlertDialogProvider, Box, Button, Flex, useAlertDialog } from '@editora/ui-react';
+
+function PromiseActions() {
+  const dialogs = useAlertDialog();
+  const [result, setResult] = React.useState('No result yet');
+
+  const runAlert = async () => {
+    const next = await dialogs.alert({
+      title: 'Maintenance complete',
+      description: 'Your deployment finished successfully.',
+      confirmText: 'Great',
+      mode: 'queue'
+    });
+    setResult(JSON.stringify(next));
+  };
+
+  return (
+    <Box>
+      <Flex gap="10px" wrap="wrap">
+        <Button onClick={runAlert}>Run Alert</Button>
+      </Flex>
+      <Box mt="14px">Result: {result}</Box>
+    </Box>
+  );
+}
+
+export function AlertDialogPromiseExample() {
+  return (
+    <AlertDialogProvider>
+      <PromiseActions />
+    </AlertDialogProvider>
+  );
+}`;
+
 function PromiseDemo() {
   const dialogs = useAlertDialog();
   const [result, setResult] = React.useState('No result yet');
@@ -81,3 +116,12 @@ export const PromiseAPI = () => (
     <PromiseDemo />
   </AlertDialogProvider>
 );
+
+PromiseAPI.parameters = {
+  docs: {
+    source: {
+      type: 'code',
+      code: promiseApiSource
+    }
+  }
+};

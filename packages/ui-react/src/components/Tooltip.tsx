@@ -1,4 +1,6 @@
-import React, { useEffect, useImperativeHandle, useRef } from 'react';
+import React, { useEffect, useLayoutEffect, useImperativeHandle, useRef } from 'react';
+
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 type TooltipChangeDetail = {
   open: boolean;
@@ -86,7 +88,7 @@ export const Tooltip = React.forwardRef<HTMLElement, TooltipProps>(function Tool
     };
   }, [onOpen, onClose, onOpenChange]);
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
 

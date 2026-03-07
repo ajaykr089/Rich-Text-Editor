@@ -1,4 +1,6 @@
-import React, { useEffect, useImperativeHandle, useRef } from 'react';
+import React, { useEffect, useLayoutEffect, useImperativeHandle, useRef } from 'react';
+
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 type ToggleGroupDetail = {
   value: string | string[];
@@ -19,6 +21,8 @@ export type ToggleGroupProps = BaseProps & {
   variant?: 'default' | 'soft' | 'contrast' | 'minimal';
   size?: 'sm' | 'md' | 'lg';
   density?: 'compact' | 'default' | 'comfortable';
+  shape?: 'default' | 'square' | 'pill';
+  elevation?: 'default' | 'none';
   allowEmpty?: boolean;
   required?: boolean;
   activation?: 'auto' | 'manual';
@@ -38,6 +42,8 @@ export const ToggleGroup = React.forwardRef<HTMLElement, ToggleGroupProps>(funct
     variant,
     size,
     density,
+    shape,
+    elevation,
     allowEmpty,
     required,
     activation,
@@ -79,7 +85,7 @@ export const ToggleGroup = React.forwardRef<HTMLElement, ToggleGroupProps>(funct
     };
   }, [onInput, onChange, onValueChange]);
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
 
@@ -115,8 +121,10 @@ export const ToggleGroup = React.forwardRef<HTMLElement, ToggleGroupProps>(funct
     syncAttr('variant', variant && variant !== 'default' ? variant : null);
     syncAttr('size', size && size !== 'md' ? size : null);
     syncAttr('density', density && density !== 'default' ? density : null);
+    syncAttr('shape', shape && shape !== 'default' ? shape : null);
+    syncAttr('elevation', elevation && elevation !== 'default' ? elevation : null);
     syncAttr('activation', activation && activation !== 'auto' ? activation : null);
-  }, [value, multiple, disabled, headless, allowEmpty, required, orientation, variant, size, density, activation]);
+  }, [value, multiple, disabled, headless, allowEmpty, required, orientation, variant, size, density, shape, elevation, activation]);
 
   return React.createElement('ui-toggle-group', { ref, ...rest }, children);
 });

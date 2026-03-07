@@ -1,5 +1,11 @@
 import { ElementBase } from '../ElementBase';
 
+const CLEAR_ICON = `
+  <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+    <path d="m6 6 8 8M14 6l-8 8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+  </svg>
+`;
+
 const style = `
   :host {
     --ui-textarea-bg: var(--ui-color-surface, #ffffff);
@@ -117,6 +123,12 @@ const style = `
     display: inline-grid;
     place-items: center;
     transition: background-color 140ms ease, color 140ms ease;
+  }
+
+  .clear-btn svg {
+    inline-size: 14px;
+    block-size: 14px;
+    pointer-events: none;
   }
 
   .clear-btn:hover {
@@ -707,7 +719,7 @@ export class UITextarea extends ElementBase {
 
         <div class="field" part="field">
           <textarea part="textarea"></textarea>
-          <button type="button" part="clear" class="clear-btn" aria-label="Clear text" ${clearVisible ? '' : 'hidden'}>✕</button>
+          <button type="button" part="clear" class="clear-btn" aria-label="Clear text" ${clearVisible ? '' : 'hidden'}>${CLEAR_ICON}</button>
         </div>
 
         <div class="footer" part="footer">

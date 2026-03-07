@@ -1,4 +1,6 @@
-import React, { useEffect, useImperativeHandle, useRef } from 'react';
+import React, { useEffect, useImperativeHandle, useLayoutEffect, useRef } from 'react';
+
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 type FormElement = HTMLElement & {
   submit: () => Promise<boolean>;
@@ -21,6 +23,11 @@ export type FormProps = React.HTMLAttributes<HTMLElement> & {
   autosave?: boolean;
   autosaveDelay?: number;
   guardUnsaved?: boolean;
+  heading?: string;
+  description?: string;
+  state?: 'default' | 'success' | 'warning' | 'error';
+  stateText?: string;
+  loadingText?: string;
   variant?: 'default' | 'surface' | 'outline' | 'soft' | 'contrast' | 'minimal' | 'elevated';
   tone?: 'default' | 'brand' | 'success' | 'warning' | 'danger';
   density?: 'default' | 'compact' | 'comfortable';
@@ -29,6 +36,7 @@ export type FormProps = React.HTMLAttributes<HTMLElement> & {
   gap?: string;
   headless?: boolean;
   loading?: boolean;
+  disabled?: boolean;
 };
 
 export const Form = React.forwardRef<HTMLElement, FormProps>(function Form(props, forwardedRef) {
@@ -43,6 +51,11 @@ export const Form = React.forwardRef<HTMLElement, FormProps>(function Form(props
     autosave,
     autosaveDelay,
     guardUnsaved,
+    heading,
+    description,
+    state,
+    stateText,
+    loadingText,
     variant,
     tone,
     density,
@@ -51,6 +64,7 @@ export const Form = React.forwardRef<HTMLElement, FormProps>(function Form(props
     gap,
     headless,
     loading,
+    disabled,
     ...rest
   } = props;
 
@@ -102,7 +116,7 @@ export const Form = React.forwardRef<HTMLElement, FormProps>(function Form(props
     };
   }, [onSubmit, onInvalid, onValidate, onAutosave, onDirtyChange]);
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
 
@@ -120,6 +134,21 @@ export const Form = React.forwardRef<HTMLElement, FormProps>(function Form(props
 
     if (guardUnsaved) el.setAttribute('guard-unsaved', '');
     else el.removeAttribute('guard-unsaved');
+
+    if (heading != null && heading !== '') el.setAttribute('heading', heading);
+    else el.removeAttribute('heading');
+
+    if (description != null && description !== '') el.setAttribute('description', description);
+    else el.removeAttribute('description');
+
+    if (state && state !== 'default') el.setAttribute('state', state);
+    else el.removeAttribute('state');
+
+    if (stateText != null && stateText !== '') el.setAttribute('state-text', stateText);
+    else el.removeAttribute('state-text');
+
+    if (loadingText != null && loadingText !== '') el.setAttribute('loading-text', loadingText);
+    else el.removeAttribute('loading-text');
 
     if (variant && variant !== 'default') el.setAttribute('variant', variant);
     else el.removeAttribute('variant');
@@ -144,7 +173,29 @@ export const Form = React.forwardRef<HTMLElement, FormProps>(function Form(props
 
     if (loading) el.setAttribute('loading', '');
     else el.removeAttribute('loading');
-  }, [novalidate, autosave, autosaveDelay, guardUnsaved, variant, tone, density, shape, elevation, gap, headless, loading]);
+
+    if (disabled) el.setAttribute('disabled', '');
+    else el.removeAttribute('disabled');
+  }, [
+    novalidate,
+    autosave,
+    autosaveDelay,
+    guardUnsaved,
+    heading,
+    description,
+    state,
+    stateText,
+    loadingText,
+    variant,
+    tone,
+    density,
+    shape,
+    elevation,
+    gap,
+    headless,
+    loading,
+    disabled
+  ]);
 
   return React.createElement('ui-form', { ref, ...rest }, children);
 });

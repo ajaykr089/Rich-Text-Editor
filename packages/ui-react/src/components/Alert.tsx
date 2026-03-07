@@ -1,6 +1,8 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useLayoutEffect, useRef } from 'react';
 
-export type AlertProps = React.HTMLAttributes<HTMLElement> & {
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
+
+export type AlertProps = Omit<React.HTMLAttributes<HTMLElement>, 'onClose'> & {
   children?: React.ReactNode;
   title?: string;
   description?: string;
@@ -38,7 +40,7 @@ export function Alert(props: AlertProps) {
     return () => el.removeEventListener('close', onCloseHandler as EventListener);
   }, [onClose]);
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
 
@@ -66,7 +68,7 @@ export function Alert(props: AlertProps) {
     if (typeof open === 'boolean') {
       if (open) el.removeAttribute('hidden');
       else el.setAttribute('hidden', '');
-    }
+    } else el.removeAttribute('hidden');
   }, [title, description, tone, variant, layout, dismissible, open, headless]);
 
   return React.createElement('ui-alert', { ref, ...rest }, children);

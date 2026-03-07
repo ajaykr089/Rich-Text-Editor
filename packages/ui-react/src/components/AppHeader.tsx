@@ -1,4 +1,6 @@
-import React, { useEffect, useImperativeHandle, useRef } from 'react';
+import React, { useEffect, useLayoutEffect, useImperativeHandle, useRef } from 'react';
+
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 type AppHeaderProps = React.HTMLAttributes<HTMLElement> & {
   sticky?: boolean;
@@ -25,28 +27,28 @@ export const AppHeader = React.forwardRef<HTMLElement, AppHeaderProps>(function 
     return () => el.removeEventListener('menu-trigger', handler as EventListener);
   }, [onMenuTrigger]);
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
     if (sticky) el.setAttribute('sticky', '');
     else el.removeAttribute('sticky');
   }, [sticky]);
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
     if (bordered) el.setAttribute('bordered', '');
     else el.removeAttribute('bordered');
   }, [bordered]);
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
     if (dense) el.setAttribute('dense', '');
     else el.removeAttribute('dense');
   }, [dense]);
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
     if (showMenuButton) el.setAttribute('show-menu-button', '');

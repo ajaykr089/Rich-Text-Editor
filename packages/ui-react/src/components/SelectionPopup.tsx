@@ -1,4 +1,6 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useLayoutEffect, useRef } from 'react';
+
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 import { warnIfElementNotRegistered } from './_internals';
 
 type UISelectionPopupElement = HTMLElement & {
@@ -72,7 +74,7 @@ export function SelectionPopup(props: Props) {
     };
   }, [onOpen, onClose, onOpenChange]);
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
 

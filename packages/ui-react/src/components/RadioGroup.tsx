@@ -1,4 +1,6 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useLayoutEffect, useRef } from 'react';
+
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 type RadioOption = {
   value: string;
@@ -56,7 +58,7 @@ export const RadioGroup = React.forwardRef<HTMLElement, RadioGroupProps>(functio
     return () => el.removeEventListener('change', handler as EventListener);
   }, [onValueChange]);
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
 

@@ -1,4 +1,6 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useLayoutEffect, useRef } from 'react';
+
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 import { warnIfElementNotRegistered } from './_internals';
 
 type Props = React.HTMLAttributes<HTMLElement> & { open?: boolean; position?: string };
@@ -11,7 +13,7 @@ export function PluginPanel(props: Props) {
     warnIfElementNotRegistered('ui-plugin-panel', 'PluginPanel');
   }, []);
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
     if (open) el.setAttribute('open', '');

@@ -4,6 +4,9 @@ import path from 'path';
 
 const config: StorybookConfig = {
   stories: ['./stories/**/*.stories.@(js|jsx|ts|tsx)'],
+  docs: {
+    autodocs: true,
+  },
   addons: [
     '@storybook/addon-links',
     '@storybook/addon-essentials',
@@ -21,6 +24,7 @@ const config: StorybookConfig = {
           '@editora/plugins': path.resolve(__dirname, '../packages/plugins/src'),
           '@editora/themes': path.resolve(__dirname, '../packages/themes/src'),
           '@editora/toast': path.resolve(__dirname, '../packages/editora-toast/src'),
+          '@editora/editor': path.resolve(__dirname, '../packages/react/src'),
           '@editora/icons': path.resolve(__dirname, '../packages/icons/src'),
           '@editora/react-icons': path.resolve(__dirname, '../packages/react-icons/src'),
           // Resolve UI packages to local source during Storybook development

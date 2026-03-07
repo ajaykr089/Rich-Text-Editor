@@ -1,74 +1,207 @@
 import { ElementBase } from '../ElementBase';
 
+type ToastTone = 'info' | 'success' | 'warning' | 'error' | 'loading' | 'neutral';
+
+type ToastItem = {
+  id: number;
+  message: string;
+  duration: number;
+  tone: ToastTone;
+  ariaLive: 'off' | 'polite' | 'assertive';
+  createdAt: number;
+  closing: boolean;
+};
+
+type ToastTimer = {
+  timeout: ReturnType<typeof setTimeout>;
+  startedAt: number;
+  remaining: number;
+  paused: boolean;
+};
+
+const DEFAULT_DURATION = 3200;
+const EXIT_DURATION = 170;
+
 const style = `
   :host {
     display: block;
     color-scheme: light dark;
     position: fixed;
     z-index: 9999;
-    top: 24px;
-    right: 24px;
+    top: 20px;
+    right: 20px;
     pointer-events: none;
-    width: auto;
-    max-width: 360px;
-    --ui-toast-bg: color-mix(in srgb, var(--ui-color-text, #0f172a) 88%, #ffffff 12%);
-    --ui-toast-text: #ffffff;
-    --ui-toast-border: color-mix(in srgb, var(--ui-color-border, #cbd5e1) 34%, transparent);
-    --ui-toast-shadow: 0 16px 34px rgba(2, 6, 23, 0.32);
-    --ui-toast-focus: var(--ui-color-focus-ring, #93c5fd);
+    width: min(360px, calc(100vw - 24px));
+
+    --ui-toast-gap: 10px;
+    --ui-toast-radius: 12px;
+    --ui-toast-padding-y: 10px;
+    --ui-toast-padding-x: 12px;
+    --ui-toast-border-color: color-mix(in srgb, var(--ui-color-border, #cbd5e1) 72%, transparent);
+    --ui-toast-bg: color-mix(in srgb, var(--ui-color-surface, #ffffff) 92%, var(--ui-color-text, #0f172a) 8%);
+    --ui-toast-color: var(--ui-color-text, #0f172a);
+    --ui-toast-muted: var(--ui-color-muted, #64748b);
+    --ui-toast-shadow:
+      0 1px 3px rgba(2, 6, 23, 0.08),
+      0 14px 30px rgba(2, 6, 23, 0.16);
+    --ui-toast-focus-ring: var(--ui-color-focus-ring, #2563eb);
   }
+
+  :host([position="top-left"]) {
+    left: 20px;
+    right: auto;
+  }
+
+  :host([position="top-center"]) {
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+  }
+
+  :host([position="bottom-left"]) {
+    top: auto;
+    bottom: 20px;
+    left: 20px;
+    right: auto;
+  }
+
+  :host([position="bottom-center"]) {
+    top: auto;
+    bottom: 20px;
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+  }
+
+  :host([position="bottom-right"]) {
+    top: auto;
+    bottom: 20px;
+    right: 20px;
+  }
+
   .toast-list {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
+    display: grid;
+    gap: var(--ui-toast-gap);
     width: 100%;
   }
+
   .toast {
-    position: relative;
-    background: var(--ui-toast-bg);
-    color: var(--ui-toast-text);
-    border: 1px solid var(--ui-toast-border);
-    border-radius: 8px;
-    box-shadow: var(--ui-toast-shadow);
-    padding: 16px 20px;
-    font-size: 15px;
-    opacity: 0;
-    transform: translateY(-16px);
     pointer-events: auto;
-    transition: opacity 0.18s, transform 0.18s;
-    min-width: 120px;
-    max-width: 360px;
+    position: relative;
+    display: grid;
+    gap: 3px;
+    border: 1px solid var(--ui-toast-border-color);
+    border-radius: var(--ui-toast-radius);
+    background: var(--ui-toast-bg);
+    color: var(--ui-toast-color);
+    box-shadow: var(--ui-toast-shadow);
+    min-height: 56px;
+    padding: var(--ui-toast-padding-y) var(--ui-toast-padding-x);
+    padding-inline-end: calc(var(--ui-toast-padding-x) + 26px);
+    font: 550 13px/1.4 "Inter", "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    letter-spacing: 0.01em;
+    opacity: 0;
+    transform: translate3d(0, -8px, 0) scale(0.98);
+    transition: opacity 170ms ease, transform 170ms ease;
+    will-change: transform, opacity;
     outline: none;
   }
+
   .toast.show {
     opacity: 1;
-    transform: translateY(0);
+    transform: translate3d(0, 0, 0) scale(1);
   }
-  .toast[aria-live] { pointer-events: auto; }
-  .toast button.close {
-    background: none;
-    border: none;
-    color: var(--ui-toast-text);
-    font-size: 18px;
+
+  .toast.closing {
+    opacity: 0;
+    transform: translate3d(0, -6px, 0) scale(0.98);
+  }
+
+  .toast[data-tone="success"] {
+    --ui-toast-border-color: color-mix(in srgb, var(--ui-color-success, #16a34a) 38%, var(--ui-color-border, #cbd5e1));
+    --ui-toast-bg: color-mix(in srgb, var(--ui-color-success, #16a34a) 10%, var(--ui-color-surface, #ffffff));
+  }
+
+  .toast[data-tone="warning"] {
+    --ui-toast-border-color: color-mix(in srgb, var(--ui-color-warning, #d97706) 38%, var(--ui-color-border, #cbd5e1));
+    --ui-toast-bg: color-mix(in srgb, var(--ui-color-warning, #d97706) 10%, var(--ui-color-surface, #ffffff));
+  }
+
+  .toast[data-tone="error"] {
+    --ui-toast-border-color: color-mix(in srgb, var(--ui-color-danger, #dc2626) 40%, var(--ui-color-border, #cbd5e1));
+    --ui-toast-bg: color-mix(in srgb, var(--ui-color-danger, #dc2626) 12%, var(--ui-color-surface, #ffffff));
+  }
+
+  .toast[data-tone="loading"] {
+    --ui-toast-border-color: color-mix(in srgb, var(--ui-color-primary, #2563eb) 36%, var(--ui-color-border, #cbd5e1));
+  }
+
+  .message {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .meta {
+    color: var(--ui-toast-muted);
+    font-size: 11px;
+    line-height: 1.35;
+  }
+
+  .close {
     position: absolute;
     top: 8px;
-    right: 12px;
+    right: 8px;
+    inline-size: 24px;
+    block-size: 24px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    color: var(--ui-toast-muted);
+    display: inline-grid;
+    place-items: center;
     cursor: pointer;
-    opacity: 0.7;
-    transition: opacity 0.18s;
+    transition: background-color 140ms ease, color 140ms ease;
   }
-  .toast button.close:hover { opacity: 1; }
 
-  .toast button.close:focus-visible {
-    outline: 2px solid var(--ui-toast-focus);
+  .close:hover {
+    background: color-mix(in srgb, var(--ui-toast-color) 8%, transparent);
+    color: var(--ui-toast-color);
+  }
+
+  .close:focus-visible {
+    outline: 2px solid var(--ui-toast-focus-ring);
     outline-offset: 1px;
   }
-  :host([headless]) { display: none; }
+
+  :host([headless]) {
+    display: none;
+  }
+
+  @media (max-width: 560px) {
+    :host {
+      inset-inline: 12px;
+      top: 12px;
+      right: auto;
+      width: auto;
+      transform: none;
+    }
+
+    :host([position="bottom-left"]),
+    :host([position="bottom-center"]),
+    :host([position="bottom-right"]) {
+      top: auto;
+      bottom: 12px;
+      left: 12px;
+      right: 12px;
+      transform: none;
+    }
+  }
 
   @media (prefers-reduced-motion: reduce) {
     .toast,
-    .toast button.close {
+    .close {
       transition: none !important;
+      animation: none !important;
     }
   }
 
@@ -82,34 +215,32 @@ const style = `
   @media (forced-colors: active) {
     :host {
       --ui-toast-bg: Canvas;
-      --ui-toast-text: CanvasText;
-      --ui-toast-border: CanvasText;
+      --ui-toast-color: CanvasText;
+      --ui-toast-muted: CanvasText;
+      --ui-toast-border-color: CanvasText;
       --ui-toast-shadow: none;
-      --ui-toast-focus: Highlight;
+      --ui-toast-focus-ring: Highlight;
     }
 
     .toast,
-    .toast button.close {
+    .close {
       forced-color-adjust: none;
       background: Canvas;
       color: CanvasText;
       border-color: CanvasText;
       box-shadow: none;
     }
+
+    .close {
+      border: 1px solid CanvasText;
+    }
   }
 `;
 
 let toastId = 0;
-type ToastItem = {
-  id: number;
-  message: string;
-  duration: number;
-  type: string;
-  ariaLive: string;
-};
 
 function escapeHtml(value: string): string {
-  return value
+  return String(value)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
@@ -117,107 +248,290 @@ function escapeHtml(value: string): string {
     .replace(/'/g, '&#39;');
 }
 
+function normalizeTone(value: string | null | undefined): ToastTone {
+  const tone = String(value || '').toLowerCase();
+  if (tone === 'success' || tone === 'warning' || tone === 'error' || tone === 'loading' || tone === 'neutral') {
+    return tone;
+  }
+  return 'info';
+}
+
+function normalizeDuration(value: unknown): number {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return DEFAULT_DURATION;
+  return Math.max(0, Math.trunc(parsed));
+}
+
+function normalizeLive(value: unknown): 'off' | 'polite' | 'assertive' {
+  const live = String(value || 'polite').toLowerCase();
+  if (live === 'off' || live === 'assertive') return live;
+  return 'polite';
+}
+
 export class UIToast extends ElementBase {
   private _toasts: ToastItem[] = [];
-  private _timeoutMap: Map<number, ReturnType<typeof setTimeout>> = new Map();
+  private _timerMap: Map<number, ToastTimer> = new Map();
+  private _exitMap: Map<number, ReturnType<typeof setTimeout>> = new Map();
   private _onRootClick: (e: Event) => void;
+  private _onRootMouseEnter: (e: Event) => void;
+  private _onRootMouseLeave: (e: Event) => void;
+  private _onRootFocusIn: (e: Event) => void;
+  private _onRootFocusOut: (e: Event) => void;
+
   static get observedAttributes() {
-    return ['headless'];
+    return ['headless', 'position', 'max-visible'];
   }
 
   constructor() {
     super();
-    this._toasts = [];
-    this._timeoutMap = new Map();
     this._onRootClick = this._handleRootClick.bind(this);
+    this._onRootMouseEnter = this._handleRootMouseEnter.bind(this);
+    this._onRootMouseLeave = this._handleRootMouseLeave.bind(this);
+    this._onRootFocusIn = this._handleRootFocusIn.bind(this);
+    this._onRootFocusOut = this._handleRootFocusOut.bind(this);
   }
 
-  connectedCallback() {
+  override connectedCallback(): void {
     super.connectedCallback();
     this.setAttribute('aria-live', 'polite');
     this.setAttribute('role', 'region');
     this.root.addEventListener('click', this._onRootClick as EventListener);
+    this.root.addEventListener('mouseenter', this._onRootMouseEnter as EventListener, true);
+    this.root.addEventListener('mouseleave', this._onRootMouseLeave as EventListener, true);
+    this.root.addEventListener('focusin', this._onRootFocusIn as EventListener);
+    this.root.addEventListener('focusout', this._onRootFocusOut as EventListener);
   }
 
-  disconnectedCallback() {
+  override disconnectedCallback(): void {
     this.root.removeEventListener('click', this._onRootClick as EventListener);
-    this._clearAllTimeouts();
+    this.root.removeEventListener('mouseenter', this._onRootMouseEnter as EventListener, true);
+    this.root.removeEventListener('mouseleave', this._onRootMouseLeave as EventListener, true);
+    this.root.removeEventListener('focusin', this._onRootFocusIn as EventListener);
+    this.root.removeEventListener('focusout', this._onRootFocusOut as EventListener);
+    this._clearAllTimers();
     super.disconnectedCallback();
   }
 
-  get headless() {
+  get headless(): boolean {
     return this.hasAttribute('headless');
   }
+
   set headless(val: boolean) {
     if (val) this.setAttribute('headless', '');
     else this.removeAttribute('headless');
   }
 
-  show(message: string, opts: any = {}) {
+  show(message: string, opts: Record<string, unknown> = {}): number {
     const id = ++toastId;
-    const toast = {
+    const tone = normalizeTone(opts.type as string | undefined);
+    const duration = normalizeDuration(opts.duration);
+    const ariaLive = normalizeLive(opts.ariaLive);
+
+    const toast: ToastItem = {
       id,
       message: String(message ?? ''),
-      duration: opts.duration || 3000,
-      type: opts.type || 'info',
-      ariaLive: opts.ariaLive || 'polite',
+      duration,
+      tone,
+      ariaLive,
+      createdAt: Date.now(),
+      closing: false,
     };
+
     this._toasts.push(toast);
+    this._trimVisibleToasts();
     this.requestRender();
-    this.dispatchEvent(new CustomEvent('show', { detail: { id, message }, bubbles: true }));
-    if (toast.duration > 0) {
-      const timeout = setTimeout(() => this.hide(id), toast.duration);
-      this._timeoutMap.set(id, timeout);
-    }
+
+    this.dispatchEvent(new CustomEvent('show', { detail: { id, message: toast.message, type: tone }, bubbles: true }));
+
+    this._scheduleAutoHide(id, duration);
     return id;
   }
 
-  hide(id: number) {
-    this._toasts = this._toasts.filter(t => t.id !== id);
+  hide(id: number): void {
+    const toast = this._toasts.find((entry) => entry.id === id);
+    if (!toast || toast.closing) return;
+
+    toast.closing = true;
+    this._clearToastTimer(id);
     this.requestRender();
-    this.dispatchEvent(new CustomEvent('hide', { detail: { id }, bubbles: true }));
-    if (this._timeoutMap.has(id)) {
-      clearTimeout(this._timeoutMap.get(id));
-      this._timeoutMap.delete(id);
+
+    const existingExit = this._exitMap.get(id);
+    if (existingExit) clearTimeout(existingExit);
+
+    const exitTimer = setTimeout(() => {
+      this._exitMap.delete(id);
+      const previousLength = this._toasts.length;
+      this._toasts = this._toasts.filter((entry) => entry.id !== id);
+      if (this._toasts.length === previousLength) return;
+      this.requestRender();
+      this.dispatchEvent(new CustomEvent('hide', { detail: { id }, bubbles: true }));
+    }, EXIT_DURATION);
+
+    this._exitMap.set(id, exitTimer);
+  }
+
+  private _maxVisible(): number {
+    const parsed = Number(this.getAttribute('max-visible'));
+    if (!Number.isFinite(parsed)) return 5;
+    return Math.max(1, Math.trunc(parsed));
+  }
+
+  private _trimVisibleToasts(): void {
+    const visible = this._toasts.filter((entry) => !entry.closing);
+    const maxVisible = this._maxVisible();
+    if (visible.length <= maxVisible) return;
+
+    const removable = [...visible]
+      .sort((a, b) => a.createdAt - b.createdAt)
+      .slice(0, visible.length - maxVisible);
+
+    removable.forEach((entry) => this.hide(entry.id));
+  }
+
+  private _scheduleAutoHide(id: number, duration: number): void {
+    this._clearToastTimer(id);
+    if (duration <= 0) return;
+
+    const startedAt = Date.now();
+    const timeout = setTimeout(() => {
+      this._timerMap.delete(id);
+      this.hide(id);
+    }, duration);
+
+    this._timerMap.set(id, { timeout, startedAt, remaining: duration, paused: false });
+  }
+
+  private _pauseToast(id: number): void {
+    const timer = this._timerMap.get(id);
+    if (!timer) return;
+    if (timer.paused) return;
+
+    clearTimeout(timer.timeout);
+    const elapsed = Date.now() - timer.startedAt;
+    timer.remaining = Math.max(0, timer.remaining - elapsed);
+    timer.paused = true;
+    this._timerMap.set(id, timer);
+  }
+
+  private _resumeToast(id: number): void {
+    const timer = this._timerMap.get(id);
+    if (!timer) return;
+    if (!timer.paused) return;
+
+    const nextDuration = Math.max(0, timer.remaining);
+    this._scheduleAutoHide(id, nextDuration);
+  }
+
+  private _clearToastTimer(id: number): void {
+    const timer = this._timerMap.get(id);
+    if (timer) {
+      clearTimeout(timer.timeout);
+      this._timerMap.delete(id);
+    }
+
+    const exit = this._exitMap.get(id);
+    if (exit) {
+      clearTimeout(exit);
+      this._exitMap.delete(id);
     }
   }
 
-  _clearAllTimeouts() {
-    for (const timeout of this._timeoutMap.values()) {
-      clearTimeout(timeout);
-    }
-    this._timeoutMap.clear();
+  private _clearAllTimers(): void {
+    for (const timer of this._timerMap.values()) clearTimeout(timer.timeout);
+    this._timerMap.clear();
+
+    for (const timeout of this._exitMap.values()) clearTimeout(timeout);
+    this._exitMap.clear();
   }
 
-  private _handleRootClick(e: Event) {
-    const target = e.target as HTMLElement | null;
+  private _closestToastId(target: EventTarget | null): number | null {
+    const element = target instanceof HTMLElement ? target : null;
+    const toast = element?.closest('.toast[data-toast-id]') as HTMLElement | null;
+    if (!toast) return null;
+    const id = Number(toast.getAttribute('data-toast-id'));
+    return Number.isFinite(id) ? id : null;
+  }
+
+  private _handleRootClick(event: Event): void {
+    const target = event.target as HTMLElement | null;
     if (!target) return;
     const closeBtn = target.closest('button.close[data-toast-id]') as HTMLButtonElement | null;
     if (!closeBtn) return;
+
+    event.preventDefault();
     const id = Number(closeBtn.getAttribute('data-toast-id'));
     if (!Number.isNaN(id)) this.hide(id);
   }
 
-  protected render() {
+  private _handleRootMouseEnter(event: Event): void {
+    const id = this._closestToastId(event.target);
+    if (id == null) return;
+    this._pauseToast(id);
+  }
+
+  private _handleRootMouseLeave(event: Event): void {
+    const id = this._closestToastId(event.target);
+    if (id == null) return;
+    const currentToast = (event.target as HTMLElement | null)?.closest('.toast[data-toast-id]') as HTMLElement | null;
+    const next = (event as MouseEvent).relatedTarget as Node | null;
+    if (next && currentToast?.contains(next)) return;
+    this._resumeToast(id);
+  }
+
+  private _handleRootFocusIn(event: Event): void {
+    const id = this._closestToastId(event.target);
+    if (id == null) return;
+    this._pauseToast(id);
+  }
+
+  private _handleRootFocusOut(event: Event): void {
+    const id = this._closestToastId(event.target);
+    if (id == null) return;
+
+    const next = (event as FocusEvent).relatedTarget as Node | null;
+    const currentToast = (event.target as HTMLElement | null)?.closest('.toast[data-toast-id]') as HTMLElement | null;
+    if (next && currentToast?.contains(next)) return;
+
+    this._resumeToast(id);
+  }
+
+  protected override render(): void {
     this.setContent(`
       <style>${style}</style>
-      <div class="toast-list" aria-live="polite">
-        ${this._toasts.map(toast => `
-          <div class="toast show" role="status" aria-live="${toast.ariaLive}" tabindex="0">
-            <span>${escapeHtml(toast.message)}</span>
-            <button class="close" data-toast-id="${toast.id}" aria-label="Close">&times;</button>
-          </div>
-        `).join('')}
+      <div class="toast-list" aria-live="polite" part="list">
+        ${this._toasts.map((toast) => {
+          const role = toast.ariaLive === 'assertive' || toast.tone === 'error' ? 'alert' : 'status';
+          const meta = toast.duration > 0 ? '<span class="meta" part="meta">Auto-dismiss</span>' : '<span class="meta" part="meta">Persistent</span>';
+
+          return `
+            <article
+              class="toast show${toast.closing ? ' closing' : ''}"
+              part="toast"
+              data-toast-id="${toast.id}"
+              data-tone="${toast.tone}"
+              role="${role}"
+              aria-live="${toast.ariaLive}"
+              tabindex="0"
+            >
+              <span class="message" part="message">${escapeHtml(toast.message)}</span>
+              ${meta}
+              <button class="close" part="close" data-toast-id="${toast.id}" aria-label="Close notification" type="button">
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </article>
+          `;
+        }).join('')}
       </div>
     `);
   }
 
   protected override shouldRenderOnAttributeChange(
-    _name: string,
-    _oldValue: string | null,
-    _newValue: string | null
+    name: string,
+    oldValue: string | null,
+    newValue: string | null
   ): boolean {
-    return true;
+    if (oldValue === newValue) return false;
+    return name === 'headless' || name === 'position' || name === 'max-visible';
   }
 }
 

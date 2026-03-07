@@ -1,4 +1,7 @@
-import React, { useEffect, useImperativeHandle, useRef } from 'react';
+import React, { useEffect, useLayoutEffect, useImperativeHandle, useRef } from 'react';
+
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
+import { serializeTranslations } from './_internals';
 
 export type DatePickerDetail = {
   mode: 'single';
@@ -6,6 +9,8 @@ export type DatePickerDetail = {
   displayValue: string;
   source: string;
 };
+
+export type DatePickerState = 'idle' | 'loading' | 'error' | 'success';
 
 export type DatePickerProps = Omit<React.HTMLAttributes<HTMLElement>, 'onChange' | 'onInput'> & {
   value?: string;
@@ -15,9 +20,13 @@ export type DatePickerProps = Omit<React.HTMLAttributes<HTMLElement>, 'onChange'
   min?: string;
   max?: string;
   locale?: string;
+  translations?: Record<string, string> | string;
   weekStart?: 0 | 1 | 6;
   size?: 'sm' | 'md' | 'lg';
+  shape?: 'default' | 'square' | 'soft';
+  bare?: boolean;
   variant?: 'default' | 'contrast';
+  state?: DatePickerState;
   placeholder?: string;
   label?: string;
   hint?: string;
@@ -31,6 +40,7 @@ export type DatePickerProps = Omit<React.HTMLAttributes<HTMLElement>, 'onChange'
   required?: boolean;
   name?: string;
   mode?: 'popover' | 'inline';
+  showFooter?: boolean;
   events?: Array<{ date: string; title?: string; tone?: 'default' | 'success' | 'warning' | 'danger' | 'info' }>;
   eventsMax?: number;
   eventsDisplay?: 'dots' | 'badges' | 'count';
@@ -53,9 +63,13 @@ export const DatePicker = React.forwardRef<HTMLElement, DatePickerProps>(functio
     min,
     max,
     locale,
+    translations,
     weekStart,
     size,
+    shape,
+    bare,
     variant,
+    state,
     placeholder,
     label,
     hint,
@@ -69,6 +83,7 @@ export const DatePicker = React.forwardRef<HTMLElement, DatePickerProps>(functio
     required,
     name,
     mode,
+    showFooter,
     events,
     eventsMax,
     eventsDisplay,
@@ -123,7 +138,7 @@ export const DatePicker = React.forwardRef<HTMLElement, DatePickerProps>(functio
     };
   }, [onInput, onChange, onValueChange, onOpen, onClose, onInvalid]);
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
     const syncAttr = (name: string, next: string | null) => {
@@ -147,9 +162,13 @@ export const DatePicker = React.forwardRef<HTMLElement, DatePickerProps>(functio
     syncAttr('min', min ?? null);
     syncAttr('max', max ?? null);
     syncAttr('locale', locale ?? null);
+    syncAttr('translations', serializeTranslations(translations));
     syncAttr('week-start', typeof weekStart === 'number' ? String(weekStart) : null);
     syncAttr('size', size && size !== 'md' ? size : null);
+    syncAttr('shape', shape && shape !== 'default' ? shape : null);
+    syncBool('bare', bare);
     syncAttr('variant', variant && variant !== 'default' ? variant : null);
+    syncAttr('state', state && state !== 'idle' ? state : null);
     syncAttr('placeholder', placeholder ?? null);
     syncAttr('label', label ?? null);
     syncAttr('hint', hint ?? null);
@@ -163,6 +182,7 @@ export const DatePicker = React.forwardRef<HTMLElement, DatePickerProps>(functio
     syncBool('required', required);
     syncAttr('name', name ?? null);
     syncAttr('mode', mode && mode !== 'popover' ? mode : null);
+    syncAttr('show-footer', typeof showFooter === 'boolean' ? String(showFooter) : null);
     syncAttr('events-max', typeof eventsMax === 'number' ? String(eventsMax) : null);
     syncAttr('events-display', eventsDisplay && eventsDisplay !== 'dots' ? eventsDisplay : null);
     syncAttr('format', format && format !== 'locale' ? format : null);
@@ -184,9 +204,13 @@ export const DatePicker = React.forwardRef<HTMLElement, DatePickerProps>(functio
     min,
     max,
     locale,
+    translations,
     weekStart,
     size,
+    shape,
+    bare,
     variant,
+    state,
     placeholder,
     label,
     hint,
@@ -200,6 +224,7 @@ export const DatePicker = React.forwardRef<HTMLElement, DatePickerProps>(functio
     required,
     name,
     mode,
+    showFooter,
     events,
     eventsMax,
     eventsDisplay,
@@ -213,4 +238,3 @@ export const DatePicker = React.forwardRef<HTMLElement, DatePickerProps>(functio
 DatePicker.displayName = 'DatePicker';
 
 export default DatePicker;
-

@@ -80,6 +80,22 @@ const style = `
     --ui-toggle-group-padding: 8px;
   }
 
+  :host([shape="square"]) {
+    --ui-toggle-group-radius: 4px;
+  }
+
+  :host([shape="pill"]) {
+    --ui-toggle-group-radius: 999px;
+  }
+
+  :host([elevation="none"]) {
+    --ui-toggle-group-shadow: none;
+  }
+
+  :host([disabled]) .group {
+    opacity: 0.6;
+  }
+
   :host([headless]) .group {
     display: none;
   }
@@ -106,6 +122,17 @@ const style = `
   }
 `;
 
+const STRUCTURE_ATTRS = new Set(['multiple', 'orientation', 'aria-label', 'required', 'disabled']);
+
+function escapeHtml(value: string): string {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 function parseMaybeJson(value: string): unknown {
   try {
     return JSON.parse(value);
@@ -119,13 +146,15 @@ function normalizeValue(raw: string | null, multiple: boolean): GroupValue {
   if (!raw) return [];
 
   const parsed = parseMaybeJson(raw);
-  if (Array.isArray(parsed)) return parsed.map((entry) => String(entry));
+  if (Array.isArray(parsed)) {
+    return Array.from(new Set(parsed.map((entry) => String(entry)).filter(Boolean)));
+  }
 
   if (raw.includes(',')) {
-    return raw
+    return Array.from(new Set(raw
       .split(',')
       .map((entry) => entry.trim())
-      .filter(Boolean);
+      .filter(Boolean)));
   }
 
   return [raw];
@@ -147,6 +176,8 @@ export class UIToggleGroup extends ElementBase {
       'variant',
       'size',
       'density',
+      'shape',
+      'elevation',
       'allow-empty',
       'required',
       'activation',
@@ -168,8 +199,12 @@ export class UIToggleGroup extends ElementBase {
     this.addEventListener('change', this._onToggleEvent as EventListener);
     this.addEventListener('keydown', this._onKeyDown as EventListener);
 
-    this._observer = new MutationObserver(() => {
+    this._observer = new MutationObserver((records) => {
       if (this._isSyncing) return;
+      records.forEach((record) => {
+        if (record.type !== 'childList' || record.removedNodes.length === 0) return;
+        record.removedNodes.forEach((node) => this._clearGroupFlagsFromNode(node));
+      });
       this._syncChildren();
     });
 
@@ -184,9 +219,22 @@ export class UIToggleGroup extends ElementBase {
     this._syncChildren();
   }
 
+  override attributeChangedCallback(name: string, oldValue: string | null, newValue: string | null): void {
+    if (oldValue === newValue) return;
+    if (STRUCTURE_ATTRS.has(name)) {
+      if (!this.root.querySelector('.group')) {
+        this.requestRender();
+        return;
+      }
+      this._syncGroupA11y();
+    }
+    this._syncChildren();
+  }
+
   override disconnectedCallback(): void {
     this.removeEventListener('change', this._onToggleEvent as EventListener);
     this.removeEventListener('keydown', this._onKeyDown as EventListener);
+    this._toggles().forEach((toggle) => this._clearGroupFlags(toggle));
     if (this._observer) {
       this._observer.disconnect();
       this._observer = null;
@@ -226,6 +274,21 @@ export class UIToggleGroup extends ElementBase {
     return toggle.getAttribute('value') || toggle.getAttribute('data-value') || toggle.textContent?.trim() || String(index);
   }
 
+  private _clearGroupFlags(toggle: HTMLElement): void {
+    if (toggle.hasAttribute('data-group-item')) toggle.removeAttribute('data-group-item');
+    if (toggle.hasAttribute('data-group-disabled')) toggle.removeAttribute('data-group-disabled');
+    if (toggle.hasAttribute('role')) toggle.removeAttribute('role');
+    if (toggle.hasAttribute('aria-checked')) toggle.removeAttribute('aria-checked');
+    (toggle as any)._syncAria?.();
+  }
+
+  private _clearGroupFlagsFromNode(node: Node): void {
+    if (!(node instanceof HTMLElement)) return;
+    if (node.matches('ui-toggle')) this._clearGroupFlags(node);
+    const nested = Array.from(node.querySelectorAll('ui-toggle')) as HTMLElement[];
+    nested.forEach((toggle) => this._clearGroupFlags(toggle));
+  }
+
   private _selectedSet(): Set<string> {
     const values = this.value;
     if (Array.isArray(values)) return new Set(values.map((entry) => String(entry)));
@@ -261,6 +324,7 @@ export class UIToggleGroup extends ElementBase {
     const toggles = this._toggles();
     const disabledGroup = this.hasAttribute('disabled');
     const selected = this._selectedSet();
+    const isMultiple = this.multiple;
     const setFlag = (toggle: HTMLElement, name: string, enabled: boolean) => {
       const hasAttr = toggle.hasAttribute(name);
       if (enabled && !hasAttr) toggle.setAttribute(name, '');
@@ -279,6 +343,7 @@ export class UIToggleGroup extends ElementBase {
         const value = this._toggleValue(toggle, index);
         const userDisabled = toggle.hasAttribute('data-disabled') || toggle.getAttribute('aria-disabled') === 'true';
         const shouldDisable = disabledGroup || userDisabled;
+        setFlag(toggle, 'data-group-item', true);
 
         if (shouldDisable) {
           setFlag(toggle, 'disabled', true);
@@ -290,6 +355,9 @@ export class UIToggleGroup extends ElementBase {
 
         const isPressed = selected.has(value);
         setFlag(toggle, 'pressed', isPressed);
+        setAttr(toggle, 'role', isMultiple ? 'checkbox' : 'radio');
+        setAttr(toggle, 'aria-checked', isPressed ? 'true' : 'false');
+
         if (isPressed) {
           if (activeIndex < 0) activeIndex = index;
         }
@@ -356,6 +424,7 @@ export class UIToggleGroup extends ElementBase {
     const currentIndex = enabled.indexOf(target);
     if (currentIndex < 0) return;
 
+    const rtl = this._isHorizontalRtl();
     const move = (nextIndex: number) => {
       const resolved = enabled[(nextIndex + enabled.length) % enabled.length];
       enabled.forEach((toggle) => toggle.setAttribute('tabindex', toggle === resolved ? '0' : '-1'));
@@ -365,13 +434,18 @@ export class UIToggleGroup extends ElementBase {
       }
     };
 
-    if ((orientation === 'horizontal' && event.key === 'ArrowRight') || (orientation === 'vertical' && event.key === 'ArrowDown')) {
+    const goNext = (orientation === 'horizontal' && ((event.key === 'ArrowRight' && !rtl) || (event.key === 'ArrowLeft' && rtl)))
+      || (orientation === 'vertical' && event.key === 'ArrowDown');
+    const goPrev = (orientation === 'horizontal' && ((event.key === 'ArrowLeft' && !rtl) || (event.key === 'ArrowRight' && rtl)))
+      || (orientation === 'vertical' && event.key === 'ArrowUp');
+
+    if (goNext) {
       event.preventDefault();
       move(currentIndex + 1);
       return;
     }
 
-    if ((orientation === 'horizontal' && event.key === 'ArrowLeft') || (orientation === 'vertical' && event.key === 'ArrowUp')) {
+    if (goPrev) {
       event.preventDefault();
       move(currentIndex - 1);
       return;
@@ -393,10 +467,20 @@ export class UIToggleGroup extends ElementBase {
     const role = this.multiple ? 'group' : 'radiogroup';
     const orientation = this.getAttribute('orientation') === 'vertical' ? 'vertical' : 'horizontal';
     const ariaLabel = this.getAttribute('aria-label') || 'Toggle group';
+    const required = this.hasAttribute('required');
+    const disabled = this.hasAttribute('disabled');
 
     this.setContent(`
       <style>${style}</style>
-      <div class="group" part="group" role="${role}" aria-label="${ariaLabel}" aria-orientation="${orientation}">
+      <div
+        class="group"
+        part="group"
+        role="${role}"
+        aria-label="${escapeHtml(ariaLabel)}"
+        aria-orientation="${orientation}"
+        aria-disabled="${disabled ? 'true' : 'false'}"
+        aria-required="${required ? 'true' : 'false'}"
+      >
         <slot></slot>
       </div>
     `);
@@ -404,12 +488,35 @@ export class UIToggleGroup extends ElementBase {
     this._syncChildren();
   }
 
+  private _syncGroupA11y(): void {
+    const group = this.root.querySelector('.group') as HTMLElement | null;
+    if (!group) return;
+    const role = this.multiple ? 'group' : 'radiogroup';
+    const orientation = this.getAttribute('orientation') === 'vertical' ? 'vertical' : 'horizontal';
+    const ariaLabel = this.getAttribute('aria-label') || 'Toggle group';
+    const required = this.hasAttribute('required');
+    const disabled = this.hasAttribute('disabled');
+    if (group.getAttribute('role') !== role) group.setAttribute('role', role);
+    if (group.getAttribute('aria-label') !== ariaLabel) group.setAttribute('aria-label', ariaLabel);
+    if (group.getAttribute('aria-orientation') !== orientation) group.setAttribute('aria-orientation', orientation);
+    group.setAttribute('aria-disabled', disabled ? 'true' : 'false');
+    group.setAttribute('aria-required', required ? 'true' : 'false');
+  }
+
+  private _isHorizontalRtl(): boolean {
+    if (this.getAttribute('orientation') === 'vertical') return false;
+    const ownDir = this.getAttribute('dir');
+    if (ownDir) return ownDir.toLowerCase() === 'rtl';
+    if (typeof window === 'undefined') return false;
+    return window.getComputedStyle(this).direction === 'rtl';
+  }
+
   protected override shouldRenderOnAttributeChange(
     _name: string,
     _oldValue: string | null,
     _newValue: string | null
   ): boolean {
-    return true;
+    return false;
   }
 }
 
